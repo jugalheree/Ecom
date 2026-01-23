@@ -41,14 +41,14 @@ export default function Navbar() {
 
           {token ? (
             <>
-              {role === "vendor" && (
+              {/* {role === "vendor" && (
                 <Button
                   variant="outline"
                   onClick={() => navigate("/dashboard")}
                 >
                   Vendor Panel
                 </Button>
-              )}
+              )} */}
 
               {role === "buyer" && (
                 <Button variant="outline" onClick={() => navigate("/buyer")}>

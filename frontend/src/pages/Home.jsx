@@ -1,6 +1,8 @@
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
+import HowItWorks from "./HowItWorks";
+import BuyerVendorSection from "./BuyerVendorSection";
 
 export default function Home() {
   return (
@@ -72,7 +74,10 @@ export default function Home() {
               Vendors can trade stock, manage alerts, and expand supply chains.
             </p>
           </Card>
+          
         </div>
+        <HowItWorks />
+        <BuyerVendorSection />
       </section>
     </div>
   );
