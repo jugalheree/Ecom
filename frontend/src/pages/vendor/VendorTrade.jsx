@@ -1,111 +1,173 @@
 import { useState } from "react";
-import VendorLayout from "../../components/layout/VendorLayout";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
-import Badge from "../../components/ui/Badge";
+import { useNavigate } from "react-router-dom";
 
 export default function VendorTrade() {
-  const [vendors] = useState([
-    { id: 1, name: "TechWorld Suppliers" },
-    { id: 2, name: "Gadget Hub" },
-    { id: 3, name: "ElectroMart" },
+  const navigate = useNavigate();
+
+  const [orders, setOrders] = useState([
+    {
+      id: 1,
+      buyer: "Aman Patel",
+      total: 7498,
+      status: "Pending",
+      items: [
+        { name: "Wireless Headphones", qty: 2 },
+        { name: "Bluetooth Speaker", qty: 1 },
+      ],
+      date: "24 Jan 2026",
+    },
+    {
+      id: 2,
+      buyer: "Neha Shah",
+      total: 4999,
+      status: "Accepted",
+      items: [{ name: "Smart Watch", qty: 1 }],
+      date: "23 Jan 2026",
+    },
   ]);
 
-  const [requests, setRequests] = useState([
-    { id: 1, from: "Gadget Hub", product: "Smart Watch", qty: 5, status: "pending" },
-  ]);
+  const updateStatus = (id, status) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, status } : o))
+    );
+  };
 
-  const [form, setForm] = useState({
-    vendor: "",
-    product: "",
-    qty: "",
-  });
+  const statusColor = (status) => {
+    if (status === "Pending") return "bg-yellow-100 text-yellow-700";
+    if (status === "Accepted") return "bg-blue-100 text-blue-700";
+    if (status === "Shipped") return "bg-purple-100 text-purple-700";
+    if (status === "Completed") return "bg-green-100 text-green-700";
+  };
 
-  function sendRequest() {
-    if (!form.vendor || !form.product || !form.qty) return;
-
-    setRequests([
-      {
-        id: Date.now(),
-        from: form.vendor,
-        product: form.product,
-        qty: form.qty,
-        status: "pending",
-      },
-      ...requests,
-    ]);
-
-    setForm({ vendor: "", product: "", qty: "" });
-  }
+  const pendingCount = orders.filter((o) => o.status === "Pending").length;
 
   return (
-    <VendorLayout>
-      <h1>Vendor Trading</h1>
-      <p className="text-slate-600 mt-1">
-        Request stock directly from other vendors.
-      </p>
+    <div className="p-8 grid lg:grid-cols-3 gap-8">
 
-      {/* REQUEST FORM */}
-      <Card className="mt-6 max-w-md space-y-3">
-        <h3>Create trade request</h3>
+      {/* LEFT SIDE - ORDERS */}
+      <div className="lg:col-span-2 space-y-6">
+        <div>
+          <h1 className="text-3xl font-semibold">Vendor Trade</h1>
+          <p className="text-slate-600 mt-1">
+            Manage incoming orders and trading activity.
+          </p>
+        </div>
 
-        <select
-          className="border rounded-lg px-3 py-2 w-full"
-          value={form.vendor}
-          onChange={(e) => setForm({ ...form, vendor: e.target.value })}
-        >
-          <option value="">Select vendor</option>
-          {vendors.map((v) => (
-            <option key={v.id} value={v.name}>
-              {v.name}
-            </option>
-          ))}
-        </select>
+        {orders.map((order) => (
+          <Card key={order.id} className="p-6 space-y-5">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-slate-500">
+                  Order #{order.id} • {order.date}
+                </p>
+                <h3 className="font-semibold text-lg mt-1">
+                  {order.buyer}
+                </h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  Total: ₹{order.total}
+                </p>
+              </div>
 
-        <Input
-          label="Product name"
-          value={form.product}
-          onChange={(e) => setForm({ ...form, product: e.target.value })}
-        />
-
-        <Input
-          label="Quantity"
-          type="number"
-          value={form.qty}
-          onChange={(e) => setForm({ ...form, qty: e.target.value })}
-        />
-
-        <Button onClick={sendRequest}>Send Request</Button>
-      </Card>
-
-      {/* REQUEST LIST */}
-      <div className="mt-10 space-y-4 max-w-2xl">
-        <h3>Trade requests</h3>
-
-        {requests.map((r) => (
-          <Card key={r.id} className="flex justify-between items-center">
-            <div>
-              <p className="font-medium">{r.from}</p>
-              <p className="text-sm text-slate-600">
-                {r.product} × {r.qty}
-              </p>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor(
+                  order.status
+                )}`}
+              >
+                {order.status}
+              </span>
             </div>
 
-            <Badge
-              type={
-                r.status === "pending"
-                  ? "warning"
-                  : r.status === "accepted"
-                  ? "success"
-                  : "danger"
-              }
-            >
-              {r.status}
-            </Badge>
+            <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+              {order.items.map((item, i) => (
+                <div key={i} className="flex justify-between text-sm">
+                  <span>
+                    {item.name} × {item.qty}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-2">
+              {order.status === "Pending" && (
+                <>
+                  <Button onClick={() => updateStatus(order.id, "Accepted")}>
+                    Accept order
+                  </Button>
+                  <Button variant="outline">Reject</Button>
+                </>
+              )}
+
+              {order.status === "Accepted" && (
+                <Button onClick={() => updateStatus(order.id, "Shipped")}>
+                  Mark as shipped
+                </Button>
+              )}
+
+              {order.status === "Shipped" && (
+                <Button onClick={() => updateStatus(order.id, "Completed")}>
+                  Mark as completed
+                </Button>
+              )}
+
+              {order.status === "Completed" && (
+                <span className="text-green-600 font-medium text-sm">
+                  Trade successfully completed ✔
+                </span>
+              )}
+            </div>
           </Card>
         ))}
       </div>
-    </VendorLayout>
+
+      {/* RIGHT SIDE - QUICK ACTIONS */}
+      <div className="space-y-6">
+
+        {/* SUMMARY */}
+        <Card className="p-5">
+          <h3 className="font-semibold text-lg">Trade summary</h3>
+          <div className="mt-4 space-y-2 text-sm text-slate-600">
+            <p>Total orders: {orders.length}</p>
+            <p className="text-yellow-700 font-medium">
+              Pending orders: {pendingCount}
+            </p>
+          </div>
+        </Card>
+
+        {/* QUICK ACTIONS */}
+        <Card className="p-5 space-y-4 sticky top">
+          <h3 className="font-semibold text-lg">Quick actions</h3>
+
+          <Button className="w-full" onClick={() => navigate("/vendor/products")}>
+            Manage products
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate("/vendor/stock")}
+          >
+            Manage stock
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate("/vendor/reports")}
+          >
+            View reports
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate("/vendor/dashboard")}
+          >
+            Vendor dashboard
+          </Button>
+        </Card>
+      </div>
+    </div>
   );
 }

@@ -1,9 +1,11 @@
 import { create } from "zustand";
 
+const savedAuth = JSON.parse(localStorage.getItem("auth"));
+
 export const useAuthStore = create((set) => ({
-  user: JSON.parse(localStorage.getItem("auth"))?.user || null,
-  token: JSON.parse(localStorage.getItem("auth"))?.token || null,
-  role: JSON.parse(localStorage.getItem("auth"))?.role || null,
+  user: savedAuth?.user || null,
+  token: savedAuth?.token || null,
+  role: savedAuth?.role || null, // "buyer" | "vendor"
 
   login: (data) => {
     localStorage.setItem("auth", JSON.stringify(data));

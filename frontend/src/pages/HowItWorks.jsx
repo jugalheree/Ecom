@@ -23,7 +23,7 @@ export default function HowItWorks() {
 
           <div className="grid md:grid-cols-4 gap-6">
             <Card className="p-6">
-              <p className="text-sm text-blue-600 font-medium">Step 1</p>
+              <p className="text-sm text-green-600 font-medium">Step 1</p>
               <h4 className="font-semibold mt-2">Discover products</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                 Browse AI-verified products from trusted vendors across categories.
@@ -31,7 +31,7 @@ export default function HowItWorks() {
             </Card>
 
             <Card className="p-6">
-              <p className="text-sm text-blue-600 font-medium">Step 2</p>
+              <p className="text-sm text-green-600 font-medium">Step 2</p>
               <h4 className="font-semibold mt-2">Pay securely</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                 Payments go into escrow wallet to protect both buyer and seller.
@@ -39,7 +39,7 @@ export default function HowItWorks() {
             </Card>
 
             <Card className="p-6">
-              <p className="text-sm text-blue-600 font-medium">Step 3</p>
+              <p className="text-sm text-green-600 font-medium">Step 3</p>
               <h4 className="font-semibold mt-2">Track orders</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                 Monitor delivery, vendor actions, and order progress in real time.
@@ -47,7 +47,7 @@ export default function HowItWorks() {
             </Card>
 
             <Card className="p-6">
-              <p className="text-sm text-blue-600 font-medium">Step 4</p>
+              <p className="text-sm text-green-600 font-medium">Step 4</p>
               <h4 className="font-semibold mt-2">Release payment</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                 Funds are released only after successful order completion.

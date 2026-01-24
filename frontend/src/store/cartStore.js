@@ -22,5 +22,13 @@ export const useCartStore = create((set, get) => ({
     set({ cart: get().cart.filter((p) => p.id !== id) });
   },
 
+  updateQty: (id, qty) =>
+    set((state) => ({
+      cart: state.cart.map((item) =>
+        item.id === id ? { ...item, qty } : item
+      ),
+    })),
+  
+
   clearCart: () => set({ cart: [] }),
 }));

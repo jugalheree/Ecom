@@ -1,11 +1,11 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "../pages/Home";
-import Market from "../pages/Market";
+import Market from "../pages/buyer/Market";
 import ProductDetail from "../pages/ProductDetail";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
-import BuyerDashboard from "../pages/BuyerDashboard";
-import VendorDashboard from "../pages/VendorDashboard";
+import BuyerDashboard from "../pages/buyer/BuyerDashboard";
+import VendorDashboard from "../pages/vendor/VendorDashboard";
 import ProtectedRoute from "./ProtectedRoute";
 import Cart from "../pages/Cart";
 import Checkout from "../pages/Checkout";
@@ -84,6 +84,9 @@ export default function AppRoutes() {
       <Route path="/wallet" element={<Wallet />} />
       <Route path="/wishlist" element={<Wishlist />} />
       <Route path="/orders" element={<Orders />} />
+      <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+      <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+
 
 
     </Routes>

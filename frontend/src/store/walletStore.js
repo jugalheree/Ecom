@@ -5,32 +5,55 @@ export const useWalletStore = create((set) => ({
   held: 0,
   transactions: [],
 
-  holdAmount: (amount) =>
-    set((state) => ({
-      balance: state.balance - amount,
-      held: state.held + amount,
+  addMoney: (amount) =>
+    set((s) => ({
+      balance: s.balance + amount,
       transactions: [
         {
-          id: Date.now(),
-          type: "hold",
-          amount,
-          note: "Amount held in escrow",
+          title: "Money added",
+          amount: amount,
+          date: new Date().toLocaleString(),
         },
-        ...state.transactions,
+        ...s.transactions,
       ],
     })),
 
-  addMoney: (amount) =>
-    set((state) => ({
-      balance: state.balance + amount,
+  withdrawMoney: (amount) =>
+    set((s) => ({
+      balance: s.balance - amount,
       transactions: [
         {
-          id: Date.now(),
-          type: "add",
-          amount,
-          note: "Money added to wallet",
+          title: "Money withdrawn",
+          amount: -amount,
+          date: new Date().toLocaleString(),
         },
-        ...state.transactions,
+        ...s.transactions,
+      ],
+    })),
+
+  holdAmount: (amount) =>
+    set((s) => ({
+      held: s.held + amount,
+      transactions: [
+        {
+          title: "Amount held in escrow",
+          amount: -amount,
+          date: new Date().toLocaleString(),
+        },
+        ...s.transactions,
+      ],
+    })),
+
+  releaseAmount: (amount) =>
+    set((s) => ({
+      held: s.held - amount,
+      transactions: [
+        {
+          title: "Escrow released",
+          amount: amount,
+          date: new Date().toLocaleString(),
+        },
+        ...s.transactions,
       ],
     })),
 }));
