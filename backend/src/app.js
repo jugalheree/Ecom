@@ -17,6 +17,8 @@ app.use(express.static('public'));
 app.use(cookieParser());
 
 
+import authRoutes from './routes/auth.routes.js';
+app.use('/api/auth', authRoutes);
 
 
 import { ApiError } from "./utils/ApiError.js";
