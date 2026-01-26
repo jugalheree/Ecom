@@ -1,6 +1,11 @@
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Badge from "../components/ui/Badge";
+import HowItWorks from "./HowItWorks";
+import BuyerVendorSection from "./BuyerVendorSection";
+import PlatformStats from "./PlatformStats";
+import TrustArchitecture from "./TrustArchitecture";
+import FinalCTA from "./FinalCTA";
 
 export default function Home() {
   return (
@@ -29,10 +34,10 @@ export default function Home() {
       </section>
 
       {/* TRUST STRIP */}
-      <section className="border-y bg-white">
+      <section className="border-y bg-green-600">
         <div className="container-app py-10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {["Secure Wallet", "AI Verified Products", "B2B & B2C", "Vendor Trading"].map((t) => (
-            <div key={t} className="font-semibold text-slate-700">{t}</div>
+            <div key={t} className="font-semibold text-white">{t}</div>
           ))}
         </div>
       </section>
@@ -72,7 +77,13 @@ export default function Home() {
               Vendors can trade stock, manage alerts, and expand supply chains.
             </p>
           </Card>
+          
         </div>
+        <HowItWorks />
+        <BuyerVendorSection />
+        <PlatformStats />
+        <TrustArchitecture />
+        <FinalCTA />
       </section>
     </div>
   );

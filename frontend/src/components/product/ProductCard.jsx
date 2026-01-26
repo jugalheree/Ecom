@@ -1,55 +1,70 @@
+import { Link, useNavigate } from "react-router-dom";
 import Card from "../ui/Card";
-import Button from "../ui/Button";
-import Badge from "../ui/Badge";
-import { Link } from "react-router-dom";
+import { useCartStore } from "../../store/cartStore";
 import { useWishlistStore } from "../../store/wishlistStore";
-import { useToastStore } from "../../store/toastStore";
-
 
 export default function ProductCard({ product }) {
+  const addToCart = useCartStore((s) => s.addToCart);
+  const navigate = useNavigate();
+
+  const wishlist = useWishlistStore((s) => s.wishlist);
   const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
-  const isWishlisted = useWishlistStore((s) => s.isWishlisted);
-  const showToast = useToastStore((s) => s.showToast);
 
+  const isWishlisted = wishlist.some((p) => p.id === product.id);
 
-  const liked = isWishlisted(product.id);
+  const handleBuyNow = () => {
+    addToCart(product);
+    navigate("/checkout");
+  };
 
   return (
-    <Card className="p-3 flex flex-col hover:shadow-md transition relative">
-      {/* HEART */}
+    <Card className="p-3 hover:shadow-md transition relative">
+
+      {/* WISHLIST ICON */}
       <button
-        className="absolute top-2 right-2 text-xl"
-        onClick={() => {
-          toggleWishlist({
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            ai: product.ai,
-          });
-        
-          showToast({
-            type: liked ? "info" : "success",
-            message: liked ? "Removed from wishlist" : "Added to wishlist",
-          });
-        }}
-        
+        onClick={() => toggleWishlist(product)}
+        className="absolute top-3 right-3 text-lg"
+        title="Add to wishlist"
       >
-        {liked ? "❤️" : "🤍"}
+        {isWishlisted ? "❤️" : "🤍"}
       </button>
 
-      <div className="h-36 bg-slate-100 rounded-lg mb-3 flex items-center justify-center text-slate-400 text-sm">
-        Product image
+      {/* IMAGE */}
+      <div className="h-36 rounded-lg bg-slate-100 mb-2 flex items-center justify-center text-slate-400 text-xs">
+        Image
       </div>
 
-      <h3 className="text-sm font-semibold">{product.name}</h3>
+      {/* INFO */}
+      <h3 className="font-medium text-sm leading-snug line-clamp-2">
+        {product.name}
+      </h3>
 
-      <div className="flex items-center justify-between mt-2">
-        <span className="font-bold">₹{product.price}</span>
-        <Badge type="info">AI {product.ai}</Badge>
+      <p className="text-xs text-slate-500 mt-0.5">
+        AI {product.ai} • ₹{product.price}
+      </p>
+
+      {/* ACTIONS */}
+      <div className="flex gap-2 mt-3">
+        <button
+          onClick={() => addToCart(product)}
+          className="flex-1 text-xs font-medium py-2 rounded-md bg-slate-900 text-white hover:bg-slate-800 transition"
+        >
+          Add
+        </button>
+
+        <button
+          onClick={handleBuyNow}
+          className="flex-1 text-xs py-2 rounded-md border hover:bg-slate-50 transition"
+        >
+          Buy
+        </button>
       </div>
 
-      <Link to={`/product/${product.id}`}>
-        <Button className="mt-3 text-sm w-full">View</Button>
+      <Link
+        to={`/product/${product.id}`}
+        className="block text-center text-[11px] text-slate-500 hover:text-slate-800 mt-2"
+      >
+        View
       </Link>
     </Card>
   );
