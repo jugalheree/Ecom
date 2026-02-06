@@ -12,7 +12,10 @@ const vendorVerificationSchema = new mongoose.Schema(
     },
 
     adminRemark: String,
-    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    verifiedBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "User" 
+    },
   },
   { timestamps: true }
 );

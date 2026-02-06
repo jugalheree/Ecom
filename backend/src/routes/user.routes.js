@@ -5,6 +5,6 @@ import { createAddress } from "../controllers/user.controller.js";
 
 const router = Router();
 
-router.route('/address').post(verifyJWT, authorizeRoles("BUYER"), createAddress);
+router.route('/address').post(verifyJWT, createAddress);
 
 export default router;
