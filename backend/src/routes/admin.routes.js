@@ -2,6 +2,7 @@ import { Router } from "express";
 import { approveVendor, getPendingVendors, rejectVendor } from "../controllers/admin.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
+import { createCategory } from "../controllers/category.controller.js";
 
 const router = Router();
 
@@ -9,5 +10,6 @@ const router = Router();
 router.route("/vendors/pending").get(verifyJWT, authorizeRoles("ADMIN"), getPendingVendors);
 router.route("/vendors/:vendorId/approve").patch(verifyJWT, authorizeRoles("ADMIN"), approveVendor);
 router.route("/vendors/:vendorId/reject").patch(verifyJWT, authorizeRoles("ADMIN"), rejectVendor);
+router.route("/category").post(verifyJWT, authorizeRoles("ADMIN"), createCategory);
 
 export default router;

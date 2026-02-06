@@ -61,8 +61,8 @@ const userSchema = new mongoose.Schema(
 
     lastLoginAt: Date,
 
-    refreshToken: { 
-        type: String 
+    refreshToken: {
+        type: String
     },
 
   },

@@ -21,12 +21,14 @@ import authRoutes from './routes/auth.routes.js';
 import vendorRoutes from './routes/vendor.routes.js';
 import userRoutes from './routes/user.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import categoryRoutes from './routes/category.routes.js';
 
 app.use('/api/auth/admin', adminRoutes);
-
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/vendor', vendorRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/category', categoryRoutes);
 
 
 import { ApiError } from "./utils/ApiError.js";
