@@ -63,6 +63,10 @@ export const createVendorProfile = asyncHandler(async (req, res) => {
   });
 
   const user = await User.findById(userId);
+  if (user) {
+    user.role = "VENDOR";
+    await user.save();
+  }
 
   return res
     .status(201)

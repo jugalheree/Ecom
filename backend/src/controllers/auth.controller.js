@@ -8,6 +8,7 @@ import { generateTokensForUser } from "../utils/token.js";
 
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, phone, password, role, isB2B } = req.body;
+
   console.log(req.body);
 
   if (!name || !password || !role) {
@@ -26,6 +27,8 @@ export const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(409, "User already exists");
   }
 
+
+
   const user = await User.create({
     name,
     email,
@@ -40,33 +43,35 @@ export const registerUser = asyncHandler(async (req, res) => {
   );
 
   if (!createdUser) {
-        throw new ApiError(500, "User registration failed");
-}
+    throw new ApiError(500, "User registration failed");
+  }
 
-// Generate tokens
-    const { accessToken, refreshToken } = await generateTokensForUser(user._id);
+  console.log("Registered user hashed password: ", createdUser.password); // should be undefined due to select
 
-const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "development", // true in production, false in local
-        sameSite: "strict"
-    };
+  // Generate tokens
+  const { accessToken, refreshToken } = await generateTokensForUser(user._id);
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "development", // true in production, false in local
+    sameSite: "strict"
+  };
 
   return res
     .status(201)
     .cookie("accessToken", accessToken, cookieOptions)
-        .cookie("refreshToken", refreshToken, cookieOptions) // ✅ added refresh token in cookie too
-        .json(
-            new ApiResponse(
-                201,
-                {
-                    user: createdUser,
-                    accessToken, // also returning in body for frontend apps (like React)
-                    refreshToken
-                },
-                "User registered successfully"
-            )
-        );
+    .cookie("refreshToken", refreshToken, cookieOptions) // ✅ added refresh token in cookie too
+    .json(
+      new ApiResponse(
+        201,
+        {
+          user: createdUser,
+          accessToken, // also returning in body for frontend apps (like React)
+          refreshToken
+        },
+        "User registered successfully"
+      )
+    );
 });
 
 
@@ -78,13 +83,27 @@ const cookieOptions = {
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, phone, password } = req.body;
 
+
   if ((!email && !phone) || !password) {
     throw new ApiError(400, "Email/phone and password are required");
   }
 
-  const user = await User.findOne({
-    $or: [{ email }, { phone }],
-  });
+
+  console.log("Login attempt with email:", email);
+
+
+  let user;
+
+  if (email) {
+    user = await User.findOne({ email: email.trim().toLowerCase() });
+  } else if (phone) {
+    user = await User.findOne({ phone });
+  }
+
+
+  // const user = await User.findOne({
+  //   $or: [{ email }, { phone }],
+  // });
 
   if (!user) {
     throw new ApiError(401, "Invalid credentials");
@@ -95,8 +114,9 @@ export const loginUser = asyncHandler(async (req, res) => {
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
+  console.log("Password valid:", isPasswordValid, " password is : ", password);
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid credentials");
+    throw new ApiError(401, "Invalid credentials and password");
   }
 
   // ✅ reuse common token logic

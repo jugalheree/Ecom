@@ -5,7 +5,11 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { CategoryAttribute } from "../models/product/CategoryAttribute.js";
 
 export const createCategory = asyncHandler(async (req, res) => {
-  const { name, parentCategory = null, isLeaf = false } = req.body;
+  const {
+    name,
+    parentCategory = null,
+    isLeaf = false
+  } = req.body;
 
   if (!name) {
     throw new ApiError(400, "Category name is required");
@@ -147,14 +151,14 @@ export const createCategoryAttribute = asyncHandler(async (req, res) => {
 export const getCategoryAttributes = asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
 
-  if(!categoryId){
+  if (!categoryId) {
     throw new ApiError(400, "Category ID is required");
   }
 
   const attributes = await CategoryAttribute.find({
     categoryId,
     isActive: true,
-   }).sort({ createdAt: -1 });
+  }).sort({ createdAt: -1 });
 
   return res.status(200).json(
     new ApiResponse(
