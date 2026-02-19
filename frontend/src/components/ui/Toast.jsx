@@ -18,10 +18,10 @@ export default function ToastContainer() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`px-4 py-2 rounded-lg shadow-md text-white text-sm
-            ${t.type === "success" && "bg-green-600"}
-            ${t.type === "error" && "bg-red-600"}
-            ${t.type === "info" && "bg-blue-600"}
+          className={`px-5 py-3 rounded-xl shadow-card-hover text-white text-sm font-medium animate-fade-in
+            ${t.type === "success" && "bg-emerald-600"}
+            ${t.type === "error" && "bg-red-500"}
+            ${t.type === "info" && "bg-primary-600"}
           `}
         >
           {t.message}

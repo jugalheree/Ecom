@@ -17,105 +17,119 @@ export default function Cart() {
   const platformFee = Math.round(subtotal * 0.02);
   const total = subtotal + platformFee;
 
-  // EMPTY CART
+  // EMPTY STATE
   if (cart.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-24 text-center">
-        <h1 className="text-3xl font-semibold">Your cart is empty 🛒</h1>
-        <p className="text-slate-600 mt-2">
-          Browse the marketplace and add products to your cart.
-        </p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="container-app text-center">
 
-        <Link to="/market">
-          <Button className="mt-6">Explore marketplace</Button>
-        </Link>
+          <div className="text-6xl mb-6">🛒</div>
+
+          <h1 className="text-4xl font-display font-semibold text-stone-900">
+            Your cart is empty
+          </h1>
+
+          <p className="text-stone-600 mt-3 text-lg">
+            Browse the marketplace and add products to your cart.
+          </p>
+
+          <Link to="/market">
+            <Button className="mt-8 px-8 py-3">
+              Explore marketplace
+            </Button>
+          </Link>
+
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-16">
+    <div className="min-h-screen bg-white">
+      <div className="container-app py-12 space-y-10">
 
-      {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-semibold tracking-tight">Shopping Cart</h1>
-        <p className="text-slate-600 mt-2">
-          Review your items and proceed to checkout.
-        </p>
-      </div>
+        {/* Header */}
+        <div>
+          <h1 className="text-5xl mt-16 md:text-6xl font-display font-bold text-stone-900 mb-4">
+            Shopping cart
+          </h1>
+          <p className="text-xl text-stone-600">
+            Review your items and proceed to checkout.
+          </p>
+        </div>
 
-      {/* LAYOUT */}
-      <div className="grid md:grid-cols-3 gap-10">
+        <div className="grid lg:grid-cols-[1fr_420px] gap-10">
 
-        {/* CART ITEMS */}
-        <div className="md:col-span-2 space-y-6">
-          {cart.map((item) => (
-            <Card key={item.id} className="p-6 flex gap-6 items-center">
+          {/* Items */}
+          <div className="space-y-8">
 
-              <div className="w-28 h-28 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400">
-                Image
-              </div>
+            {cart.map((item) => (
+              <Card key={item.id} className="p-8 border-2 border-stone-200 flex gap-8 items-center">
 
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{item.name}</h3>
-                <p className="text-sm text-slate-600 mt-1">
-                  AI score: {item.ai}
-                </p>
+                <div className="w-28 h-28 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-400">
+                  Image
+                </div>
 
-                <div className="flex items-center gap-4 mt-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-xl text-stone-900">
+                    {item.name}
+                  </h3>
 
-                  {/* QTY CONTROLS */}
-                  <div className="flex items-center border rounded-lg overflow-hidden">
+                  <p className="text-sm text-stone-600 mt-1">
+                    AI score: {item.ai}
+                  </p>
+
+                  <div className="flex items-center gap-5 mt-5">
+
+                    <div className="flex items-center border border-stone-300 rounded-xl overflow-hidden">
+                      <button
+                        className="px-4 py-2 hover:bg-stone-100 transition"
+                        onClick={() =>
+                          updateQty(item.id, Math.max(1, item.qty - 1))
+                        }
+                      >
+                        −
+                      </button>
+
+                      <span className="px-4 py-2 border-x border-stone-200 min-w-[48px] text-center font-medium">
+                        {item.qty}
+                      </span>
+
+                      <button
+                        className="px-4 py-2 hover:bg-stone-100 transition"
+                        onClick={() => updateQty(item.id, item.qty + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
 
                     <button
-                      className="px-3 py-1 text-lg hover:bg-slate-100"
-                      onClick={() =>
-                        updateQty(item.id, Math.max(1, item.qty - 1))
-                      }
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-sm text-red-500 hover:text-red-600 font-medium"
                     >
-                      −
-                    </button>
-
-                    <span className="px-4 py-1 border-x">
-                      {item.qty}
-                    </span>
-
-                    <button
-                      className="px-3 py-1 text-lg hover:bg-slate-100"
-                      onClick={() =>
-                        updateQty(item.id, item.qty + 1)
-                      }
-                    >
-                      +
+                      Remove
                     </button>
 
                   </div>
-
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-sm text-red-500 hover:underline"
-                  >
-                    Remove
-                  </button>
                 </div>
-              </div>
 
-              <div className="font-semibold text-lg">
-                ₹{item.price * item.qty}
-              </div>
-            </Card>
-          ))}
-        </div>
+                <div className="font-semibold text-xl text-stone-900">
+                  ₹{item.price * item.qty}
+                </div>
 
-        {/* SUMMARY */}
-        <div>
-          <Card className="p-8 sticky top-24">
+              </Card>
+            ))}
 
-            <h2 className="text-2xl font-semibold mb-6">
-              Order Summary
+          </div>
+
+          {/* Summary */}
+          <Card className="p-10 border-2 border-stone-200 h-fit sticky top-24">
+
+            <h2 className="text-2xl font-semibold text-stone-900 mb-8">
+              Order summary
             </h2>
 
-            <div className="space-y-3 text-slate-600">
+            <div className="space-y-4 text-stone-600">
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span>₹{subtotal}</span>
@@ -127,27 +141,24 @@ export default function Cart() {
               </div>
             </div>
 
-            <div className="border-t my-4"></div>
+            <div className="border-t border-stone-200 my-6"></div>
 
-            <div className="flex justify-between text-lg font-semibold mb-6">
+            <div className="flex justify-between text-xl font-bold text-stone-900 mb-6">
               <span>Total</span>
               <span>₹{total}</span>
             </div>
 
-            <p className="text-xs text-slate-500 mb-6">
+            <p className="text-sm text-stone-500 mb-6">
               Payments are secured using escrow wallet protection.
             </p>
 
-            <Button
-              className="w-full"
-              onClick={() => navigate("/checkout")}
-            >
+            <Button className="w-full py-3" onClick={() => navigate("/checkout")}>
               Proceed to checkout
             </Button>
 
           </Card>
-        </div>
 
+        </div>
       </div>
     </div>
   );

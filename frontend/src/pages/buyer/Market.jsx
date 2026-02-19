@@ -1,54 +1,65 @@
 import { useState, useEffect } from "react";
 import ProductCard from "../../components/product/ProductCard";
 import Input from "../../components/ui/Input";
-import Card from "../../components/ui/Card";
 import SkeletonCard from "../../components/ui/SkeletonCard";
-
-const dummyProducts = [
-  { id: 1, name: "Wireless Headphones", price: 2499, ai: 87, category: "Electronics" },
-  { id: 2, name: "Smart Watch", price: 4999, ai: 91, category: "Electronics" },
-  { id: 3, name: "Bluetooth Speaker", price: 1999, ai: 82, category: "Electronics" },
-  { id: 4, name: "Gaming Mouse", price: 1299, ai: 88, category: "Electronics" },
-  { id: 5, name: "Office Chair", price: 8999, ai: 79, category: "Furniture" },
-  { id: 6, name: "USB-C Hub", price: 1599, ai: 85, category: "Accessories" },
-];
+import api from "../../services/api";
 
 export default function Market() {
   const [search, setSearch] = useState("");
   const [minAI, setMinAI] = useState(0);
   const [maxPrice, setMaxPrice] = useState(10000);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 1200);
-  }, []);
+    let isMounted = true;
+    // setLoading(true) removed as loading is initialized to true by default
 
-  const filtered = dummyProducts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) &&
-      p.ai >= minAI &&
-      p.price <= maxPrice
-  );
+    api
+      .get("/api/products", {
+        params: {
+          search: search || undefined,
+          minAi: minAI || undefined,
+          maxPrice: maxPrice || undefined,
+        },
+      })
+      .then((res) => {
+        if (!isMounted) return;
+        setProducts(res?.data?.data?.products ?? []);
+        setError("");
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setError(err.message || "Failed to load products");
+        setProducts([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [search, minAI, maxPrice]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-white mt-20">
+      <div className="container-app py-12">
 
-      {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-semibold tracking-tight">Marketplace</h1>
-        <p className="text-slate-600 mt-2">
-          Discover verified products from trusted vendors.
-        </p>
-      </div>
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+            Marketplace
+          </h1>
+          <p className="text-xl text-stone-600">
+            Discover verified products from trusted vendors.
+          </p>
+        </div>
 
-      {/* LAYOUT */}
-      <div className="grid md:grid-cols-4 gap-10">
-
-        {/* SIDEBAR */}
-        <div className="md:col-span-1">
-          <Card className="p-6 sticky top-24 space-y-5">
-
-            <h3 className="font-semibold text-lg">Filters</h3>
+        {/* Filter Toolbar */}
+        <div className="bg-stone-50 border border-stone-200 rounded-2xl p-6 mb-10">
+          <div className="grid md:grid-cols-3 gap-6">
 
             <Input
               label="Search"
@@ -71,35 +82,51 @@ export default function Market() {
               onChange={(e) => setMaxPrice(Number(e.target.value))}
             />
 
-          </Card>
+          </div>
         </div>
 
-        {/* PRODUCTS */}
-        <div className="md:col-span-3">
+        {/* Result Count */}
+        <p className="text-stone-600 font-medium mb-8 text-lg">
+          Showing{" "}
+          <span className="font-bold text-stone-900">
+            {products.length}
+          </span>{" "}
+          products
+        </p>
 
-          <p className="text-slate-500 mb-4">
-            Showing {filtered.length} products
-          </p>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-
-            {loading
-              ? Array.from({ length: 8 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))
-              : filtered.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-
+        {/* Error */}
+        {error && (
+          <div className="text-red-500 mb-6 text-center">
+            {error}
           </div>
+        )}
 
-          {!loading && filtered.length === 0 && (
-            <p className="text-slate-600 mt-16 text-center">
+        {/* Products Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
+
+          {loading
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))
+            : products.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+
+        </div>
+
+        {/* Empty State */}
+        {!loading && products.length === 0 && !error && (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🔍</div>
+            <p className="text-xl text-stone-600 mb-2">
               No products match your filters.
             </p>
-          )}
+            <p className="text-stone-500">
+              Try adjusting your search criteria.
+            </p>
+          </div>
+        )}
 
-        </div>
       </div>
     </div>
   );

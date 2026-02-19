@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["BUYER", "VENDOR", "EMPLOYEE", "ADMIN"],
+      enum: ["BUYER", "VENDOR", "EMPLOYEE", "ADMIN", "DELIVERY"],
       required: true,
     },
 
@@ -71,8 +71,9 @@ const userSchema = new mongoose.Schema(
 
 // password hashing middleware
 userSchema.pre("save", async function () {
-    if (!this.isModified("password")) return ;
-    this.password = await bcrypt.hash(this.password, 10);
+  if (!this.isModified("password")) return;
+
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
 userSchema.pre("validate", function () {

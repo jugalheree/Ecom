@@ -9,84 +9,93 @@ export default function Wishlist() {
   const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
   const addToCart = useCartStore((s) => s.addToCart);
 
-  // EMPTY STATE
+  // ✅ EMPTY STATE (centered perfectly)
   if (wishlist.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-24 text-center">
-        <h1 className="text-3xl font-semibold">Your wishlist is empty 🤍</h1>
-        <p className="text-slate-600 mt-2">
-          Save products you like and come back to them later.
-        </p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="container-app text-center">
 
-        <Link to="/market">
-          <Button className="mt-6">Browse marketplace</Button>
-        </Link>
+          <div className="text-6xl mb-6">🤍</div>
+
+          <h1 className="text-4xl font-display font-semibold text-stone-900">
+            Your wishlist is empty
+          </h1>
+
+          <p className="text-stone-600 mt-3 text-lg">
+            Save products you like and come back to them later.
+          </p>
+
+          <Link to="/market">
+            <Button className="mt-8 text-base px-8 py-3">
+              Browse marketplace
+            </Button>
+          </Link>
+
+        </div>
       </div>
     );
   }
 
+  // ✅ NORMAL WISHLIST GRID
   return (
-    <div className="max-w-7xl mx-auto px-4 py-16">
+    <div className="min-h-screen bg-white mt-12">
+      <div className="container-app py-12">
 
-      {/* HEADER */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-semibold tracking-tight">
-          My wishlist
-        </h1>
-        <p className="text-slate-600 mt-2">
-          Products you’ve saved for later.
-        </p>
-      </div>
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+            My wishlist
+          </h1>
+          <p className="text-xl text-stone-600">
+            Products you’ve saved for later.
+          </p>
+        </div>
 
-      {/* GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        {/* Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
 
-        {wishlist.map((p) => (
-          <Card key={p.id} className="p-3 hover:shadow-md transition">
+          {wishlist.map((p) => (
+            <Card
+              key={p.id}
+              className="p-6 border-2 border-stone-200 hover:border-primary-300 transition"
+            >
+              <div className="h-40 rounded-2xl bg-stone-100 mb-4 flex items-center justify-center text-stone-400 text-sm">
+                Image
+              </div>
 
-            {/* IMAGE */}
-            <div className="h-32 rounded-lg bg-slate-100 mb-2 flex items-center justify-center text-slate-400 text-xs">
-              Image
-            </div>
+              <h3 className="font-semibold text-stone-900 leading-snug line-clamp-2">
+                {p.name}
+              </h3>
 
-            {/* INFO */}
-            <h3 className="font-medium text-sm leading-snug line-clamp-2">
-              {p.name}
-            </h3>
+              <p className="text-sm text-stone-600 mt-2">
+                AI {p.ai} • ₹{p.price}
+              </p>
 
-            <p className="text-xs text-slate-500 mt-0.5">
-              AI {p.ai} • ₹{p.price}
-            </p>
+              <div className="flex gap-3 mt-5">
+                <Button
+                  onClick={() => addToCart(p)}
+                  className="flex-1 text-sm py-3"
+                >
+                  Add to cart
+                </Button>
 
-            {/* ACTIONS */}
-            <div className="flex gap-2 mt-3">
+                <Link to={`/product/${p.id}`} className="flex-1">
+                  <Button variant="outline" className="w-full text-sm py-3">
+                    View
+                  </Button>
+                </Link>
+              </div>
 
               <button
-                onClick={() => addToCart(p)}
-                className="flex-1 text-xs py-2 rounded-md bg-slate-900 text-white hover:bg-slate-800 transition"
+                onClick={() => toggleWishlist(p)}
+                className="block text-center text-sm text-red-500 hover:text-red-600 font-medium mt-4 w-full"
               >
-                Add
+                Remove from wishlist
               </button>
+            </Card>
+          ))}
 
-              <Link
-                to={`/product/${p.id}`}
-                className="flex-1 text-xs py-2 rounded-md border text-center hover:bg-slate-50 transition"
-              >
-                View
-              </Link>
-
-            </div>
-
-            <button
-              onClick={() => toggleWishlist(p)}
-              className="block text-center text-[11px] text-red-500 hover:underline mt-2 w-full"
-            >
-              Remove
-            </button>
-
-          </Card>
-        ))}
-
+        </div>
       </div>
     </div>
   );
