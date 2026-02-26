@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @import "./styles/global.css";
 
 @tailwind base;
@@ -5,13 +7,16 @@
 @tailwind utilities;
 
 .menu-item {
-    width: 100%;
-    text-align: left;
-    padding: 10px 16px;
-    font-size: 14px;
-  }
-  
-  .menu-item:hover {
-    background: #f1f5f9;
-  }
-  
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border-radius: 0.5rem;
+}
+
+.menu-item:hover {
+  background: rgba(204, 251, 241, 0.6);
+  color: #0d9488;
+  transform: translateX(4px);
+}

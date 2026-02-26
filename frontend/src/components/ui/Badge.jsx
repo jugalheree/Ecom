@@ -1,18 +1,17 @@
 export default function Badge({ children, type = "default" }) {
-    const styles = {
-      default: "bg-slate-100 text-slate-700",
-      success: "bg-green-100 text-green-700",
-      warning: "bg-yellow-100 text-yellow-700",
-      danger: "bg-red-100 text-red-700",
-      info: "bg-blue-100 text-blue-700",
-    };
-  
-    return (
-      <span
-        className={`px-2 py-1 rounded-md text-xs font-medium ${styles[type]}`}
-      >
-        {children}
-      </span>
-    );
-  }
-  
+  const styles = {
+    default: "bg-stone-100 text-stone-700",
+    success: "bg-emerald-50 text-emerald-700",
+    warning: "bg-amber-50 text-amber-700",
+    danger: "bg-red-50 text-red-700",
+    info: "bg-primary-50 text-primary-700",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${styles[type]}`}
+    >
+      {children}
+    </span>
+  );
+}

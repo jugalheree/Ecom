@@ -4,64 +4,100 @@ import { Link } from "react-router-dom";
 
 export default function BuyerVendorSection() {
   return (
-    <section className="w-full py-24 bg-white dark:bg-slate-900">
-      <div className="max-w-7xl mx-auto px-4">
-
-        {/* TITLE */}
-        <div className="max-w-2xl mb-16">
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            Built for buyers and vendors
+    <section className="w-full py-24 md:py-32 bg-stone-50">
+      <div className="container-app">
+        <div className="text-center mb-16">
+          <h2 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-6">
+            Built on trust and smart systems
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 mt-3">
-            TradeSphere is designed as a complete ecosystem — empowering buyers with trust and vendors with tools to scale.
+          <p className="text-xl text-stone-600 max-w-3xl mx-auto leading-relaxed">
+            TradeSphere is designed as a complete ecosystem — empowering buyers
+            with trust and vendors with tools to scale.
           </p>
         </div>
 
-        {/* TWO COLUMNS */}
-        <div className="grid md:grid-cols-2 gap-10">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Buyer Side */}
+          <Card className="p-10 border-2 border-stone-200 hover:border-primary-300 transition-all duration-300 bg-white">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-2xl shadow-lg">
+                🛒
+              </div>
+              <h3 className="text-3xl font-display font-bold text-stone-900">
+                Buyer side
+              </h3>
+            </div>
 
-          {/* BUYERS */}
-          <Card className="p-10 border border-slate-200 dark:border-slate-800">
-            <h3 className="text-2xl font-semibold mb-4">
-              For buyers
-            </h3>
-
-            <ul className="space-y-3 text-slate-600 dark:text-slate-400">
-              <li>• AI-verified products and vendor trust scoring</li>
-              <li>• Secure escrow wallet protection</li>
-              <li>• Smart discovery and recommendations</li>
-              <li>• Order tracking and transparent flow</li>
-              <li>• Wishlist, cart, and quick checkout</li>
+            <ul className="space-y-4 text-stone-600 mb-8">
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>AI-verified products and vendor trust scoring</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Secure escrow wallet protection</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Smart discovery and recommendations</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Order tracking and transparent flow</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Wishlist, cart, and quick checkout</span>
+              </li>
             </ul>
 
-            <div className="mt-8">
-              <Link to="/market">
-                <Button>Explore marketplace</Button>
-              </Link>
-            </div>
+            <Link to="/market">
+              <Button className="w-full text-lg py-4">
+                Explore marketplace
+              </Button>
+            </Link>
           </Card>
 
-          {/* VENDORS */}
-          <Card className="p-10 border border-slate-200 dark:border-slate-800">
-            <h3 className="text-2xl font-semibold mb-4">
-              For vendors
-            </h3>
+          {/* Vendor Side */}
+          <Card className="p-10 border-2 border-stone-200 hover:border-primary-300 transition-all duration-300 bg-white">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-2xl shadow-lg">
+                🏪
+              </div>
+              <h3 className="text-3xl font-display font-bold text-stone-900">
+                Vendor side
+              </h3>
+            </div>
 
-            <ul className="space-y-3 text-slate-600 dark:text-slate-400">
-              <li>• Vendor dashboard and analytics</li>
-              <li>• Product, stock, and order management</li>
-              <li>• Secure wallet and automated payouts</li>
-              <li>• Vendor-to-vendor trading system</li>
-              <li>• Smart alerts and performance insights</li>
+            <ul className="space-y-4 text-stone-600 mb-8">
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Vendor dashboard and analytics</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Product, stock, and order management</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Secure wallet and automated payouts</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Vendor-to-vendor trading system</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-primary-600 font-bold mt-1">✓</span>
+                <span>Smart alerts and performance insights</span>
+              </li>
             </ul>
 
-            <div className="mt-8">
-              <Link to="/register">
-                <Button variant="outline">Start selling</Button>
-              </Link>
-            </div>
+            <Link to="/register">
+              <Button variant="outline" className="w-full text-lg py-4 border-2">
+                Start selling
+              </Button>
+            </Link>
           </Card>
-
         </div>
       </div>
     </section>

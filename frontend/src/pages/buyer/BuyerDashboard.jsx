@@ -6,6 +6,17 @@ import { useWalletStore } from "../../store/walletStore";
 import { useNavigate } from "react-router-dom";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import TrustCard from "../../components/trust/TrustCard";
+import OrdersChart from "../../components/charts/OrdersChart";
+
+const SPENDING_DATA = [
+  { month: "Sep", orders: 3 },
+  { month: "Oct", orders: 5 },
+  { month: "Nov", orders: 4 },
+  { month: "Dec", orders: 7 },
+  { month: "Jan", orders: 6 },
+  { month: "Feb", orders: 4 },
+];
 
 export default function BuyerDashboard() {
   const { user } = useAuthStore();
@@ -16,59 +27,115 @@ export default function BuyerDashboard() {
 
   const navigate = useNavigate();
 
-  return (
-    <div className="container-app py-10 grid lg:grid-cols-[1fr_320px] gap-8">
+  const statCards = [
+    { label: "Wallet balance", value: `₹${wallet}`, icon: "💰", gradient: "from-emerald-500 to-emerald-600" },
+    { label: "My orders", value: orders.length, icon: "📦", gradient: "from-blue-500 to-blue-600" },
+    { label: "Wishlist", value: wishlist.length, icon: "❤️", gradient: "from-pink-500 to-pink-600" },
+    { label: "Cart items", value: cart.length, icon: "🛒", gradient: "from-primary-500 to-primary-600" },
+  ];
 
-      {/* LEFT MAIN */}
-      <div className="space-y-8">
+  return (
+    <div className="min-h-screen bg-white mt-16">
+      <div className="container-app py-12 space-y-10">
 
         {/* HEADER */}
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
             Welcome back, {user?.name} 👋
           </h1>
-          <p className="text-slate-600 mt-1">
+          <p className="text-xl text-stone-600">
             Here’s what’s happening with your account.
           </p>
         </div>
 
-        {/* STATS */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <Card>
-            <p className="text-slate-500 text-sm">Wallet balance</p>
-            <h2 className="text-2xl font-bold mt-1">₹{wallet}</h2>
+        {/* STATS GRID */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {statCards.map((stat, i) => (
+            <Card key={i} className="p-8 border-2 border-stone-200 group hover:border-primary-300 transition">
+              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-2xl mb-4 shadow-lg group-hover:scale-110 transition`}>
+                {stat.icon}
+              </div>
+              <p className="text-sm text-stone-600 font-medium uppercase tracking-wide mb-2">
+                {stat.label}
+              </p>
+              <p className="text-3xl font-bold text-stone-900">
+                {stat.value}
+              </p>
+            </Card>
+          ))}
+        </div>
+
+        {/* TRUST + PERFORMANCE */}
+        <div className="grid md:grid-cols-3 gap-8">
+          <TrustCard title="Buyer rating" rating={4.7} reviews={56} badge="Reliable buyer" />
+
+          <Card className="p-8 border-2 border-stone-200">
+            <p className="text-sm text-stone-600 uppercase tracking-wide mb-2">
+              Orders completed
+            </p>
+            <p className="text-4xl font-bold text-stone-900">42</p>
           </Card>
 
-          <Card>
-            <p className="text-slate-500 text-sm">My orders</p>
-            <h2 className="text-2xl font-bold mt-1">{orders.length}</h2>
-          </Card>
-
-          <Card>
-            <p className="text-slate-500 text-sm">Wishlist</p>
-            <h2 className="text-2xl font-bold mt-1">{wishlist.length}</h2>
-          </Card>
-
-          <Card>
-            <p className="text-slate-500 text-sm">Cart items</p>
-            <h2 className="text-2xl font-bold mt-1">{cart.length}</h2>
+          <Card className="p-8 border-2 border-stone-200">
+            <p className="text-sm text-stone-600 uppercase tracking-wide mb-2">
+              Wishlist items
+            </p>
+            <p className="text-4xl font-bold text-stone-900">11</p>
           </Card>
         </div>
 
-        {/* RECENT / EMPTY STATE */}
-        <Card>
-          <h3 className="text-lg font-semibold">Recent orders</h3>
+        {/* ORDER CHART */}
+        <Card className="p-10 border-2 border-stone-200">
+          <h3 className="text-2xl font-semibold text-stone-900 mb-2">
+            Order activity
+          </h3>
+          <p className="text-stone-600 mb-6">
+            Orders placed per month
+          </p>
+          <OrdersChart data={SPENDING_DATA} />
+        </Card>
+
+        {/* RECENT ORDERS */}
+        <Card className="p-10 border-2 border-stone-200">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-2xl font-semibold text-stone-900 mb-2">
+                Recent orders
+              </h3>
+              <p className="text-stone-600">
+                Your latest transactions
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => navigate("/orders")}>
+              View all
+            </Button>
+          </div>
 
           {orders.length === 0 ? (
-            <div className="text-center py-10 text-slate-500">
-              You haven’t placed any orders yet.
+            <div className="text-center py-16">
+              <div className="text-4xl mb-4">📦</div>
+              <p className="text-lg text-stone-600">
+                You haven’t placed any orders yet.
+              </p>
+              <Button className="mt-6" onClick={() => navigate("/market")}>
+                Start shopping
+              </Button>
             </div>
           ) : (
-            <div className="space-y-3 mt-4">
-              {orders.slice(0, 3).map((o, i) => (
-                <div key={i} className="flex justify-between text-sm">
-                  <span>Order #{i + 1}</span>
-                  <span className="font-medium">₹{o.total}</span>
+            <div className="space-y-4">
+              {orders.slice(0, 5).map((o, i) => (
+                <div key={i} className="flex justify-between items-center p-5 border-2 border-stone-200 rounded-xl hover:border-primary-300 transition">
+                  <div>
+                    <p className="font-semibold text-stone-900">
+                      Order #{i + 1}
+                    </p>
+                    <p className="text-sm text-stone-600 mt-1">
+                      Completed
+                    </p>
+                  </div>
+                  <p className="text-xl font-bold text-stone-900">
+                    ₹{o.total}
+                  </p>
                 </div>
               ))}
             </div>
@@ -77,70 +144,36 @@ export default function BuyerDashboard() {
 
         {/* RECOMMENDED */}
         <div>
-          <h2 className="text-xl font-semibold">Recommended for you</h2>
-          <p className="text-slate-500 text-sm">
-            Trending and AI-verified products.
-          </p>
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h2 className="text-3xl font-display font-bold text-stone-900 mb-2">
+                Recommended for you
+              </h2>
+              <p className="text-stone-600">
+                Trending and AI-verified products
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => navigate("/market")}>
+              View all
+            </Button>
+          </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="h-32 flex items-center justify-center text-slate-400">
-                Product card
+              <Card key={i} className="h-48 flex items-center justify-center text-stone-400 border-2 border-stone-200 hover:border-primary-300 transition cursor-pointer group">
+                <div className="text-center">
+                  <div className="text-4xl mb-2 group-hover:scale-110 transition">
+                    🛍️
+                  </div>
+                  <p className="text-sm font-medium">
+                    Product card
+                  </p>
+                </div>
               </Card>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* RIGHT PANEL */}
-      <div className="space-y-6 sticky top-24 h-fit">
-
-        {/* PROFILE */}
-        <Card className="text-center">
-          <div className="w-14 h-14 rounded-full bg-green-600 text-white flex items-center justify-center mx-auto text-xl font-bold">
-            {user?.name?.charAt(0)}
-          </div>
-          <h3 className="mt-3 font-semibold">{user?.name}</h3>
-          <p className="text-sm text-slate-500">Buyer account</p>
-        </Card>
-
-        {/* QUICK ACTIONS */}
-        <Card className="space-y-3">
-          <h3 className="font-semibold">Quick actions</h3>
-
-          <Button className="w-full" onClick={() => navigate("/market")}>
-            Explore marketplace
-          </Button>
-
-          <Button variant="outline" className="w-full" onClick={() => navigate("/cart")}>
-            View cart
-          </Button>
-
-          <Button variant="outline" className="w-full" onClick={() => navigate("/wishlist")}>
-            Wishlist
-          </Button>
-
-          <Button variant="outline" className="w-full" onClick={() => navigate("/orders")}>
-            My orders
-          </Button>
-
-          <Button variant="outline" className="w-full" onClick={() => navigate("/wallet")}>
-            Wallet
-          </Button>
-        </Card>
-
-        {/* WALLET SHORTCUT */}
-        <Card>
-          <p className="text-sm text-slate-500">Available balance</p>
-          <h2 className="text-2xl font-bold mt-1">₹{wallet}</h2>
-
-          <Button
-            className="w-full mt-3"
-            onClick={() => navigate("/wallet")}
-          >
-            Manage wallet
-          </Button>
-        </Card>
       </div>
     </div>
   );
