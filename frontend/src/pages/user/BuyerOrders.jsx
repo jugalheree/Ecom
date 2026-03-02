@@ -32,7 +32,7 @@ export default function BuyerOrders() {
                 }
                 className="p-6 cursor-pointer hover:border-black transition"
               >
-                <p className="text-sm text-stone-500">
+                <p className="text-sm text-ink-500">
                   {new Date(order.createdAt).toLocaleDateString()}
                 </p>
 

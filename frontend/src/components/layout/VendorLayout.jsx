@@ -1,65 +1,43 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+const navItems = [
+  { to: "/vendor/dashboard", label: "Dashboard", icon: "⊞" },
+  { to: "/vendor/products", label: "Products", icon: "◫" },
+  { to: "/vendor/stock", label: "Stock", icon: "≡" },
+  { to: "/vendor/trade", label: "Trade", icon: "⇄" },
+  { to: "/vendor/reports", label: "Reports", icon: "↗" },
+];
+
 export default function VendorLayout() {
   return (
-    <div className="flex min-h-screen bg-stone-50 mt-20">
-
-      {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-stone-200 flex flex-col shadow-sm">
-
-        {/* Brand */}
-        <div className="h-20 flex items-center px-8 border-b border-stone-200">
-          <div>
-            <h1 className="text-xl font-bold text-stone-900">
-              Vendor Panel
-            </h1>
-            <p className="text-xs text-stone-500 mt-1">
-              TradeSphere Console
-            </p>
-          </div>
+    <div className="flex min-h-screen bg-ink-50 mt-[72px]">
+      <aside className="w-64 bg-white border-r border-ink-100 flex flex-col fixed left-0 top-[72px] bottom-0 shadow-sm">
+        <div className="px-5 py-5 border-b border-ink-100">
+          <p className="text-xs font-display font-bold uppercase tracking-widest text-ink-400">Vendor Console</p>
         </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-6 space-y-2 text-sm">
-
-          <SidebarLink to="/vendor/dashboard" label="Dashboard" icon="📊" />
-          <SidebarLink to="/vendor/products" label="Products" icon="📦" />
-          <SidebarLink to="/vendor/stock" label="Stock" icon="📋" />
-          <SidebarLink to="/vendor/trade" label="Trade" icon="🤝" />
-          <SidebarLink to="/vendor/reports" label="Reports" icon="📈" />
-          {/* <Link to="/admin/vendors">Vendors</Link> */}
-
+        <nav className="flex-1 p-3 space-y-0.5">
+          {navItems.map((item) => (
+            <NavLink key={item.to} to={item.to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? "bg-primary-600 text-white shadow-sm"
+                    : "text-ink-600 hover:bg-ink-50 hover:text-ink-900"
+                }`
+              }
+            >
+              <span className="text-base w-5 text-center">{item.icon}</span>
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
-
-        {/* Footer */}
-        <div className="p-6 border-t border-stone-200 text-xs text-stone-500">
-          TradeSphere Vendor v1.0
+        <div className="p-4 border-t border-ink-100">
+          <p className="text-xs text-ink-300 font-medium">TradeSphere v1.0</p>
         </div>
       </aside>
-
-      {/* Main area */}
-      <main className="flex-1 overflow-y-auto bg-white">
+      <main className="flex-1 ml-64 min-h-screen bg-white">
         <Outlet />
       </main>
     </div>
-  );
-}
-
-/* Sidebar link component */
-function SidebarLink({ to, label, icon }) {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-          isActive
-            ? "bg-primary-600 text-white shadow-md"
-            : "text-stone-700 hover:bg-stone-100"
-        }`
-      }
-    >
-      <span className="text-lg">{icon}</span>
-      {label}
-    </NavLink>
   );
 }

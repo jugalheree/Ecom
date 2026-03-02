@@ -42,10 +42,10 @@ export default function VendorTrade() {
     <div className="min-h-screen bg-white">
       <div className="container-app py-12">
         <div className="mb-12">
-          <h1 className="text-5xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl font-display font-bold text-ink-900 mb-4">
             Vendor Orders
           </h1>
-          <p className="text-xl text-stone-600">Manage incoming orders.</p>
+          <p className="text-xl text-ink-600">Manage incoming orders.</p>
         </div>
 
         {loading ? (
@@ -58,17 +58,17 @@ export default function VendorTrade() {
               <Card
                 key={order.id}
                 onClick={() => navigate(`/vendor/orders/${order.id}`)}
-                className="p-8 border-2 border-stone-200 hover:border-black transition-all duration-300 cursor-pointer"
+                className="p-8 border-2 border-ink-200 hover:border-black transition-all duration-300 cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-ink-500">
                       {new Date(order.date).toLocaleDateString()}
                     </p>
-                    <h3 className="font-semibold text-xl mt-2 text-stone-900">
+                    <h3 className="font-semibold text-xl mt-2 text-ink-900">
                       {order.buyer}
                     </h3>
-                    <p className="text-stone-600 mt-1">Total: ₹{order.total}</p>
+                    <p className="text-ink-600 mt-1">Total: ₹{order.total}</p>
                   </div>
 
                   <span
@@ -80,11 +80,11 @@ export default function VendorTrade() {
                   </span>
                 </div>
 
-                <div className="border-2 border-stone-200 rounded-xl p-4 bg-stone-50 space-y-2 mb-6">
+                <div className="border-2 border-ink-200 rounded-xl p-4 bg-ink-50 space-y-2 mb-6">
                   {order.items.map((item, i) => (
                     <div
                       key={i}
-                      className="flex justify-between text-sm text-stone-700"
+                      className="flex justify-between text-sm text-ink-700"
                     >
                       <span>
                         {item.name} × {item.qty}

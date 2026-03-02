@@ -1,5 +1,4 @@
 import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
 import { useNavigate } from "react-router-dom";
 import TrustCard from "../../components/trust/TrustCard";
 import RevenueChart from "../../components/charts/RevenueChart";
@@ -16,20 +15,17 @@ const REVENUE_DATA = [
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
-
   const stats = [
-    { title: "Total revenue", value: "₹48,500", icon: "💰", gradient: "from-emerald-500 to-emerald-600" },
-    { title: "Total orders", value: "126", icon: "📦", gradient: "from-blue-500 to-blue-600" },
-    { title: "Active products", value: "18", icon: "📋", gradient: "from-primary-500 to-primary-600" },
-    { title: "Low stock items", value: "3", danger: true, icon: "⚠️", gradient: "from-amber-500 to-amber-600" },
+    { title: "Total revenue", value: "₹48,500", change: "+12%", icon: "↗", color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
+    { title: "Total orders", value: "126", change: "+8%", icon: "↗", color: "text-blue-600 bg-blue-50 border-blue-100" },
+    { title: "Active products", value: "18", change: "stable", icon: "—", color: "text-primary-600 bg-primary-50 border-primary-100" },
+    { title: "Low stock items", value: "3", change: "action needed", icon: "!", color: "text-amber-600 bg-amber-50 border-amber-100" },
   ];
-
   const recentOrders = [
     { id: 201, buyer: "Rahul Mehta", total: 3499, status: "Pending" },
     { id: 202, buyer: "Neha Shah", total: 4999, status: "Shipped" },
     { id: 203, buyer: "Aman Patel", total: 1999, status: "Completed" },
   ];
-
   const statusStyles = {
     Pending: "bg-amber-50 text-amber-700 border-amber-200",
     Shipped: "bg-primary-50 text-primary-700 border-primary-200",
@@ -37,99 +33,69 @@ export default function VendorDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container-app py-12">
-        
-        {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
-            Vendor dashboard
-          </h1>
-          <p className="text-xl text-stone-600">
-            Monitor your business performance and store activity.
-          </p>
+    <div className="min-h-screen bg-ink-50">
+      <div className="bg-white border-b border-ink-100 px-8 py-8">
+        <p className="text-xs font-display font-bold uppercase tracking-widest text-primary-600 mb-1">Overview</p>
+        <h1 className="text-3xl font-display font-bold text-ink-900">Vendor Dashboard</h1>
+        <p className="text-ink-500 text-sm mt-1">Monitor your business performance and store activity.</p>
+      </div>
+
+      <div className="p-8 space-y-6">
+        {/* Stats */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((s, i) => (
+            <div key={i} className={`bg-white rounded-2xl border-2 ${s.color} p-5 hover:shadow-md transition-all duration-200`}>
+              <div className="flex items-start justify-between mb-4">
+                <p className="text-xs font-display font-bold uppercase tracking-widest text-ink-500">{s.title}</p>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${s.color}`}>{s.change}</span>
+              </div>
+              <p className="text-3xl font-display font-bold text-ink-900">{s.value}</p>
+            </div>
+          ))}
         </div>
 
-        
+        {/* Trust + Charts */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <TrustCard title="Vendor rating" rating={4.6} reviews={128} badge="Trusted vendor" />
+          <TrustCard title="Product satisfaction" rating={4.4} reviews={342} badge="High quality store" />
+        </div>
 
-        {/* Full-width Main Content */}
-        <div className="space-y-8">
-          {/* Stats Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((s, i) => (
-              <Card key={i} className="p-6 border-2 border-stone-200 hover:border-primary-300 transition-all duration-300 group">
-                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-2xl mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  {s.icon}
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card className="p-6 border border-ink-200">
+            <h3 className="font-display font-bold text-ink-900 mb-1">Revenue trend</h3>
+            <p className="text-xs text-ink-400 mb-4">Monthly revenue over the last 6 months</p>
+            <RevenueChart data={REVENUE_DATA} />
+          </Card>
+          <Card className="p-6 border border-ink-200">
+            <h3 className="font-display font-bold text-ink-900 mb-1">Orders overview</h3>
+            <p className="text-xs text-ink-400 mb-4">Order volume trend</p>
+            <OrdersChart data={REVENUE_DATA} />
+          </Card>
+        </div>
+
+        {/* Recent Orders */}
+        <Card className="p-6 border border-ink-200">
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h3 className="font-display font-bold text-ink-900">Recent orders</h3>
+              <p className="text-xs text-ink-400 mt-0.5">Latest customer orders</p>
+            </div>
+            <button onClick={() => navigate("/vendor/trade")} className="text-xs font-display font-semibold text-primary-600 hover:text-primary-700 border border-primary-200 bg-primary-50 px-3 py-1.5 rounded-lg transition-colors">
+              View all →
+            </button>
+          </div>
+          <div className="space-y-3">
+            {recentOrders.map((o) => (
+              <div key={o.id} className="flex justify-between items-center p-4 bg-ink-50 rounded-xl hover:bg-ink-100 transition-colors">
+                <div>
+                  <p className="font-display font-semibold text-ink-900 text-sm">#{o.id} · {o.buyer}</p>
+                  <p className="text-xs text-ink-400 mt-0.5">₹{o.total.toLocaleString()}</p>
                 </div>
-                <p className="text-sm text-stone-600 font-medium uppercase tracking-wide mb-2">{s.title}</p>
-                <p className={`text-3xl font-bold ${s.danger ? "text-amber-600" : "text-stone-900"}`}>
-                  {s.value}
-                </p>
-              </Card>
+                <span className={`text-xs px-3 py-1 rounded-lg font-semibold border ${statusStyles[o.status]}`}>{o.status}</span>
+              </div>
             ))}
           </div>
-
-          {/* Trust Cards */}
-          <div className="grid sm:grid-cols-2 gap-6">
-            <TrustCard title="Vendor rating" rating={4.6} reviews={128} badge="Trusted vendor" />
-            <TrustCard title="Product satisfaction" rating={4.4} reviews={342} badge="High quality store" />
-          </div>
-
-          {/* Revenue Chart */}
-          <Card className="p-8 border-2 border-stone-200">
-            <div className="mb-6">
-              <h3 className="text-2xl font-semibold text-stone-900 mb-2">Revenue trend</h3>
-              <p className="text-stone-600">Monthly revenue over the last 6 months</p>
-            </div>
-            <div className="mt-4">
-              <RevenueChart data={REVENUE_DATA} />
-            </div>
-          </Card>
-
-          {/* Orders Chart */}
-          <Card className="p-8 border-2 border-stone-200">
-            <div className="mb-6">
-              <h3 className="text-2xl font-semibold text-stone-900 mb-2">Orders overview</h3>
-              <p className="text-stone-600">Order volume trend</p>
-            </div>
-            <div className="mt-4">
-              <OrdersChart data={REVENUE_DATA} />
-            </div>
-          </Card>
-
-          {/* Recent Orders */}
-          <Card className="p-8 border-2 border-stone-200">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-2xl font-semibold text-stone-900 mb-2">Recent orders</h3>
-                <p className="text-stone-600">Latest customer orders</p>
-              </div>
-              <Button variant="outline" onClick={() => navigate("/vendor/trade")}>
-                View all
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              {recentOrders.map((o) => (
-                <div
-                  key={o.id}
-                  className="flex justify-between items-center p-4 border-2 border-stone-200 rounded-xl hover:border-primary-300 transition-all duration-300"
-                >
-                  <div>
-                    <p className="font-semibold text-stone-900">
-                      #{o.id} • {o.buyer}
-                    </p>
-                    <p className="text-sm text-stone-600 mt-1">₹{o.total}</p>
-                  </div>
-
-                  <span className={`text-xs px-4 py-2 rounded-full font-semibold border-2 ${statusStyles[o.status]}`}>
-                    {o.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+        </Card>
       </div>
     </div>
   );

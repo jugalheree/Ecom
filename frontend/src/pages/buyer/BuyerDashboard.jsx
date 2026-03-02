@@ -40,10 +40,10 @@ export default function BuyerDashboard() {
 
         {/* HEADER */}
         <div>
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             Welcome back, {user?.name} 👋
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Here’s what’s happening with your account.
           </p>
         </div>
@@ -51,14 +51,14 @@ export default function BuyerDashboard() {
         {/* STATS GRID */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {statCards.map((stat, i) => (
-            <Card key={i} className="p-8 border-2 border-stone-200 group hover:border-primary-300 transition">
+            <Card key={i} className="p-8 border-2 border-ink-200 group hover:border-primary-300 transition">
               <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-2xl mb-4 shadow-lg group-hover:scale-110 transition`}>
                 {stat.icon}
               </div>
-              <p className="text-sm text-stone-600 font-medium uppercase tracking-wide mb-2">
+              <p className="text-sm text-ink-600 font-medium uppercase tracking-wide mb-2">
                 {stat.label}
               </p>
-              <p className="text-3xl font-bold text-stone-900">
+              <p className="text-3xl font-bold text-ink-900">
                 {stat.value}
               </p>
             </Card>
@@ -69,40 +69,40 @@ export default function BuyerDashboard() {
         <div className="grid md:grid-cols-3 gap-8">
           <TrustCard title="Buyer rating" rating={4.7} reviews={56} badge="Reliable buyer" />
 
-          <Card className="p-8 border-2 border-stone-200">
-            <p className="text-sm text-stone-600 uppercase tracking-wide mb-2">
+          <Card className="p-8 border-2 border-ink-200">
+            <p className="text-sm text-ink-600 uppercase tracking-wide mb-2">
               Orders completed
             </p>
-            <p className="text-4xl font-bold text-stone-900">42</p>
+            <p className="text-4xl font-bold text-ink-900">42</p>
           </Card>
 
-          <Card className="p-8 border-2 border-stone-200">
-            <p className="text-sm text-stone-600 uppercase tracking-wide mb-2">
+          <Card className="p-8 border-2 border-ink-200">
+            <p className="text-sm text-ink-600 uppercase tracking-wide mb-2">
               Wishlist items
             </p>
-            <p className="text-4xl font-bold text-stone-900">11</p>
+            <p className="text-4xl font-bold text-ink-900">11</p>
           </Card>
         </div>
 
         {/* ORDER CHART */}
-        <Card className="p-10 border-2 border-stone-200">
-          <h3 className="text-2xl font-semibold text-stone-900 mb-2">
+        <Card className="p-10 border-2 border-ink-200">
+          <h3 className="text-2xl font-semibold text-ink-900 mb-2">
             Order activity
           </h3>
-          <p className="text-stone-600 mb-6">
+          <p className="text-ink-600 mb-6">
             Orders placed per month
           </p>
           <OrdersChart data={SPENDING_DATA} />
         </Card>
 
         {/* RECENT ORDERS */}
-        <Card className="p-10 border-2 border-stone-200">
+        <Card className="p-10 border-2 border-ink-200">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h3 className="text-2xl font-semibold text-stone-900 mb-2">
+              <h3 className="text-2xl font-semibold text-ink-900 mb-2">
                 Recent orders
               </h3>
-              <p className="text-stone-600">
+              <p className="text-ink-600">
                 Your latest transactions
               </p>
             </div>
@@ -114,7 +114,7 @@ export default function BuyerDashboard() {
           {orders.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-4xl mb-4">📦</div>
-              <p className="text-lg text-stone-600">
+              <p className="text-lg text-ink-600">
                 You haven’t placed any orders yet.
               </p>
               <Button className="mt-6" onClick={() => navigate("/market")}>
@@ -124,16 +124,16 @@ export default function BuyerDashboard() {
           ) : (
             <div className="space-y-4">
               {orders.slice(0, 5).map((o, i) => (
-                <div key={i} className="flex justify-between items-center p-5 border-2 border-stone-200 rounded-xl hover:border-primary-300 transition">
+                <div key={i} className="flex justify-between items-center p-5 border-2 border-ink-200 rounded-xl hover:border-primary-300 transition">
                   <div>
-                    <p className="font-semibold text-stone-900">
+                    <p className="font-semibold text-ink-900">
                       Order #{i + 1}
                     </p>
-                    <p className="text-sm text-stone-600 mt-1">
+                    <p className="text-sm text-ink-600 mt-1">
                       Completed
                     </p>
                   </div>
-                  <p className="text-xl font-bold text-stone-900">
+                  <p className="text-xl font-bold text-ink-900">
                     ₹{o.total}
                   </p>
                 </div>
@@ -146,10 +146,10 @@ export default function BuyerDashboard() {
         <div>
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-3xl font-display font-bold text-stone-900 mb-2">
+              <h2 className="text-3xl font-display font-bold text-ink-900 mb-2">
                 Recommended for you
               </h2>
-              <p className="text-stone-600">
+              <p className="text-ink-600">
                 Trending and AI-verified products
               </p>
             </div>
@@ -160,7 +160,7 @@ export default function BuyerDashboard() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="h-48 flex items-center justify-center text-stone-400 border-2 border-stone-200 hover:border-primary-300 transition cursor-pointer group">
+              <Card key={i} className="h-48 flex items-center justify-center text-ink-400 border-2 border-ink-200 hover:border-primary-300 transition cursor-pointer group">
                 <div className="text-center">
                   <div className="text-4xl mb-2 group-hover:scale-110 transition">
                     🛍️

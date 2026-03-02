@@ -13,6 +13,7 @@ import VendorProducts from "../pages/vendor/VendorProducts";
 import VendorStock from "../pages/vendor/VendorStock";
 import VendorTrade from "../pages/vendor/VendorTrade";
 import VendorReports from "../pages/vendor/VendorReports";
+import VendorSetup from "../pages/vendor/VendorSetup";
 import Wishlist from "../pages/Wishlist";
 import Orders from "../pages/Orders";
 import TradeWallet from "../pages/wallet/TradeWallet";
@@ -26,16 +27,16 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminUsers from "../pages/admin/AdminUsers";
 import AdminOrders from "../pages/admin/AdminOrders";
 import AdminClaims from "../pages/admin/AdminClaims";
+import AdminVendors from "../pages/admin/AdminVendors";
+import AdminProducts from "../pages/admin/AdminProducts";
+import AdminCategories from "../pages/admin/AdminCategories";
 import DeliveryLayout from "../components/layout/DeliveryLayout";
 import DeliveryDashboard from "../pages/delivery/DeliveryDashboard";
 import DeliveryOrders from "../pages/delivery/DeliveryOrders";
 import DeliveryTracking from "../pages/delivery/DeliveryTracking";
 import AddProduct from "../pages/vendor/AddProduct";
 import EditProduct from "../pages/vendor/EditProduct";
-import AdminVendors from "../pages/admin/AdminVendors";
 import VendorPage from "../pages/public/VendorPage";
-
-
 
 export default function AppRoutes() {
   return (
@@ -56,6 +57,9 @@ export default function AppRoutes() {
         }
       />
 
+      {/* Vendor setup (before dashboard, for new vendors) */}
+      <Route path="/vendor/setup" element={<VendorSetup />} />
+
       <Route
         path="/vendor"
         element={
@@ -68,7 +72,6 @@ export default function AppRoutes() {
         <Route path="products" element={<VendorProducts />} />
         <Route path="products/add" element={<AddProduct />} />
         <Route path="products/edit/:id" element={<EditProduct />} />
-        
         <Route path="stock" element={<VendorStock />} />
         <Route path="trade" element={<VendorTrade />} />
         <Route path="reports" element={<VendorReports />} />
@@ -80,8 +83,6 @@ export default function AppRoutes() {
       <Route path="/orders" element={<Orders />} />
       <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
       <Route path="/vendor/dashboard" element={<VendorDashboard />} />
-      
-
 
       <Route
         path="/admin"
@@ -97,6 +98,8 @@ export default function AppRoutes() {
         <Route path="orders" element={<AdminOrders />} />
         <Route path="claims" element={<AdminClaims />} />
         <Route path="vendors" element={<AdminVendors />} />
+        <Route path="products" element={<AdminProducts />} />
+        <Route path="categories" element={<AdminCategories />} />
       </Route>
 
       <Route

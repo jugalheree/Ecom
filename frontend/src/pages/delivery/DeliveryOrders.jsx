@@ -63,24 +63,24 @@ export default function DeliveryOrders() {
     <div className="min-h-screen bg-white">
       <div className="container-app py-12">
         <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             Assigned deliveries
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Update status for each delivery
           </p>
         </div>
         <div className="space-y-4">
           {deliveries.length === 0 ? (
-            <Card className="p-8 text-center text-stone-500 border-2 border-stone-200">No deliveries assigned.</Card>
+            <Card className="p-8 text-center text-ink-500 border-2 border-ink-200">No deliveries assigned.</Card>
           ) : (
             deliveries.map((d) => (
-              <Card key={d._id} className="p-6 border-2 border-stone-200 hover:border-primary-300 transition-all duration-300">
+              <Card key={d._id} className="p-6 border-2 border-ink-200 hover:border-primary-300 transition-all duration-300">
                 <div className="flex flex-wrap justify-between items-start gap-4">
                   <div>
-                    <p className="font-semibold text-stone-900">{d.orderId}</p>
-                    <p className="text-stone-600 mt-1">{d.address}</p>
-                    <p className="text-sm text-stone-500 mt-1">{d.customerName} • {d.phone}</p>
+                    <p className="font-semibold text-ink-900">{d.orderId}</p>
+                    <p className="text-ink-600 mt-1">{d.address}</p>
+                    <p className="text-sm text-ink-500 mt-1">{d.customerName} • {d.phone}</p>
                   </div>
                   <Badge type={statusStyles[d.status] || "default"}>{d.status?.replace(/_/g, " ")}</Badge>
                 </div>

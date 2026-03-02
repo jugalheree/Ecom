@@ -1,7 +1,11 @@
 export default function Loader() {
   return (
-    <div className="flex justify-center items-center py-10">
-      <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+    <div className="flex flex-col items-center justify-center gap-3 py-10">
+      <div className="relative w-10 h-10">
+        <div className="absolute inset-0 rounded-full border-2 border-ink-200" />
+        <div className="absolute inset-0 rounded-full border-2 border-t-primary-500 animate-spin" />
+      </div>
+      <p className="text-xs font-display font-semibold uppercase tracking-widest text-ink-400">Loading</p>
     </div>
   );
 }

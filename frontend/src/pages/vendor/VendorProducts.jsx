@@ -40,10 +40,10 @@ export default function VendorProducts() {
       <div className="container-app py-12">
         <div className="flex items-center justify-between mb-12">
           <div>
-            <h1 className="text-5xl font-bold text-stone-900 mb-2">
+            <h1 className="text-5xl font-bold text-ink-900 mb-2">
               My Products
             </h1>
-            <p className="text-lg text-stone-500">
+            <p className="text-lg text-ink-500">
               Manage your listed products and inventory.
             </p>
           </div>
@@ -51,7 +51,7 @@ export default function VendorProducts() {
           <button
             onClick={() => navigate("/vendor/products/add")}
             className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-xl text-sm font-medium 
-               hover:bg-stone-900 transition-all duration-200 shadow-sm hover:shadow-md"
+               hover:bg-ink-900 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             <span className="text-lg">+</span>
             Add Product
@@ -60,18 +60,18 @@ export default function VendorProducts() {
         {loading ? (
           <p>Loading...</p>
         ) : products.length === 0 ? (
-          <div className="text-center py-20 border-2 border-dashed border-stone-200 rounded-2xl">
-            <h3 className="text-xl font-semibold text-stone-800 mb-3">
+          <div className="text-center py-20 border-2 border-dashed border-ink-200 rounded-2xl">
+            <h3 className="text-xl font-semibold text-ink-800 mb-3">
               No products yet
             </h3>
-            <p className="text-stone-500 mb-6">
+            <p className="text-ink-500 mb-6">
               Start by adding your first product to your store.
             </p>
 
             <button
               onClick={() => navigate("/vendor/products/add")}
               className="bg-black text-white px-6 py-3 rounded-xl text-sm font-medium 
-               hover:bg-stone-900 transition-all duration-200"
+               hover:bg-ink-900 transition-all duration-200"
             >
               + Add Your First Product
             </button>
@@ -79,7 +79,7 @@ export default function VendorProducts() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {products.map((product) => (
-              <Card key={product.id} className="p-6 border-2 border-stone-200">
+              <Card key={product.id} className="p-6 border-2 border-ink-200">
                 <img
                   src={product.images?.[0]?.url || "/placeholder.png"}
                   alt={product.name}

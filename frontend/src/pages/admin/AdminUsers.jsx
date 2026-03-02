@@ -25,22 +25,22 @@ export default function AdminUsers() {
       <div className="container-app py-12">
 
         <div className="mb-10">
-          <h1 className="text-5xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl font-display font-bold text-ink-900 mb-4">
             Admin Users
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             View and manage all registered users.
           </p>
         </div>
 
-        <Card className="p-8 border-2 border-stone-200 overflow-x-auto">
+        <Card className="p-8 border-2 border-ink-200 overflow-x-auto">
           {loading && <p>Loading users...</p>}
           {error && <p className="text-red-600">{error}</p>}
 
           {!loading && !error && (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-stone-200 text-left text-stone-500">
+                <tr className="border-b border-ink-200 text-left text-ink-500">
                   <th className="py-3">Name</th>
                   <th>Email</th>
                   <th>Role</th>
@@ -50,8 +50,8 @@ export default function AdminUsers() {
 
               <tbody>
                 {users.map((u) => (
-                  <tr key={u._id} className="border-b border-stone-200">
-                    <td className="py-4 font-medium text-stone-900">
+                  <tr key={u._id} className="border-b border-ink-200">
+                    <td className="py-4 font-medium text-ink-900">
                       {u.name}
                     </td>
                     <td>{u.email}</td>
