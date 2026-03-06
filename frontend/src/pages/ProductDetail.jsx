@@ -13,13 +13,35 @@ export default function ProductDetail() {
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
+  const [productImages, setProductImages] = useState([]);
+
   useEffect(() => {
-    api.get(`/api/products/${id}`).then((res) => {
-      const p = res.data.data;
-      setProduct(p);
-      const catId = p?.categoryId?._id || p?.categoryId;
-      if (catId) categoryAPI.getAttributes(catId).then((r) => setAttributes(r.data?.data || [])).catch(() => {});
-    });
+    // /api/products/:id doesn't exist yet — try vendor allProducts and find by id
+    api.get("/api/vendor/allProducts")
+      .then((res) => {
+        const raw = res.data?.data;
+        const list = Array.isArray(raw) ? raw : raw?.products || [];
+        const found = list.find((p) => p._id === id || p.id === id);
+        if (found) {
+          setProduct(found);
+          const catId = found?.categoryId?._id || found?.categoryId;
+          if (catId) categoryAPI.getAttributes(catId).then((r) => setAttributes(r.data?.data || [])).catch(() => {});
+          // Fetch images separately — normalize imageUrl -> url
+          api.get(`/api/vendor/products/${id}/images`)
+            .then((imgRes) => {
+              const imgs = imgRes.data?.data;
+              const imgArr = Array.isArray(imgs) ? imgs : [];
+              // Normalise imageUrl -> url for consistent rendering
+              setProductImages(imgArr.map((img) => ({ ...img, url: img.url || img.imageUrl })));
+            })
+            .catch(() => {
+              // fallback: use embedded images if any
+              const embedded = (found.images || []).map((img) => ({ ...img, url: img.url || img.imageUrl }));
+              setProductImages(embedded);
+            });
+        }
+      })
+      .catch(() => {});
   }, [id]);
 
   if (!product) return (
@@ -47,11 +69,18 @@ export default function ProductDetail() {
           {/* Images */}
           <div>
             <div className="bg-white rounded-2xl border border-ink-200 overflow-hidden aspect-square flex items-center justify-center">
-              <img src={product.images?.[activeImage]?.url || "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=600&auto=format&fit=crop&q=60"} alt={product.title} className="w-full h-full object-cover" />
+              {productImages.length > 0 ? (
+                <img src={productImages[activeImage]?.url} alt={product.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-50">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d1d6" strokeWidth="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  <span className="text-xs text-ink-300 font-medium">No image available</span>
+                </div>
+              )}
             </div>
-            {product.images?.length > 1 && (
+            {productImages.length > 1 && (
               <div className="flex gap-3 mt-3">
-                {product.images.map((img, i) => (
+                {productImages.map((img, i) => (
                   <button key={i} onClick={() => setActiveImage(i)}
                     className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${activeImage === i ? "border-primary-500 shadow-sm" : "border-ink-200 hover:border-ink-400"}`}>
                     <img src={img.url} alt="" className="w-full h-full object-cover" />

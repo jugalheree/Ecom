@@ -29,6 +29,13 @@ export const vendorAPI = {
     api.post(`/api/vendor/products/${productId}/images`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+  products: () => api.get("/api/vendor/allProducts"),
+  updateProduct: (productId, data) =>
+    api.patch(`/api/vendor/products/${productId}`, data),
+  deleteProduct: (productId) =>
+    api.delete(`/api/vendor/products/${productId}`),
+  updateStock: (productId, change) =>
+    api.patch(`/api/vendor/products/${productId}/stock`, { change }),
 };
 
 // ─────────────── CART ───────────────

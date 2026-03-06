@@ -7,29 +7,40 @@ export default function EditProduct() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: "",
+    title: "",
     description: "",
     price: "",
-    aiScore: "",
     stock: "",
+    minDeliveryDays: "1",
+    maxDeliveryDays: "5",
   });
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    // Fetch from vendor's own product list then find by id
     api
-      .get(`/api/products/${id}`)
+      .get("/api/vendor/allProducts")
       .then((res) => {
-        const product = res.data.data;
-        setForm({
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          aiScore: product.ai,
-          stock: product.stock ?? 0,
-        });
+        const raw = res.data?.data;
+        const products = Array.isArray(raw) ? raw : raw?.products || [];
+        const product = products.find((p) => p._id === id || p.id === id);
+        if (product) {
+          setForm({
+            title: product.title || product.name || "",
+            description: product.description || "",
+            price: product.price ?? "",
+            stock: product.stock ?? 0,
+            minDeliveryDays: product.minDeliveryDays ?? 1,
+            maxDeliveryDays: product.maxDeliveryDays ?? 5,
+          });
+        } else {
+          setError("Product not found.");
+        }
       })
-      .catch(console.error)
+      .catch(() => setError("Failed to load product."))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -39,73 +50,156 @@ export default function EditProduct() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setSaving(true);
     try {
-      await api.put(`/api/products/${id}`, {
-        ...form,
+      await api.patch(`/api/vendor/products/${id}`, {
+        title: form.title,
+        description: form.description,
         price: Number(form.price),
-        aiScore: Number(form.aiScore),
         stock: Number(form.stock),
+        minDeliveryDays: Number(form.minDeliveryDays),
+        maxDeliveryDays: Number(form.maxDeliveryDays),
       });
-
       navigate("/vendor/products");
     } catch (err) {
-      alert(err.message || "Update failed");
+      setError(err?.message || "Update failed. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <p className="p-8">Loading...</p>;
+  if (loading)
+    return (
+      <div className="min-h-screen bg-ink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-ink-200 border-t-ink-900 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs font-display font-semibold uppercase tracking-widest text-ink-400">Loading product...</p>
+        </div>
+      </div>
+    );
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Edit Product</h1>
-
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
-        <input
-          type="text"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          className="w-full border p-3 rounded"
-        />
-
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          className="w-full border p-3 rounded"
-        />
-
-        <input
-          type="number"
-          name="price"
-          value={form.price}
-          onChange={handleChange}
-          className="w-full border p-3 rounded"
-        />
-
-        <input
-          type="number"
-          name="aiScore"
-          min="0"
-          max="100"
-          value={form.aiScore}
-          onChange={handleChange}
-          className="w-full border p-3 rounded"
-        />
-
-        <input
-          type="number"
-          name="stock"
-          value={form.stock}
-          onChange={handleChange}
-          className="w-full border p-3 rounded"
-        />
-
-        <button type="submit" className="bg-black text-white px-6 py-3 rounded">
-          Update Product
+    <div className="min-h-screen bg-ink-50 p-6">
+      <div className="max-w-xl mx-auto">
+        <button
+          onClick={() => navigate("/vendor/products")}
+          className="flex items-center gap-2 text-sm text-ink-500 hover:text-ink-900 mb-6 transition-colors group"
+        >
+          <span className="group-hover:-translate-x-1 transition-transform">←</span>
+          Back to Products
         </button>
-      </form>
+
+        <div className="bg-white rounded-2xl border border-ink-200 overflow-hidden shadow-sm">
+          <div className="px-8 py-6 border-b border-ink-100">
+            <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-primary-600 mb-1">Edit</p>
+            <h1 className="text-2xl font-display font-bold text-ink-900">Update Product</h1>
+          </div>
+
+          <div className="px-8 py-8">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-6">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink-500 mb-2 block">Product Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={form.title}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-xl border-2 border-ink-200 bg-white px-4 py-3 text-ink-900 text-sm placeholder:text-ink-300 focus:outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/5 transition-all"
+                  placeholder="Product title"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink-500 mb-2 block">Description</label>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  rows={4}
+                  className="w-full rounded-xl border-2 border-ink-200 bg-white px-4 py-3 text-ink-900 text-sm placeholder:text-ink-300 resize-none focus:outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/5 transition-all"
+                  placeholder="Describe your product..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-widest text-ink-500 mb-2 block">Price (₹) *</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 text-sm font-semibold">₹</span>
+                    <input
+                      type="number"
+                      name="price"
+                      value={form.price}
+                      onChange={handleChange}
+                      min="0"
+                      required
+                      className="w-full rounded-xl border-2 border-ink-200 bg-white pl-8 pr-4 py-3 text-ink-900 text-sm focus:outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/5 transition-all"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-widest text-ink-500 mb-2 block">Stock (units) *</label>
+                  <input
+                    type="number"
+                    name="stock"
+                    value={form.stock}
+                    onChange={handleChange}
+                    min="0"
+                    required
+                    className="w-full rounded-xl border-2 border-ink-200 bg-white px-4 py-3 text-ink-900 text-sm focus:outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/5 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink-500 mb-2 block">Delivery Window (days)</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-ink-400 mb-1.5">Minimum</div>
+                    <input
+                      type="number"
+                      name="minDeliveryDays"
+                      value={form.minDeliveryDays}
+                      onChange={handleChange}
+                      min="1"
+                      className="w-full rounded-xl border-2 border-ink-200 bg-white px-4 py-3 text-ink-900 text-sm focus:outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/5 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-xs text-ink-400 mb-1.5">Maximum</div>
+                    <input
+                      type="number"
+                      name="maxDeliveryDays"
+                      value={form.maxDeliveryDays}
+                      onChange={handleChange}
+                      min="1"
+                      className="w-full rounded-xl border-2 border-ink-200 bg-white px-4 py-3 text-ink-900 text-sm focus:outline-none focus:border-ink-900 focus:ring-4 focus:ring-ink-900/5 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full py-3.5 px-6 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+                  style={{ background: saving ? "#8e8e9a" : "linear-gradient(135deg,#131318 0%,#3e3e48 100%)", boxShadow: saving ? "none" : "0 4px 20px rgba(19,19,24,0.25)" }}
+                >
+                  {saving ? "Saving changes..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

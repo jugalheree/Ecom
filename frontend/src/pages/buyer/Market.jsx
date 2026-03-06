@@ -97,10 +97,10 @@ export default function Market() {
             endpoint="/api/products"
             method="GET"
             todo={[
-              "Create /backend/src/controllers/product.controller.js with getProducts() and getProductById()",
-              "Create /backend/src/routes/product.routes.js with GET / and GET /:id",
-              "Add to app.js: import productRoutes from './routes/product.routes.js'",
-              "Add to app.js: app.use('/api/products', productRoutes)",
+              "Create /backend/src/controllers/product.controller.js with getProducts() returning { products: [...] } (filter by approvalStatus: 'APPROVED')",
+              "Create /backend/src/routes/product.routes.js with GET / and GET /:id routes",
+              "In app.js: import productRoutes from './routes/product.routes.js'",
+              "In app.js: app.use('/api/products', productRoutes)",
               "Restart the backend server",
             ]}
           />

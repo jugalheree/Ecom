@@ -402,3 +402,85 @@ export const uploadProductImages = asyncHandler(async (req, res) => {
     )
   );
 });
+
+
+// export const getProducts  = asyncHandler(async (req,res) => {
+//   const userId = req.user._id;
+//   if(!userId){
+//     throw new ApiError(401, "Unauthorized");
+//   }
+//   const vendor = await Vendor.findOne({ userId });
+
+//   if(!vendor){
+//     throw new ApiError(401, "No Vender is found by this user Id");
+//   }
+
+//   const products = await  Product.find({ vendorId: vendor._id });
+
+//   if(!products || products.length === 0){
+//     return res.status(200).json(new ApiResponse(200, products, "No product found"));
+//   }
+//   return res.status(200).json(new ApiResponse(200, products, "Products fetched successfully"));
+// })
+
+
+
+
+export const getProducts = asyncHandler(async (req, res) => {
+
+  const userId = req.user._id;
+
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const vendor = await Vendor.findOne({ userId });
+
+  if (!vendor) {
+    throw new ApiError(401, "No Vendor found for this user");
+  }
+
+  const products = await Product.aggregate([
+
+    {
+      $match: {
+        vendorId: vendor._id
+      }
+    },
+
+    {
+      $lookup: {
+        from: "productimages", // collection name in mongodb
+        localField: "_id",
+        foreignField: "productId",
+        as: "images"
+      }
+    },
+
+    {
+      $addFields: {
+        primaryImage: {
+          $first: {
+            $filter: {
+              input: "$images",
+              as: "img",
+              cond: { $eq: ["$$img.isPrimary", true] }
+            }
+          }
+        }
+      }
+    }
+
+  ]);
+
+  if (!products || products.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, products, "No product found"));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, products, "Products fetched successfully"));
+
+});

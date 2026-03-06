@@ -1,11 +1,12 @@
 //Vender.routes.js
 
 import { Router } from "express";
-import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, uploadProductImages, uploadVendorDocuments } from "../controllers/vendor.controller.js";
+import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, getProducts, uploadProductImages, uploadVendorDocuments } from "../controllers/vendor.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { isVendorApproved } from "../middlewares/vendor.middleware.js";
+import { get } from "mongoose";
 
 const router = Router();
 
@@ -16,4 +17,5 @@ router.route('/verification/documents').post(verifyJWT, authorizeRoles("VENDOR")
 router.route('/products').post(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, createProduct);
 router.route('/products/:productId/attributes').post(verifyJWT, isVendorApproved, addProductAttributes);
 router.route('/products/:productId/images').post(verifyJWT, isVendorApproved, upload.array('images',5), uploadProductImages);
+router.route('/allProducts').get(verifyJWT,isVendorApproved, getProducts);
 export default router;

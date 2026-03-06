@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { adminAPI } from "../../services/apis/index";
-import Card from "../../components/ui/Card";
+
 import { useToastStore } from "../../store/toastStore";
 
 export default function AdminProducts() {
@@ -60,85 +60,63 @@ export default function AdminProducts() {
 
   return (
     <div className="min-h-screen bg-ink-50">
-      <div className="container-app py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-display font-bold text-ink-900">
-            Pending Products
-          </h1>
-          <p className="text-sm text-ink-500 mt-1">
-            Review and approve or reject vendor product listings.
-          </p>
-          {!loading && (
-            <p className="text-ink-400 mt-2">
-              {data.total} product{data.total !== 1 ? "s" : ""} pending review
-            </p>
-          )}
-        </div>
+      <div className="bg-white border-b border-ink-100 px-8 py-7">
+        <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-amber-600 mb-1">Approvals</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900">Pending Products</h1>
+        <p className="text-ink-400 text-sm mt-0.5">Review and approve or reject vendor product listings.
+          {!loading && ` · ${data.total} product${data.total !== 1 ? "s" : ""} pending`}
+        </p>
+      </div>
 
-        <Card className="p-6 border border-ink-200 overflow-x-auto">
+      <div className="p-6">
+        <div className="bg-white rounded-2xl border border-ink-100 overflow-hidden">
           {loading ? (
-            <p className="text-ink-500 animate-pulse">Loading products...</p>
+            <div className="flex items-center gap-3 p-6 text-ink-400 text-sm">
+              <div className="w-4 h-4 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin" />
+              Loading products...
+            </div>
           ) : data.products.length === 0 ? (
-            <p className="text-ink-500 text-center py-8">
-              No pending products. All caught up! ✅
-            </p>
+            <div className="text-center py-12 text-ink-400 text-sm">No pending products — all caught up! ✅</div>
           ) : (
             <>
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-ink-200 text-left text-ink-500">
-                    <th className="py-3 pr-4">Title</th>
-                    <th className="pr-4">Vendor</th>
-                    <th className="pr-4">Category</th>
-                    <th className="pr-4">Price</th>
-                    <th className="pr-4">Stock</th>
-                    <th className="pr-4">Sale Type</th>
-                    <th className="pr-4">Submitted</th>
-                    <th>Actions</th>
+                  <tr className="border-b border-ink-100 bg-ink-50">
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Title</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Vendor</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Category</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Price</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Stock</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Type</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Date</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.products.map((p) => (
-                    <tr key={p._id} className="border-b border-ink-100 hover:bg-ink-50">
-                      <td className="py-4 pr-4 font-medium text-ink-900">{p.title}</td>
-                      <td className="pr-4 text-ink-600">
-                        {p.vendorId?.shopName || "—"}
+                    <tr key={p._id} className="border-b border-ink-50 hover:bg-ink-50/50 transition-colors">
+                      <td className="px-5 py-3.5 font-medium text-ink-900 max-w-[180px]"><span className="truncate block">{p.title}</span></td>
+                      <td className="px-5 py-3.5 text-ink-500 text-xs">{p.vendorId?.shopName || "—"}</td>
+                      <td className="px-5 py-3.5 text-ink-500 text-xs">{p.categoryId?.name || "—"}</td>
+                      <td className="px-5 py-3.5 font-display font-bold text-ink-900 text-sm">₹{p.price?.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-ink-500 text-xs">{p.stock}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
+                          p.saleType === "B2B" ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : p.saleType === "BOTH" ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : "bg-ink-50 text-ink-600 border-ink-200"
+                        }`}>{p.saleType}</span>
                       </td>
-                      <td className="pr-4 text-ink-600">
-                        {p.categoryId?.name || "—"}
-                      </td>
-                      <td className="pr-4 font-semibold text-ink-900">₹{p.price}</td>
-                      <td className="pr-4 text-ink-600">{p.stock}</td>
-                      <td className="pr-4">
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium ${
-                            p.saleType === "B2B"
-                              ? "bg-blue-100 text-blue-700"
-                              : p.saleType === "BOTH"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-ink-100 text-ink-700"
-                          }`}
-                        >
-                          {p.saleType}
-                        </span>
-                      </td>
-                      <td className="pr-4 text-ink-500 text-xs">
-                        {new Date(p.createdAt).toLocaleDateString()}
-                      </td>
-                      <td>
+                      <td className="px-5 py-3.5 text-ink-400 text-xs">{new Date(p.createdAt).toLocaleDateString()}</td>
+                      <td className="px-5 py-3.5">
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleApprove(p._id)}
-                            disabled={actionLoading}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50"
-                          >
+                          <button onClick={() => handleApprove(p._id)} disabled={actionLoading}
+                            className="text-[11px] font-display font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition disabled:opacity-50 active:scale-[0.97]">
                             Approve
                           </button>
-                          <button
-                            onClick={() => setRejectModal({ productId: p._id })}
-                            disabled={actionLoading}
-                            className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50"
-                          >
+                          <button onClick={() => setRejectModal({ productId: p._id })} disabled={actionLoading}
+                            className="text-[11px] font-display font-semibold bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100 transition disabled:opacity-50 active:scale-[0.97]">
                             Reject
                           </button>
                         </div>
@@ -147,18 +125,19 @@ export default function AdminProducts() {
                   ))}
                 </tbody>
               </table>
+              </div>
 
               {/* Pagination */}
               {data.pages > 1 && (
-                <div className="flex justify-center gap-2 mt-6">
+                <div className="flex justify-center gap-2 p-4 border-t border-ink-100">
                   {Array.from({ length: data.pages }, (_, i) => i + 1).map((pg) => (
                     <button
                       key={pg}
                       onClick={() => fetchProducts(pg)}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition ${
+                      className={`w-8 h-8 rounded-lg text-sm font-display font-semibold transition ${
                         pg === data.page
-                          ? "bg-black text-white"
-                          : "bg-ink-100 hover:bg-ink-200 text-ink-700"
+                          ? "bg-ink-900 text-white"
+                          : "bg-ink-50 hover:bg-ink-100 text-ink-600 border border-ink-200"
                       }`}
                     >
                       {pg}
@@ -168,41 +147,29 @@ export default function AdminProducts() {
               )}
             </>
           )}
-        </Card>
+        </div>
       </div>
 
       {/* Reject Modal */}
       {rejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-ink-900 mb-4">
-              Reject Product
-            </h3>
-            <p className="text-ink-600 text-sm mb-4">
-              Provide a reason for rejection. This will be visible to the vendor.
-            </p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-ink-100">
+            <h3 className="font-display font-bold text-ink-900 text-lg mb-2">Reject Product</h3>
+            <p className="text-ink-500 text-sm mb-4">Provide a reason for rejection. This will be visible to the vendor.</p>
             <textarea
               value={rejectRemark}
               onChange={(e) => setRejectRemark(e.target.value)}
               rows="4"
               placeholder="Enter rejection reason..."
-              className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+              className="w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-400 resize-none"
             />
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setRejectModal(null);
-                  setRejectRemark("");
-                }}
-                className="flex-1 border-2 border-ink-200 py-2.5 rounded-xl font-medium text-ink-700 hover:bg-ink-50 transition"
-              >
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => { setRejectModal(null); setRejectRemark(""); }}
+                className="flex-1 border border-ink-200 py-2.5 rounded-xl font-display font-semibold text-sm text-ink-700 hover:bg-ink-50 transition active:scale-[0.97]">
                 Cancel
               </button>
-              <button
-                onClick={handleReject}
-                disabled={actionLoading}
-                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-medium hover:bg-red-700 transition disabled:opacity-50"
-              >
+              <button onClick={handleReject} disabled={actionLoading}
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-display font-semibold text-sm hover:bg-red-700 transition disabled:opacity-50 active:scale-[0.97]">
                 {actionLoading ? "Rejecting..." : "Confirm rejection"}
               </button>
             </div>

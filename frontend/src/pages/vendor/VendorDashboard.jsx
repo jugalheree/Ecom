@@ -1,4 +1,3 @@
-import Card from "../../components/ui/Card";
 import { useNavigate } from "react-router-dom";
 import TrustCard from "../../components/trust/TrustCard";
 import RevenueChart from "../../components/charts/RevenueChart";
@@ -16,10 +15,18 @@ const REVENUE_DATA = [
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const stats = [
-    { title: "Total revenue", value: "₹48,500", change: "+12%", icon: "↗", color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
-    { title: "Total orders", value: "126", change: "+8%", icon: "↗", color: "text-blue-600 bg-blue-50 border-blue-100" },
-    { title: "Active products", value: "18", change: "stable", icon: "—", color: "text-primary-600 bg-primary-50 border-primary-100" },
-    { title: "Low stock items", value: "3", change: "action needed", icon: "!", color: "text-amber-600 bg-amber-50 border-amber-100" },
+    { title: "Total Revenue", value: "₹48,500", change: "+12%", positive: true, icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    )},
+    { title: "Total Orders", value: "126", change: "+8%", positive: true, icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    )},
+    { title: "Active Products", value: "18", change: "stable", positive: null, icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    )},
+    { title: "Low Stock", value: "3", change: "action needed", positive: false, icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    )},
   ];
   const recentOrders = [
     { id: 201, buyer: "Rahul Mehta", total: 3499, status: "Pending" },
@@ -27,75 +34,85 @@ export default function VendorDashboard() {
     { id: 203, buyer: "Aman Patel", total: 1999, status: "Completed" },
   ];
   const statusStyles = {
-    Pending: "bg-amber-50 text-amber-700 border-amber-200",
-    Shipped: "bg-primary-50 text-primary-700 border-primary-200",
-    Completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    Pending: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+    Shipped: "bg-primary-500/10 text-primary-400 border border-primary-500/20",
+    Completed: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
   };
 
   return (
     <div className="min-h-screen bg-ink-50">
-      <div className="bg-white border-b border-ink-100 px-8 py-8">
-        <p className="text-xs font-display font-bold uppercase tracking-widest text-primary-600 mb-1">Overview</p>
-        <h1 className="text-3xl font-display font-bold text-ink-900">Vendor Dashboard</h1>
-        <p className="text-ink-500 text-sm mt-1">Monitor your business performance and store activity.</p>
+      {/* Page header */}
+      <div className="bg-white border-b border-ink-100 px-8 py-7">
+        <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-primary-600 mb-1">Overview</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900">Vendor Dashboard</h1>
+        <p className="text-ink-400 text-sm mt-0.5">Monitor your business performance and store activity.</p>
       </div>
 
-      <div className="p-8 space-y-6">
+      <div className="p-6 space-y-5">
         {/* Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s, i) => (
-            <div key={i} className={`bg-white rounded-2xl border-2 ${s.color} p-5 hover:shadow-md transition-all duration-200`}>
+            <div key={i} className="bg-white rounded-2xl border border-ink-100 p-5 hover:shadow-md hover:border-ink-200 transition-all duration-200">
               <div className="flex items-start justify-between mb-4">
-                <p className="text-xs font-display font-bold uppercase tracking-widest text-ink-500">{s.title}</p>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${s.color}`}>{s.change}</span>
+                <div className="w-9 h-9 rounded-xl bg-ink-50 border border-ink-100 flex items-center justify-center text-ink-500">
+                  {s.icon}
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${
+                  s.positive === true ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                  : s.positive === false ? "bg-red-50 text-red-500 border border-red-100"
+                  : "bg-ink-50 text-ink-400 border border-ink-100"
+                }`}>{s.change}</span>
               </div>
-              <p className="text-3xl font-display font-bold text-ink-900">{s.value}</p>
+              <p className="text-[11px] font-display font-bold uppercase tracking-widest text-ink-400 mb-1">{s.title}</p>
+              <p className="text-2xl font-display font-bold text-ink-900">{s.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Trust + Charts */}
+        {/* Trust cards */}
         <div className="grid md:grid-cols-2 gap-4">
           <TrustCard title="Vendor rating" rating={4.6} reviews={128} badge="Trusted vendor" />
           <TrustCard title="Product satisfaction" rating={4.4} reviews={342} badge="High quality store" />
         </div>
 
+        {/* Charts */}
         <div className="grid md:grid-cols-2 gap-4">
-          <Card className="p-6 border border-ink-200">
-            <h3 className="font-display font-bold text-ink-900 mb-1">Revenue trend</h3>
-            <p className="text-xs text-ink-400 mb-4">Monthly revenue over the last 6 months</p>
+          <div className="bg-white rounded-2xl border border-ink-100 p-5">
+            <h3 className="font-display font-bold text-ink-900 text-sm mb-0.5">Revenue Trend</h3>
+            <p className="text-[11px] text-ink-400 mb-4">Monthly revenue over the last 6 months</p>
             <RevenueChart data={REVENUE_DATA} />
-          </Card>
-          <Card className="p-6 border border-ink-200">
-            <h3 className="font-display font-bold text-ink-900 mb-1">Orders overview</h3>
-            <p className="text-xs text-ink-400 mb-4">Order volume trend</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-ink-100 p-5">
+            <h3 className="font-display font-bold text-ink-900 text-sm mb-0.5">Orders Overview</h3>
+            <p className="text-[11px] text-ink-400 mb-4">Order volume trend</p>
             <OrdersChart data={REVENUE_DATA} />
-          </Card>
+          </div>
         </div>
 
         {/* Recent Orders */}
-        <Card className="p-6 border border-ink-200">
-          <div className="flex justify-between items-center mb-5">
+        <div className="bg-white rounded-2xl border border-ink-100 p-5">
+          <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="font-display font-bold text-ink-900">Recent orders</h3>
-              <p className="text-xs text-ink-400 mt-0.5">Latest customer orders</p>
+              <h3 className="font-display font-bold text-ink-900 text-sm">Recent Orders</h3>
+              <p className="text-[11px] text-ink-400 mt-0.5">Latest customer orders</p>
             </div>
-            <button onClick={() => navigate("/vendor/trade")} className="text-xs font-display font-semibold text-primary-600 hover:text-primary-700 border border-primary-200 bg-primary-50 px-3 py-1.5 rounded-lg transition-colors">
+            <button onClick={() => navigate("/vendor/trade")}
+              className="text-[11px] font-display font-semibold text-primary-600 hover:text-primary-700 border border-primary-100 bg-primary-50 px-3 py-1.5 rounded-lg transition-colors">
               View all →
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentOrders.map((o) => (
-              <div key={o.id} className="flex justify-between items-center p-4 bg-ink-50 rounded-xl hover:bg-ink-100 transition-colors">
+              <div key={o.id} className="flex justify-between items-center p-3.5 bg-ink-50 rounded-xl hover:bg-ink-100 transition-colors">
                 <div>
                   <p className="font-display font-semibold text-ink-900 text-sm">#{o.id} · {o.buyer}</p>
-                  <p className="text-xs text-ink-400 mt-0.5">₹{o.total.toLocaleString()}</p>
+                  <p className="text-[11px] text-ink-400 mt-0.5">₹{o.total.toLocaleString()}</p>
                 </div>
-                <span className={`text-xs px-3 py-1 rounded-lg font-semibold border ${statusStyles[o.status]}`}>{o.status}</span>
+                <span className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold ${statusStyles[o.status]}`}>{o.status}</span>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

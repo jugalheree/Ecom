@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { adminAPI } from "../../services/apis/index";
-import Card from "../../components/ui/Card";
+
 import { useToastStore } from "../../store/toastStore";
 
 export default function AdminVendors() {
@@ -62,54 +62,49 @@ export default function AdminVendors() {
 
   return (
     <div className="min-h-screen bg-ink-50">
-      <div className="container-app py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-display font-bold text-ink-900">
-            Pending Vendor Approvals
-          </h1>
-          <p className="text-sm text-ink-500 mt-1">
-            Review and approve or reject vendor verification requests.
-          </p>
-        </div>
+      <div className="bg-white border-b border-ink-100 px-8 py-7">
+        <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-amber-600 mb-1">Approvals</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900">Pending Vendor Approvals</h1>
+        <p className="text-ink-400 text-sm mt-0.5">Review and approve or reject vendor verification requests.</p>
+      </div>
 
-        <Card className="p-6 border border-ink-200 overflow-x-auto">
+      <div className="p-6">
+        <div className="bg-white rounded-2xl border border-ink-100 overflow-hidden">
           {loading ? (
-            <p className="text-ink-500 animate-pulse">Loading pending vendors...</p>
+            <div className="flex items-center gap-3 p-6 text-ink-400 text-sm">
+              <div className="w-4 h-4 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin" />
+              Loading pending vendors...
+            </div>
           ) : vendors.length === 0 ? (
-            <p className="text-ink-500 text-center py-8">
-              No pending vendor verifications.
-            </p>
+            <div className="text-center py-12 text-ink-400 text-sm">No pending vendor verifications.</div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-ink-200 text-left text-ink-500">
-                  <th className="py-3 pr-4">Name</th>
-                  <th className="pr-4">Email</th>
-                  <th className="pr-4">Phone</th>
-                  <th className="pr-4">Shop</th>
-                  <th className="pr-4">Business Type</th>
-                  <th className="pr-4">PAN</th>
-                  <th className="pr-4">GST</th>
-                  <th className="pr-4">Documents</th>
-                  <th className="pr-4">Submitted</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-ink-100 bg-ink-50">
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Name</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Email</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Shop</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Type</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">PAN</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Docs</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Submitted</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Actions</th>
+                  </tr>
+                </thead>
               <tbody>
                 {vendors.map((v) => (
-                  <tr key={v._id} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="py-4 pr-4 font-medium text-ink-900">{v.name}</td>
-                    <td className="pr-4 text-ink-600">{v.email || "—"}</td>
-                    <td className="pr-4 text-ink-600">{v.phone || "—"}</td>
-                    <td className="pr-4 text-ink-600">{v.shopName}</td>
-                    <td className="pr-4">
-                      <span className="bg-ink-100 text-ink-700 text-xs px-2 py-1 rounded-full font-medium">
+                  <tr key={v._id} className="border-b border-ink-50 hover:bg-ink-50/50 transition-colors">
+                    <td className="px-5 py-3.5 font-medium text-ink-900">{v.name}</td>
+                    <td className="px-5 py-3.5 text-ink-500 text-xs">{v.email || "—"}</td>
+                    <td className="px-5 py-3.5 text-ink-700 font-medium text-xs">{v.shopName}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-ink-50 text-ink-600 border border-ink-100">
                         {v.businessType}
                       </span>
                     </td>
-                    <td className="pr-4 text-ink-600 font-mono text-xs">{v.panNumber}</td>
-                    <td className="pr-4 text-ink-600 font-mono text-xs">{v.gstNumber}</td>
-                    <td className="pr-4">
+                    <td className="px-5 py-3.5 text-ink-400 font-mono text-xs">{v.panNumber}</td>
+                    <td className="px-5 py-3.5">
                       <div className="flex gap-1 flex-wrap">
                         {v.documents?.length > 0 ? (
                           v.documents.map((doc, i) => (
@@ -118,32 +113,32 @@ export default function AdminVendors() {
                               href={doc}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-primary-600 hover:underline"
+                              className="text-[10px] font-bold text-primary-600 hover:text-primary-700 bg-primary-50 border border-primary-100 px-2 py-0.5 rounded-lg transition-colors"
                             >
                               Doc {i + 1}
                             </a>
                           ))
                         ) : (
-                          <span className="text-ink-400 text-xs">None</span>
+                          <span className="text-ink-300 text-xs">None</span>
                         )}
                       </div>
                     </td>
-                    <td className="pr-4 text-ink-500 text-xs">
+                    <td className="px-5 py-3.5 text-ink-400 text-xs">
                       {new Date(v.createdAt).toLocaleDateString()}
                     </td>
-                    <td>
+                    <td className="px-5 py-3.5">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleApprove(v.vendorId)}
                           disabled={actionLoading}
-                          className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50"
+                          className="text-[11px] font-display font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition disabled:opacity-50 active:scale-[0.97]"
                         >
                           Approve
                         </button>
                         <button
                           onClick={() => setRejectModal({ vendorId: v.vendorId })}
                           disabled={actionLoading}
-                          className="bg-red-100 hover:bg-red-200 text-red-700 text-xs px-3 py-1.5 rounded-lg font-medium transition disabled:opacity-50"
+                          className="text-[11px] font-display font-semibold bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100 transition disabled:opacity-50 active:scale-[0.97]"
                         >
                           Reject
                         </button>
@@ -153,41 +148,35 @@ export default function AdminVendors() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
-        </Card>
+        </div>
       </div>
 
       {/* Reject Modal */}
       {rejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-ink-900 mb-4">
-              Reject Vendor
-            </h3>
-            <p className="text-ink-600 text-sm mb-4">
-              Please provide a reason for rejection. This will be visible to the vendor.
-            </p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-ink-100">
+            <h3 className="font-display font-bold text-ink-900 text-lg mb-2">Reject Vendor</h3>
+            <p className="text-ink-500 text-sm mb-4">Provide a reason for rejection. This will be visible to the vendor.</p>
             <textarea
               value={rejectRemark}
               onChange={(e) => setRejectRemark(e.target.value)}
               rows="4"
               placeholder="Enter rejection reason..."
-              className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+              className="w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-400 resize-none"
             />
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-5">
               <button
-                onClick={() => {
-                  setRejectModal(null);
-                  setRejectRemark("");
-                }}
-                className="flex-1 border-2 border-ink-200 py-2.5 rounded-xl font-medium text-ink-700 hover:bg-ink-50 transition"
+                onClick={() => { setRejectModal(null); setRejectRemark(""); }}
+                className="flex-1 border border-ink-200 py-2.5 rounded-xl font-display font-semibold text-sm text-ink-700 hover:bg-ink-50 transition active:scale-[0.97]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReject}
                 disabled={actionLoading}
-                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-medium hover:bg-red-700 transition disabled:opacity-50"
+                className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-display font-semibold text-sm hover:bg-red-700 transition disabled:opacity-50 active:scale-[0.97]"
               >
                 {actionLoading ? "Rejecting..." : "Confirm rejection"}
               </button>
