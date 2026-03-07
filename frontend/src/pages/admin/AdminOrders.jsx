@@ -1,81 +1,40 @@
 import { useEffect, useState } from "react";
 import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
-import Loader from "../../components/ui/Loader";
-import api from "../../services/api";
 
-const statusType = {
-  PENDING: "warning",
-  SHIPPED: "info",
-  DELIVERED: "success",
-  CANCELLED: "danger",
-};
+// Note: Backend currently only has /api/orders/place endpoint (no admin orders list endpoint yet)
+// This page shows a placeholder until the admin orders API is added to the backend
 
 export default function AdminOrders() {
-  const [data, setData] = useState({ orders: [], total: 0, page: 1, totalPages: 0 });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api
-      .get("/api/admin/orders", { params: { page: 1, limit: 50 } })
-      .then((res) => setData(res.data.data))
-      .catch(() => setData({ orders: [], total: 0, page: 1, totalPages: 0 }))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
-  const orders = data.orders || [];
+  const statusColor = (status) => {
+    if (status === "DELIVERED") return "text-emerald-600";
+    if (status === "SHIPPED") return "text-blue-600";
+    if (status === "PENDING_PAYMENT" || status === "PENDING") return "text-amber-600";
+    if (status === "CANCELLED") return "text-red-600";
+    return "text-ink-600";
+  };
 
   return (
     <div className="min-h-screen bg-white">
       <div className="container-app py-12">
-        <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
-            Orders
+        <div className="mb-10">
+          <h1 className="text-5xl font-display font-bold text-ink-900 mb-4">
+            Admin Orders
           </h1>
-          <p className="text-xl text-stone-600">
-            All platform orders ({data.total})
+          <p className="text-xl text-ink-600">
+            View and manage platform orders.
           </p>
         </div>
-        <Card className="p-6 border-2 border-stone-200 overflow-hidden hover:border-primary-300 transition-all duration-300">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-stone-200">
-                  <th className="pb-3 font-semibold text-stone-700">Order ID</th>
-                  <th className="pb-3 font-semibold text-stone-700">Buyer</th>
-                  <th className="pb-3 font-semibold text-stone-700">Amount</th>
-                  <th className="pb-3 font-semibold text-stone-700">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-stone-500 text-center">
-                      No orders found.
-                    </td>
-                  </tr>
-                ) : (
-                  orders.map((o) => (
-                    <tr key={o._id} className="border-b border-stone-100 hover:bg-stone-50">
-                      <td className="py-3 font-medium text-stone-900">{o.orderId}</td>
-                      <td className="py-3 text-stone-600">{o.buyerName}</td>
-                      <td className="py-3 text-stone-700">₹{Number(o.amount).toLocaleString()}</td>
-                      <td className="py-3">
-                        <Badge type={statusType[o.status] || "default"}>{o.status}</Badge>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+
+        <Card className="p-8 border-2 border-ink-200">
+          <div className="text-center py-16 text-ink-400">
+            <div className="text-5xl mb-4">📦</div>
+            <h3 className="text-xl font-semibold text-ink-600 mb-2">
+              Orders listing coming soon
+            </h3>
+            <p className="text-ink-500 text-sm max-w-md mx-auto">
+              The backend API for listing all orders is not yet implemented.
+              Orders can be placed by buyers via <code className="bg-ink-100 px-1 rounded">/api/orders/place</code> and will appear here once the admin orders endpoint is added.
+            </p>
           </div>
         </Card>
       </div>

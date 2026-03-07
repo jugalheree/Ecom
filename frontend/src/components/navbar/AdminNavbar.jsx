@@ -8,113 +8,55 @@ export default function AdminNavbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-stone-200/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-ink-950 border-b border-white/5">
       <div className="container-app h-20 flex items-center justify-between">
-        <Link
-          to="/admin/dashboard"
-          className="text-2xl font-bold font-display text-stone-900 hover:text-primary-600 transition-colors duration-200"
-        >
-          TradeSphere
+        <Link to="/admin/dashboard" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
+            <span className="text-white text-xs font-display font-bold">TS</span>
+          </div>
+          <span className="text-base font-display font-bold text-white group-hover:text-amber-400 transition-colors">TradeSphere</span>
+          <span className="text-[10px] font-display font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">Admin</span>
         </Link>
 
-        <div className="flex items-center gap-6 text-sm font-medium">
-          <Link
-            to="/admin/dashboard"
-            className="text-stone-700 hover:text-stone-900 transition-colors duration-200"
+        <div className="relative">
+          <button onClick={() => setOpen(!open)}
+            className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl hover:bg-white/5 transition-all"
           >
-            Dashboard
-          </Link>
-          <Link
-            to="/admin/users"
-            className="text-stone-700 hover:text-stone-900 transition-colors duration-200"
-          >
-            Users
-          </Link>
-          <Link
-            to="/admin/orders"
-            className="text-stone-700 hover:text-stone-900 transition-colors duration-200"
-          >
-            Orders
-          </Link>
-          <Link
-            to="/admin/claims"
-            className="text-stone-700 hover:text-stone-900 transition-colors duration-200"
-          >
-            Claims
-          </Link>
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-display font-bold text-xs shadow-sm">
+              {user?.name?.[0]}
+            </div>
+            <span className="text-sm font-medium text-white/60 hidden sm:block">{user?.name?.split(" ")[0]}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`text-white/30 transition-transform ${open ? "rotate-180" : ""}`}>
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setOpen(!open)}
-              className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-stone-100 transition-colors duration-200"
-            >
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-semibold shadow-md">
-                {user?.name?.[0]}
+          {open && (
+            <div className="absolute right-0 mt-2 w-52 bg-ink-900 rounded-2xl shadow-2xl border border-white/10 overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-white/5">
+                <p className="font-display font-semibold text-white text-sm">{user?.name}</p>
+                <p className="text-[10px] text-amber-400 font-medium mt-0.5 uppercase tracking-wider">Admin Account</p>
               </div>
-              <span className="text-stone-700 font-medium">Hi, {user?.name}</span>
-            </button>
-
-            {open && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border-2 border-stone-200 overflow-hidden animate-fade-in">
-                <div className="px-5 py-4 border-b border-stone-200 bg-stone-50">
-                  <p className="font-semibold text-stone-900">{user?.name}</p>
-                  <p className="text-xs text-stone-600 uppercase tracking-wide mt-1">Admin account</p>
-                </div>
-
-                <div className="py-2">
-                  <button
-                    onClick={() => {
-                      navigate("/admin/dashboard");
-                      setOpen(false);
-                    }}
-                    className="menu-item"
-                  >
-                    Dashboard
+              <div className="p-1.5">
+                {[
+                  { label: "Dashboard", path: "/admin/dashboard" },
+                  { label: "Users", path: "/admin/users" },
+                  { label: "Orders", path: "/admin/orders" },
+                  { label: "Claims", path: "/admin/claims" },
+                ].map((item) => (
+                  <button key={item.path} onClick={() => { navigate(item.path); setOpen(false); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all">
+                    {item.label}
                   </button>
-                  <button
-                    onClick={() => {
-                      navigate("/admin/users");
-                      setOpen(false);
-                    }}
-                    className="menu-item"
-                  >
-                    Users
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate("/admin/orders");
-                      setOpen(false);
-                    }}
-                    className="menu-item"
-                  >
-                    Orders
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate("/admin/claims");
-                      setOpen(false);
-                    }}
-                    className="menu-item"
-                  >
-                    Claims
-                  </button>
-
-                  <div className="border-t border-stone-200 my-2" />
-
-                  <button
-                    onClick={() => {
-                      logout();
-                      navigate("/");
-                      setOpen(false);
-                    }}
-                    className="menu-item text-red-600 hover:bg-red-50"
-                  >
-                    Logout
-                  </button>
-                </div>
+                ))}
+                <div className="border-t border-white/5 my-1" />
+                <button onClick={() => { logout(); navigate("/"); setOpen(false); }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all">
+                  Sign Out
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </nav>

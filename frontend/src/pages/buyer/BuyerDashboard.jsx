@@ -4,8 +4,6 @@ import { useWishlistStore } from "../../store/wishlistStore";
 import { useOrderStore } from "../../store/orderStore";
 import { useWalletStore } from "../../store/walletStore";
 import { useNavigate } from "react-router-dom";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
 import TrustCard from "../../components/trust/TrustCard";
 import OrdersChart from "../../components/charts/OrdersChart";
 
@@ -24,156 +22,109 @@ export default function BuyerDashboard() {
   const wishlist = useWishlistStore((s) => s.wishlist);
   const orders = useOrderStore((s) => s.orders);
   const wallet = useWalletStore((s) => s.balance);
-
   const navigate = useNavigate();
 
   const statCards = [
-    { label: "Wallet balance", value: `₹${wallet}`, icon: "💰", gradient: "from-emerald-500 to-emerald-600" },
-    { label: "My orders", value: orders.length, icon: "📦", gradient: "from-blue-500 to-blue-600" },
-    { label: "Wishlist", value: wishlist.length, icon: "❤️", gradient: "from-pink-500 to-pink-600" },
-    { label: "Cart items", value: cart.length, icon: "🛒", gradient: "from-primary-500 to-primary-600" },
+    { label: "Wallet Balance", value: `₹${wallet}`, icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    ), accent: "text-emerald-600 bg-emerald-50 border-emerald-100", link: "/wallet" },
+    { label: "My Orders", value: orders.length, icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    ), accent: "text-blue-600 bg-blue-50 border-blue-100", link: "/orders" },
+    { label: "Wishlist", value: wishlist.length, icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    ), accent: "text-pink-600 bg-pink-50 border-pink-100", link: "/wishlist" },
+    { label: "Cart Items", value: cart.length, icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+    ), accent: "text-primary-600 bg-primary-50 border-primary-100", link: "/cart" },
   ];
 
   return (
-    <div className="min-h-screen bg-white mt-16">
-      <div className="container-app py-12 space-y-10">
+    <div className="min-h-screen bg-ink-50 mt-[72px]">
+      {/* Header */}
+      <div className="bg-white border-b border-ink-100 px-8 py-7">
+        <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-primary-600 mb-1">My Account</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900">Welcome back, {user?.name?.split(" ")[0]}</h1>
+        <p className="text-ink-400 text-sm mt-0.5">Here's what's happening with your account.</p>
+      </div>
 
-        {/* HEADER */}
-        <div>
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
-            Welcome back, {user?.name} 👋
-          </h1>
-          <p className="text-xl text-stone-600">
-            Here’s what’s happening with your account.
-          </p>
-        </div>
-
-        {/* STATS GRID */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {statCards.map((stat, i) => (
-            <Card key={i} className="p-8 border-2 border-stone-200 group hover:border-primary-300 transition">
-              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-2xl mb-4 shadow-lg group-hover:scale-110 transition`}>
-                {stat.icon}
+      <div className="container-app py-6 space-y-5">
+        {/* Stats */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statCards.map((s, i) => (
+            <button key={i} onClick={() => navigate(s.link)}
+              className="bg-white rounded-2xl border border-ink-100 p-5 hover:shadow-md hover:border-ink-200 transition-all duration-200 text-left group">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${s.accent}`}>
+                  {s.icon}
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-200 group-hover:text-ink-400 transition-colors">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
               </div>
-              <p className="text-sm text-stone-600 font-medium uppercase tracking-wide mb-2">
-                {stat.label}
-              </p>
-              <p className="text-3xl font-bold text-stone-900">
-                {stat.value}
-              </p>
-            </Card>
+              <p className="text-[11px] font-display font-bold uppercase tracking-widest text-ink-400 mb-1">{s.label}</p>
+              <p className="text-2xl font-display font-bold text-ink-900">{s.value}</p>
+            </button>
           ))}
         </div>
 
-        {/* TRUST + PERFORMANCE */}
-        <div className="grid md:grid-cols-3 gap-8">
+        {/* Trust + Stats */}
+        <div className="grid md:grid-cols-3 gap-4">
           <TrustCard title="Buyer rating" rating={4.7} reviews={56} badge="Reliable buyer" />
-
-          <Card className="p-8 border-2 border-stone-200">
-            <p className="text-sm text-stone-600 uppercase tracking-wide mb-2">
-              Orders completed
-            </p>
-            <p className="text-4xl font-bold text-stone-900">42</p>
-          </Card>
-
-          <Card className="p-8 border-2 border-stone-200">
-            <p className="text-sm text-stone-600 uppercase tracking-wide mb-2">
-              Wishlist items
-            </p>
-            <p className="text-4xl font-bold text-stone-900">11</p>
-          </Card>
+          <div className="bg-white rounded-2xl border border-ink-100 p-5">
+            <p className="text-[11px] font-display font-bold uppercase tracking-widest text-ink-400 mb-3">Orders Completed</p>
+            <p className="text-3xl font-display font-bold text-ink-900">42</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-ink-100 p-5">
+            <p className="text-[11px] font-display font-bold uppercase tracking-widest text-ink-400 mb-3">Wishlist Items</p>
+            <p className="text-3xl font-display font-bold text-ink-900">{wishlist.length}</p>
+          </div>
         </div>
 
-        {/* ORDER CHART */}
-        <Card className="p-10 border-2 border-stone-200">
-          <h3 className="text-2xl font-semibold text-stone-900 mb-2">
-            Order activity
-          </h3>
-          <p className="text-stone-600 mb-6">
-            Orders placed per month
-          </p>
+        {/* Chart */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-5">
+          <h3 className="font-display font-bold text-ink-900 text-sm mb-0.5">Order Activity</h3>
+          <p className="text-[11px] text-ink-400 mb-4">Orders placed per month</p>
           <OrdersChart data={SPENDING_DATA} />
-        </Card>
+        </div>
 
-        {/* RECENT ORDERS */}
-        <Card className="p-10 border-2 border-stone-200">
-          <div className="flex justify-between items-center mb-8">
+        {/* Recent orders */}
+        <div className="bg-white rounded-2xl border border-ink-100 p-5">
+          <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="text-2xl font-semibold text-stone-900 mb-2">
-                Recent orders
-              </h3>
-              <p className="text-stone-600">
-                Your latest transactions
-              </p>
+              <h3 className="font-display font-bold text-ink-900 text-sm">Recent Orders</h3>
+              <p className="text-[11px] text-ink-400 mt-0.5">Your latest transactions</p>
             </div>
-            <Button variant="outline" onClick={() => navigate("/orders")}>
-              View all
-            </Button>
+            <button onClick={() => navigate("/orders")}
+              className="text-[11px] font-display font-semibold text-primary-600 hover:text-primary-700 border border-primary-100 bg-primary-50 px-3 py-1.5 rounded-lg transition-colors">
+              View all →
+            </button>
           </div>
-
           {orders.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-4xl mb-4">📦</div>
-              <p className="text-lg text-stone-600">
-                You haven’t placed any orders yet.
-              </p>
-              <Button className="mt-6" onClick={() => navigate("/market")}>
+            <div className="text-center py-10">
+              <div className="w-12 h-12 bg-ink-50 border border-ink-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-ink-300"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              </div>
+              <p className="text-sm text-ink-400 mb-4">No orders yet</p>
+              <button onClick={() => navigate("/market")}
+                className="text-sm font-display font-semibold bg-ink-900 text-white px-5 py-2 rounded-xl hover:bg-ink-800 transition-all active:scale-[0.97]">
                 Start shopping
-              </Button>
+              </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {orders.slice(0, 5).map((o, i) => (
-                <div key={i} className="flex justify-between items-center p-5 border-2 border-stone-200 rounded-xl hover:border-primary-300 transition">
+                <div key={i} className="flex justify-between items-center p-3.5 bg-ink-50 rounded-xl hover:bg-ink-100 transition-colors">
                   <div>
-                    <p className="font-semibold text-stone-900">
-                      Order #{i + 1}
-                    </p>
-                    <p className="text-sm text-stone-600 mt-1">
-                      Completed
-                    </p>
+                    <p className="font-display font-semibold text-ink-900 text-sm">Order #{i + 1}</p>
+                    <p className="text-[11px] text-ink-400 mt-0.5">Completed</p>
                   </div>
-                  <p className="text-xl font-bold text-stone-900">
-                    ₹{o.total}
-                  </p>
+                  <p className="font-display font-bold text-ink-900">₹{o.total}</p>
                 </div>
               ))}
             </div>
           )}
-        </Card>
-
-        {/* RECOMMENDED */}
-        <div>
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h2 className="text-3xl font-display font-bold text-stone-900 mb-2">
-                Recommended for you
-              </h2>
-              <p className="text-stone-600">
-                Trending and AI-verified products
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => navigate("/market")}>
-              View all
-            </Button>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="h-48 flex items-center justify-center text-stone-400 border-2 border-stone-200 hover:border-primary-300 transition cursor-pointer group">
-                <div className="text-center">
-                  <div className="text-4xl mb-2 group-hover:scale-110 transition">
-                    🛍️
-                  </div>
-                  <p className="text-sm font-medium">
-                    Product card
-                  </p>
-                </div>
-              </Card>
-            ))}
-          </div>
         </div>
-
       </div>
     </div>
   );

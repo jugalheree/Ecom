@@ -1,42 +1,54 @@
 import mongoose from "mongoose";
 
-const orderItemSchema = new mongoose.Schema({
-  productId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
-    required: true,
+const orderItemSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+    },
+
+    vendorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vendor",
+    },
+
+    quantity: Number,
+    priceAtPurchase: Number,
   },
-  name: String,
-  price: Number,
-  qty: Number,
-});
+  { _id: false }
+);
 
 const orderSchema = new mongoose.Schema(
   {
     buyerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
-    },
-
-    vendorId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
     },
 
     items: [orderItemSchema],
 
-    totalAmount: {
-      type: Number,
-      required: true,
+    totalAmount: Number,
+
+    orderStatus: {
+      type: String,
+      enum: [
+        "PENDING_PAYMENT",
+        "CONFIRMED",
+        "SHIPPED",
+        "DELIVERED",
+        "COMPLETED",
+        "CANCELLED",
+      ],
+      default: "PENDING_PAYMENT",
     },
 
-    status: {
+    paymentStatus: {
       type: String,
-      enum: ["Pending", "Accepted", "Shipped", "Completed", "Rejected"],
-      default: "Pending",
+      enum: ["PENDING", "PAID", "FAILED", "REFUNDED"],
+      default: "PENDING",
     },
+
+    returnWindowEndsAt: Date,
   },
   { timestamps: true }
 );

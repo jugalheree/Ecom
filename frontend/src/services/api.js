@@ -1,61 +1,85 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:2000",
-  withCredentials: true, // Important for cookies
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  withCredentials: true, // Important for cookies (refreshToken)
 });
 
+// Request interceptor: attach access token from localStorage
 api.interceptors.request.use((config) => {
-  const data = localStorage.getItem("auth");
-  if (data) {
-    const { token } = JSON.parse(data);
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+  try {
+    const authData = localStorage.getItem("auth");
+    if (authData) {
+      const { token } = JSON.parse(authData);
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+  } catch {
+    // ignore parse errors
   }
   return config;
 });
 
+// Response interceptor
 api.interceptors.response.use(
-  (response) => {
-    // Backend returns data in response.data
-    return response;
-  },
-  (error) => {
-    // Handle errors
-    if (error.response) {
-      // Server responded with error status
-      const errorData = error.response.data;
-      const errorMessage = errorData?.message || errorData?.error || "An error occurred";
-      
-      // Handle 401 Unauthorized - clear auth and redirect to login
-      if (error.response.status === 401) {
-        const authData = localStorage.getItem("auth");
-        if (authData) {
-          localStorage.removeItem("auth");
-          // Only redirect if not already on login/register page
-          if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-            window.location.href = '/login';
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+
+    // If 401 and not a retry, try to refresh the token
+    if (
+      error.response?.status === 401 &&
+      !original._retry &&
+      !original.url?.includes("/auth/refresh-token")
+    ) {
+      original._retry = true;
+      try {
+        const refreshRes = await axios.post(
+          `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
+        const newToken = refreshRes.data?.data?.accessToken;
+        if (newToken) {
+          // Update stored token
+          const authData = localStorage.getItem("auth");
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            parsed.token = newToken;
+            localStorage.setItem("auth", JSON.stringify(parsed));
           }
+          original.headers.Authorization = `Bearer ${newToken}`;
+          return api(original);
+        }
+      } catch {
+        // Refresh failed — redirect to login
+        localStorage.removeItem("auth");
+        if (
+          !window.location.pathname.includes("/login") &&
+          !window.location.pathname.includes("/register")
+        ) {
+          window.location.href = "/login";
         }
       }
-      
+    }
+
+    if (error.response) {
+      const errorData = error.response.data;
+      const errorMessage =
+        errorData?.message || errorData?.error || "An error occurred";
+
       return Promise.reject({
         message: errorMessage,
         status: error.response.status,
         data: errorData,
       });
-    } else if (error.request) {
-      // Request made but no response
-      return Promise.reject({
-        message: "Network error. Please check your connection and ensure the backend server is running.",
-        status: 0,
-      });
-    } else {
-      // Something else happened
-      return Promise.reject({
-        message: error.message || "An unexpected error occurred",
-        status: 0,
-      });
     }
+
+    return Promise.reject({
+      message: "Network error. Please check your connection and backend server.",
+      status: 0,
+    });
   }
 );
 

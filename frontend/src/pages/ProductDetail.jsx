@@ -1,111 +1,168 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import Button from "../components/ui/Button";
-import Card from "../components/ui/Card";
-import Badge from "../components/ui/Badge";
-import Loader from "../components/ui/Loader";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { categoryAPI } from "../services/apis/index";
 import { useCartStore } from "../store/cartStore";
-import { useToastStore } from "../store/toastStore";
 
 export default function ProductDetail() {
   const { id } = useParams();
   const addToCart = useCartStore((s) => s.addToCart);
-  const showToast = useToastStore((s) => s.showToast);
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [attributes, setAttributes] = useState([]);
+  const [activeImage, setActiveImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+
+  const [productImages, setProductImages] = useState([]);
 
   useEffect(() => {
-    if (!id) return;
-    let isMounted = true;
-    setLoading(true);
-
-    api
-      .get(`/api/products/${id}`)
+    // /api/products/:id doesn't exist yet — try vendor allProducts and find by id
+    api.get("/api/vendor/allProducts")
       .then((res) => {
-        if (!isMounted) return;
-        setProduct(res.data.data);
-        setError("");
+        const raw = res.data?.data;
+        const list = Array.isArray(raw) ? raw : raw?.products || [];
+        const found = list.find((p) => p._id === id || p.id === id);
+        if (found) {
+          setProduct(found);
+          const catId = found?.categoryId?._id || found?.categoryId;
+          if (catId) categoryAPI.getAttributes(catId).then((r) => setAttributes(r.data?.data || [])).catch(() => {});
+          // Fetch images separately — normalize imageUrl -> url
+          api.get(`/api/vendor/products/${id}/images`)
+            .then((imgRes) => {
+              const imgs = imgRes.data?.data;
+              const imgArr = Array.isArray(imgs) ? imgs : [];
+              // Normalise imageUrl -> url for consistent rendering
+              setProductImages(imgArr.map((img) => ({ ...img, url: img.url || img.imageUrl })));
+            })
+            .catch(() => {
+              // fallback: use embedded images if any
+              const embedded = (found.images || []).map((img) => ({ ...img, url: img.url || img.imageUrl }));
+              setProductImages(embedded);
+            });
+        }
       })
-      .catch((err) => {
-        if (!isMounted) return;
-        setError(err.message || "Product not found");
-        setProduct(null);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+      .catch(() => {});
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white mt-20 flex items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
+  if (!product) return (
+    <div className="min-h-screen bg-ink-50 flex items-center justify-center mt-[72px]">
+      <div className="text-center"><div className="w-8 h-8 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin mx-auto mb-3" /><p className="text-xs font-display font-semibold uppercase tracking-widest text-ink-400">Loading</p></div>
+    </div>
+  );
 
-  if (!product || error) {
-    return (
-      <div className="min-h-screen bg-white mt-20 flex items-center justify-center">
-        <div className="container-app text-center">
-          <h1 className="text-3xl font-display font-semibold text-stone-900 mb-2">
-            Product not found
-          </h1>
-          <p className="text-stone-600">{error || "The product is unavailable."}</p>
-        </div>
-      </div>
-    );
-  }
+  const stock = product.stock ?? 0;
+  const stockInfo = stock === 0 ? { label: "Out of Stock", color: "text-red-600 bg-red-50 border-red-200", bar: 0, msg: "Currently unavailable." }
+    : stock <= 5 ? { label: "Low Stock", color: "text-amber-600 bg-amber-50 border-amber-200", bar: 25, msg: `Only ${stock} left — order soon.` }
+    : stock <= 15 ? { label: "Limited Availability", color: "text-yellow-600 bg-yellow-50 border-yellow-200", bar: 50, msg: "Selling fast." }
+    : { label: "In Stock", color: "text-emerald-600 bg-emerald-50 border-emerald-200", bar: 100, msg: "Available for immediate purchase." };
+
+  const getAttrValue = (code) => product.attributes?.find((a) => a.code === code)?.value ?? "—";
 
   return (
-    <div className="container-app py-12 grid md:grid-cols-2 gap-12 mt-20">
-      <div className="bg-white rounded-2xl border border-stone-200 shadow-card h-96 flex items-center justify-center text-stone-400">
-        Product Image
-      </div>
+    <div className="min-h-screen bg-ink-50 mt-[72px]">
+      <div className="container-app py-10">
+        <button onClick={() => navigate(-1)} className="text-xs font-display font-semibold text-ink-400 hover:text-ink-700 mb-6 flex items-center gap-1.5 transition-colors">
+          ← Back
+        </button>
 
-      <div>
-        <Badge type="info">AI Score: {product.ai}</Badge>
-        <h1 className="mt-4 text-stone-900">{product.name}</h1>
-        <p className="text-2xl font-bold mt-2 text-stone-900">₹{product.price}</p>
+        <div className="grid md:grid-cols-2 gap-10">
+          {/* Images */}
+          <div>
+            <div className="bg-white rounded-2xl border border-ink-200 overflow-hidden aspect-square flex items-center justify-center">
+              {productImages.length > 0 ? (
+                <img src={productImages[activeImage]?.url} alt={product.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-ink-50">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d1d6" strokeWidth="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  <span className="text-xs text-ink-300 font-medium">No image available</span>
+                </div>
+              )}
+            </div>
+            {productImages.length > 1 && (
+              <div className="flex gap-3 mt-3">
+                {productImages.map((img, i) => (
+                  <button key={i} onClick={() => setActiveImage(i)}
+                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${activeImage === i ? "border-primary-500 shadow-sm" : "border-ink-200 hover:border-ink-400"}`}>
+                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-        <p className="text-stone-600 mt-4 leading-relaxed">{product.description}</p>
+          {/* Info */}
+          <div className="bg-white rounded-2xl border border-ink-200 p-8">
+            <div className="mb-4">
+              <p className="text-xs font-display font-semibold text-ink-400 mb-2 cursor-pointer hover:text-primary-600 transition-colors" onClick={() => navigate(`/vendor/${product.vendorId?._id || product.vendorId}`)}>
+                {product.vendorId?.shopName || "Verified Vendor"} →
+              </p>
+              <h1 className="text-2xl font-display font-bold text-ink-900 leading-snug">{product.title || product.name}</h1>
+            </div>
 
-        <div className="mt-6 flex gap-3">
-          <Button
-            onClick={() => {
-              addToCart({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                ai: product.ai,
-              });
-              showToast({
-                type: "success",
-                message: "Added to cart",
-              });
-            }}
-          >
-            Add to Cart
-          </Button>
-          <Button variant="outline">Buy Now</Button>
+            {(product.aiScore ?? product.ai) != null && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xs font-display font-bold bg-primary-50 text-primary-700 border border-primary-200 px-2.5 py-1 rounded-lg">★ AI Score: {product.aiScore ?? product.ai}/100</span>
+              </div>
+            )}
+
+            <p className="text-3xl font-display font-bold text-ink-900 mb-5">₹{product.price?.toLocaleString()}</p>
+
+            {/* Stock */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-xs font-display font-bold px-2.5 py-1 rounded-lg border ${stockInfo.color}`}>{stockInfo.label}</span>
+              </div>
+              <div className="w-full h-1.5 bg-ink-100 rounded-full overflow-hidden mb-1.5">
+                <div className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full transition-all duration-500" style={{ width: `${stockInfo.bar}%` }} />
+              </div>
+              <p className="text-xs text-ink-400">{stockInfo.msg}</p>
+            </div>
+
+            <p className="text-sm text-ink-600 leading-relaxed mb-6">{product.description}</p>
+
+            {/* Qty */}
+            <div className="flex items-center gap-3 mb-6">
+              <p className="text-xs font-display font-bold uppercase tracking-widest text-ink-400">Qty</p>
+              <div className="flex items-center border border-ink-200 rounded-xl overflow-hidden bg-ink-50">
+                <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-ink-200 transition text-ink-600 text-lg">−</button>
+                <span className="w-10 text-center font-display font-bold text-ink-900 text-sm">{quantity}</span>
+                <button onClick={() => setQuantity((q) => q < stock ? q + 1 : q)} className="w-10 h-10 flex items-center justify-center hover:bg-ink-200 transition text-ink-600 text-lg">+</button>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => addToCart(product._id || product.id, quantity)} disabled={stock === 0}
+                className="flex-1 bg-ink-900 text-white font-display font-semibold py-3.5 rounded-xl hover:bg-ink-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] text-sm">
+                Add to cart
+              </button>
+              <button disabled={stock === 0}
+                className="flex-1 border-2 border-ink-200 text-ink-700 font-display font-semibold py-3.5 rounded-xl hover:border-ink-400 hover:bg-ink-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] text-sm">
+                Buy now
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mt-8">
-          <Card className="p-5">
-            <h3 className="text-stone-900 font-semibold">Secure Wallet</h3>
-            <p className="text-sm text-stone-600 mt-1">Payment protected through escrow wallet.</p>
-          </Card>
-          <Card className="p-5">
-            <h3 className="text-stone-900 font-semibold">Verified Vendor</h3>
-            <p className="text-sm text-stone-600 mt-1">Trusted supplier with stock tracking.</p>
-          </Card>
-        </div>
+        {/* Specs */}
+        {attributes.length > 0 && (
+          <div className="mt-8 bg-white rounded-2xl border border-ink-200 p-8">
+            <h2 className="font-display font-bold text-ink-900 mb-5">Product Specifications</h2>
+            <div className="border border-ink-100 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <tbody>
+                  {attributes.map((attr, i) => (
+                    <tr key={attr.code} className={i % 2 === 0 ? "bg-ink-50" : "bg-white"}>
+                      <td className="px-5 py-3.5 font-display font-semibold text-ink-700 w-1/3">
+                        {attr.label}{attr.unit && <span className="text-ink-400 font-normal ml-1">({attr.unit})</span>}
+                      </td>
+                      <td className="px-5 py-3.5 text-ink-900">{getAttrValue(attr.code)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

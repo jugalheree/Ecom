@@ -33,17 +33,17 @@ export default function TradeWallet() {
 
         {/* HEADER */}
         <div>
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             Trade Wallet
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Manage escrow funds, available balance and withdrawals.
           </p>
         </div>
 
         {/* HERO BALANCE */}
-        <Card className="p-10 border-2 border-stone-200">
-          <p className="text-stone-500 font-medium">Available balance</p>
+        <Card className="p-10 border-2 border-ink-200">
+          <p className="text-ink-500 font-medium">Available balance</p>
           <h2 className="text-5xl font-bold text-emerald-600 mt-2">
             ₹{wallet.available.toLocaleString()}
           </h2>
@@ -89,12 +89,12 @@ export default function TradeWallet() {
         <div className="grid lg:grid-cols-2 gap-8">
 
           {/* WITHDRAW PANEL */}
-          <Card className="p-8 border-2 border-stone-200">
-            <h3 className="text-2xl font-semibold text-stone-900 mb-2">
+          <Card className="p-8 border-2 border-ink-200">
+            <h3 className="text-2xl font-semibold text-ink-900 mb-2">
               Withdraw funds
             </h3>
 
-            <p className="text-stone-600 text-sm mb-6">
+            <p className="text-ink-600 text-sm mb-6">
               Transfer your available balance to your bank account.
             </p>
 
@@ -112,12 +112,12 @@ export default function TradeWallet() {
           </Card>
 
           {/* INFO PANEL */}
-          <Card className="p-8 border-2 border-stone-200">
-            <h3 className="text-2xl font-semibold text-stone-900 mb-4">
+          <Card className="p-8 border-2 border-ink-200">
+            <h3 className="text-2xl font-semibold text-ink-900 mb-4">
               How your wallet works
             </h3>
 
-            <ul className="text-sm text-stone-600 space-y-3 list-disc pl-5">
+            <ul className="text-sm text-ink-600 space-y-3 list-disc pl-5">
               <li>Buyer payments first enter escrow (locked).</li>
               <li>Locked funds cannot be withdrawn.</li>
               <li>After order completion, money becomes available.</li>
@@ -140,8 +140,8 @@ export default function TradeWallet() {
 /* BALANCE CARD */
 function Balance({ title, value, green, yellow }) {
   return (
-    <Card className="p-8 border-2 border-stone-200">
-      <p className="text-sm text-stone-500">{title}</p>
+    <Card className="p-8 border-2 border-ink-200">
+      <p className="text-sm text-ink-500">{title}</p>
 
       <p
         className={`text-3xl font-semibold mt-2 ${
@@ -149,7 +149,7 @@ function Balance({ title, value, green, yellow }) {
             ? "text-emerald-600"
             : yellow
             ? "text-yellow-600"
-            : "text-stone-900"
+            : "text-ink-900"
         }`}
       >
         ₹{value.toLocaleString()}

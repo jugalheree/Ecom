@@ -1,13 +1,10 @@
 import { Router } from "express";
-import {
-  getVendorOrders,
-  updateOrderStatus,
-} from "../controllers/order.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { authorizeRoles } from "../middlewares/authorize.middleware.js";
+import { placeOrder } from "../controllers/order.controller.js";
 
 const router = Router();
 
-router.get("/vendor", verifyJWT, getVendorOrders);
-router.patch("/:id/status", verifyJWT, updateOrderStatus);
+router.route('/place').post(verifyJWT, placeOrder);
 
 export default router;

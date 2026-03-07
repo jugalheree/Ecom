@@ -1,27 +1,16 @@
 import { Router } from "express";
+import { approvedProduct, approveVendor, getPendingProducts, getPendingVendors, rejectProduct, rejectVendor } from "../controllers/admin.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
-import {
-  getUsers,
-  getVendors,
-  getAnalytics,
-  getOrders,
-  getClaims,
-  approveClaim,
-  rejectClaim,
-} from "../controllers/admin.controller.js";
 
 const router = Router();
 
-router.use(verifyJWT);
-router.use(authorizeRoles("ADMIN"));
-
-router.get("/users", getUsers);
-router.get("/vendors", getVendors);
-router.get("/analytics", getAnalytics);
-router.get("/orders", getOrders);
-router.get("/claims", getClaims);
-router.post("/claims/:claimId/approve", approveClaim);
-router.post("/claims/:claimId/reject", rejectClaim);
+// Get pending vendors (protected only for admins)
+router.route("/vendors/pending").get(verifyJWT, authorizeRoles("ADMIN"), getPendingVendors);
+router.route("/vendors/:vendorId/approve").patch(verifyJWT, authorizeRoles("ADMIN"), approveVendor);
+router.route("/vendors/:vendorId/reject").patch(verifyJWT, authorizeRoles("ADMIN"), rejectVendor);
+router.route("/products/pending").get(verifyJWT, authorizeRoles("ADMIN"), getPendingProducts);
+router.route("/products/:productId/approve").patch(verifyJWT, authorizeRoles("ADMIN"), approvedProduct);
+router.route("/products/:productId/reject").patch(verifyJWT, authorizeRoles("ADMIN"), rejectProduct);
 
 export default router;

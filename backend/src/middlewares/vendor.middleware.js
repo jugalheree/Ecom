@@ -1,6 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Vendor } from "../models/vendor/Vendor.model.js";
+import { VendorVerification } from "../models/vendor/VendorVerification.model.js";
 
 export const isVendorApproved = asyncHandler(async (req, res, next) => {
   if (req.user.role !== "VENDOR") {
@@ -13,7 +14,9 @@ export const isVendorApproved = asyncHandler(async (req, res, next) => {
     throw new ApiError(403, "Vendor profile not found");
   }
 
-  if (vendor.status !== "APPROVED") {
+  const verification = await VendorVerification.findOne({ vendorId: vendor._id });
+
+  if (verification.status !== "VERIFIED") {
     throw new ApiError(
       403,
       "Vendor not approved by admin yet"

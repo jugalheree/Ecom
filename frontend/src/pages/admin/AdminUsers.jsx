@@ -1,78 +1,87 @@
 import { useEffect, useState } from "react";
-import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
-import Loader from "../../components/ui/Loader";
 import api from "../../services/api";
 
 export default function AdminUsers() {
-  const [data, setData] = useState({ users: [], total: 0, page: 1, totalPages: 0 });
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api
-      .get("/api/admin/users", { params: { page: 1, limit: 50 } })
-      .then((res) => setData(res.data.data))
-      .catch(() => setData({ users: [], total: 0, page: 1, totalPages: 0 }))
+    api.get("/api/admin/users")
+      .then((res) => { setUsers(res.data.data?.users || []); setError(""); })
+      .catch((err) => setError(err.response?.data?.message || "Failed to load users"))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
-
-  const users = data.users || [];
+  const roleColors = {
+    ADMIN: "bg-amber-50 text-amber-700 border border-amber-200",
+    VENDOR: "bg-primary-50 text-primary-700 border border-primary-200",
+    BUYER: "bg-blue-50 text-blue-700 border border-blue-200",
+    DELIVERY: "bg-purple-50 text-purple-700 border border-purple-200",
+  };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container-app py-12">
-        <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
-            Users
-          </h1>
-          <p className="text-xl text-stone-600">
-            All registered users ({data.total})
-          </p>
-        </div>
-        <Card className="p-6 border-2 border-stone-200 overflow-hidden hover:border-primary-300 transition-all duration-300">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-stone-200">
-                  <th className="pb-3 font-semibold text-stone-700">Name</th>
-                  <th className="pb-3 font-semibold text-stone-700">Email</th>
-                  <th className="pb-3 font-semibold text-stone-700">Role</th>
-                  <th className="pb-3 font-semibold text-stone-700">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-stone-500 text-center">
-                      No users found.
-                    </td>
+    <div className="min-h-screen bg-ink-50">
+      <div className="bg-white border-b border-ink-100 px-8 py-7">
+        <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-amber-600 mb-1">Management</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900">Users</h1>
+        <p className="text-ink-400 text-sm mt-0.5">View and manage all registered users.</p>
+      </div>
+
+      <div className="p-6">
+        <div className="bg-white rounded-2xl border border-ink-100 overflow-hidden">
+          {loading && (
+            <div className="flex items-center gap-3 p-6 text-ink-400 text-sm">
+              <div className="w-4 h-4 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin" />
+              Loading users...
+            </div>
+          )}
+          {error && <div className="p-6 text-red-500 text-sm bg-red-50 border-b border-red-100">{error}</div>}
+          {!loading && !error && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-ink-100 bg-ink-50">
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Name</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Email</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Role</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Status</th>
                   </tr>
-                ) : (
-                  users.map((u) => (
-                    <tr key={u._id} className="border-b border-stone-100 hover:bg-stone-50">
-                      <td className="py-3 font-medium text-stone-900">{u.name}</td>
-                      <td className="py-3 text-stone-600">{u.email || u.phone || "—"}</td>
-                      <td className="py-3">
-                        <Badge type="info">{u.role}</Badge>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u._id} className="border-b border-ink-50 hover:bg-ink-50/50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-ink-100 to-ink-200 flex items-center justify-center text-ink-600 font-display font-bold text-xs flex-shrink-0">
+                            {u.name?.[0]}
+                          </div>
+                          <span className="font-medium text-ink-900">{u.name}</span>
+                        </div>
                       </td>
-                      <td className="py-3">
-                        <Badge type={u.isBlocked ? "danger" : "success"}>{u.isBlocked ? "Blocked" : "Active"}</Badge>
+                      <td className="px-5 py-3.5 text-ink-500">{u.email || "—"}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg ${roleColors[u.role] || "bg-ink-50 text-ink-500 border border-ink-200"}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {u.isBlocked ? (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-red-50 text-red-600 border border-red-100">Blocked</span>
+                        ) : (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">Active</span>
+                        )}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                  ))}
+                </tbody>
+              </table>
+              {users.length === 0 && (
+                <div className="text-center py-12 text-ink-400 text-sm">No users found.</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

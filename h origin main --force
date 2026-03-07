@@ -1,0 +1,5 @@
+[33m89d1452[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Add to cart and place order api creation
+[33m4406af4[m Implement product management features: add product creation, approval, and rejection endpoints; enhance vendor verification process; update admin routes for product handling
+[33m3dfe002[m Enhance authentication and vendor management: add logging, improve error handling, and update routes
+[33m26da4cf[m Refactor routes and controllers for category and vendor management; add category attribute creation and retrieval endpoints
+[33m51d0585[m Backend: category model

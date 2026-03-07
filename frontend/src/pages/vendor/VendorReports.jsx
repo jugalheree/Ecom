@@ -28,10 +28,10 @@ export default function VendorReports() {
 
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             Reports & analytics
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Track business performance, sales and growth.
           </p>
         </div>
@@ -47,11 +47,11 @@ export default function VendorReports() {
           </div>
 
           {/* Revenue Chart */}
-          <Card className="p-8 border-2 border-stone-200">
-            <h3 className="text-2xl font-semibold text-stone-900 mb-2">
+          <Card className="p-8 border-2 border-ink-200">
+            <h3 className="text-2xl font-semibold text-ink-900 mb-2">
               Revenue analytics
             </h3>
-            <p className="text-stone-600 mb-4">
+            <p className="text-ink-600 mb-4">
               Monthly revenue trend
             </p>
 
@@ -59,11 +59,11 @@ export default function VendorReports() {
           </Card>
 
           {/* Top Products Chart */}
-          <Card className="p-8 border-2 border-stone-200">
-            <h3 className="text-2xl font-semibold text-stone-900 mb-2">
+          <Card className="p-8 border-2 border-ink-200">
+            <h3 className="text-2xl font-semibold text-ink-900 mb-2">
               Top products by revenue
             </h3>
-            <p className="text-stone-600 mb-4">
+            <p className="text-ink-600 mb-4">
               Revenue contribution per product
             </p>
 
@@ -79,8 +79,8 @@ export default function VendorReports() {
           </Card>
 
           {/* Top Products List */}
-          <Card className="p-8 border-2 border-stone-200">
-            <h3 className="text-2xl font-semibold text-stone-900 mb-6">
+          <Card className="p-8 border-2 border-ink-200">
+            <h3 className="text-2xl font-semibold text-ink-900 mb-6">
               Top performing products
             </h3>
 
@@ -88,13 +88,13 @@ export default function VendorReports() {
               {topProducts.map((p, i) => (
                 <div
                   key={i}
-                  className="flex justify-between items-center border-b border-stone-200 pb-3 last:border-b-0 last:pb-0"
+                  className="flex justify-between items-center border-b border-ink-200 pb-3 last:border-b-0 last:pb-0"
                 >
                   <div>
-                    <p className="font-medium text-stone-900">
+                    <p className="font-medium text-ink-900">
                       {p.name}
                     </p>
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-ink-500">
                       {p.sold} units sold
                     </p>
                   </div>
@@ -108,12 +108,12 @@ export default function VendorReports() {
           </Card>
 
           {/* Sales Insights */}
-          <Card className="p-8 border-2 border-stone-200">
-            <h3 className="text-2xl font-semibold text-stone-900 mb-4">
+          <Card className="p-8 border-2 border-ink-200">
+            <h3 className="text-2xl font-semibold text-ink-900 mb-4">
               Sales insights
             </h3>
 
-            <ul className="text-stone-600 space-y-2 list-disc pl-6">
+            <ul className="text-ink-600 space-y-2 list-disc pl-6">
               <li>Smart Watch category performing above average.</li>
               <li>Wireless accessories driving 42% of revenue.</li>
               <li>Low stock may affect next week’s sales.</li>
@@ -130,13 +130,13 @@ export default function VendorReports() {
 /* Stat Card */
 function Stat({ title, value, danger }) {
   return (
-    <Card className="p-6 border-2 border-stone-200">
-      <p className="text-sm text-stone-500 uppercase tracking-wide">
+    <Card className="p-6 border-2 border-ink-200">
+      <p className="text-sm text-ink-500 uppercase tracking-wide">
         {title}
       </p>
       <p
         className={`text-3xl font-bold mt-2 ${
-          danger ? "text-amber-600" : "text-stone-900"
+          danger ? "text-amber-600" : "text-ink-900"
         }`}
       >
         {value}

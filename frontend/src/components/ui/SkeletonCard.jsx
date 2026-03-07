@@ -1,10 +1,12 @@
 export default function SkeletonCard() {
   return (
-    <div className="bg-white border border-stone-200 rounded-2xl p-4 space-y-3 animate-pulse">
-      <div className="h-36 bg-stone-200 rounded-xl"></div>
-      <div className="h-4 bg-stone-200 rounded w-3/4"></div>
-      <div className="h-4 bg-stone-200 rounded w-1/2"></div>
-      <div className="h-10 bg-stone-200 rounded-xl"></div>
+    <div className="bg-white border-2 border-ink-100 rounded-2xl p-4 space-y-3 overflow-hidden relative">
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-ink-100/60 to-transparent" />
+      <div className="h-44 bg-ink-100 rounded-xl" />
+      <div className="h-3.5 bg-ink-100 rounded-lg w-3/4" />
+      <div className="h-3 bg-ink-100 rounded-lg w-1/2" />
+      <div className="h-3 bg-ink-100 rounded-lg w-1/3" />
+      <div className="h-10 bg-ink-100 rounded-xl mt-4" />
     </div>
   );
 }
