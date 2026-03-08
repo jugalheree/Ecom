@@ -3,6 +3,7 @@ import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
+import BackendMissing from "../../components/ui/BackendMissing";
 import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
@@ -17,12 +18,14 @@ export default function DeliveryDashboard() {
   const navigate = useNavigate();
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backendMissing, setBackendMissing] = useState(false);
 
   useEffect(() => {
+    // NOTE: GET /api/delivery/deliveries does not exist in the backend yet.
     api
       .get("/api/delivery/deliveries")
       .then((res) => setDeliveries(res.data.data?.deliveries || []))
-      .catch(() => setDeliveries([]))
+      .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -45,6 +48,18 @@ export default function DeliveryDashboard() {
   return (
     <div className="min-h-screen bg-white">
       <div className="container-app py-12">
+        {backendMissing && (
+          <BackendMissing
+            method="GET"
+            endpoint="/api/delivery/deliveries"
+            todo={[
+              "Create a delivery router and mount it at /api/delivery",
+              "Implement GET /api/delivery/deliveries returning assigned deliveries for the logged-in employee",
+              "Implement PATCH /api/delivery/deliveries/:id/status",
+              "Implement POST /api/delivery/deliveries/:id/delivered"
+            ]}
+          />
+        )}
         <div className="mb-12">
           <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             Delivery dashboard

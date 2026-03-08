@@ -26,19 +26,14 @@ export default function ProductDetail() {
           setProduct(found);
           const catId = found?.categoryId?._id || found?.categoryId;
           if (catId) categoryAPI.getAttributes(catId).then((r) => setAttributes(r.data?.data || [])).catch(() => {});
-          // Fetch images separately — normalize imageUrl -> url
-          api.get(`/api/vendor/products/${id}/images`)
-            .then((imgRes) => {
-              const imgs = imgRes.data?.data;
-              const imgArr = Array.isArray(imgs) ? imgs : [];
-              // Normalise imageUrl -> url for consistent rendering
-              setProductImages(imgArr.map((img) => ({ ...img, url: img.url || img.imageUrl })));
-            })
-            .catch(() => {
-              // fallback: use embedded images if any
-              const embedded = (found.images || []).map((img) => ({ ...img, url: img.url || img.imageUrl }));
-              setProductImages(embedded);
-            });
+          // Use embedded images from the aggregation response (primaryImage + images array)
+          const imgs = [];
+          if (found.primaryImage?.imageUrl) imgs.push({ url: found.primaryImage.imageUrl, isPrimary: true });
+          (found.images || []).forEach((img) => {
+            const url = img.imageUrl || img.url;
+            if (url && !imgs.find(i => i.url === url)) imgs.push({ ...img, url });
+          });
+          setProductImages(imgs);
         }
       })
       .catch(() => {});

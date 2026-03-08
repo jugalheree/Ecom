@@ -3,6 +3,7 @@ import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
+import BackendMissing from "../../components/ui/BackendMissing";
 import api from "../../services/api";
 import { useToastStore } from "../../store/toastStore";
 
@@ -16,13 +17,15 @@ const statusStyles = {
 export default function DeliveryOrders() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backendMissing, setBackendMissing] = useState(false);
   const showToast = useToastStore((s) => s.showToast);
 
   const fetchDeliveries = () => {
+    // NOTE: GET /api/delivery/deliveries does not exist in the backend yet.
     api
       .get("/api/delivery/deliveries")
       .then((res) => setDeliveries(res.data.data?.deliveries || []))
-      .catch(() => setDeliveries([]))
+      .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
   };
 
@@ -71,7 +74,18 @@ export default function DeliveryOrders() {
           </p>
         </div>
         <div className="space-y-4">
-          {deliveries.length === 0 ? (
+          {backendMissing ? (
+            <BackendMissing
+              method="GET"
+              endpoint="/api/delivery/deliveries"
+              todo={[
+                "Create a delivery router mounted at /api/delivery",
+                "Implement GET /api/delivery/deliveries",
+                "Implement PATCH /api/delivery/deliveries/:id/status",
+                "Implement POST /api/delivery/deliveries/:id/delivered"
+              ]}
+            />
+          ) : deliveries.length === 0 ? (
             <Card className="p-8 text-center text-ink-500 border-2 border-ink-200">No deliveries assigned.</Card>
           ) : (
             deliveries.map((d) => (

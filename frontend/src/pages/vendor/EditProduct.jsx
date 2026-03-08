@@ -52,6 +52,7 @@ export default function EditProduct() {
     e.preventDefault();
     setSaving(true);
     try {
+      // NOTE: PATCH /api/vendor/products/:id does not exist in the backend yet.
       await api.patch(`/api/vendor/products/${id}`, {
         title: form.title,
         description: form.description,
@@ -62,7 +63,7 @@ export default function EditProduct() {
       });
       navigate("/vendor/products");
     } catch (err) {
-      setError(err?.message || "Update failed. Please try again.");
+      setError(err?.message || "Update failed — this feature requires a backend route (PATCH /api/vendor/products/:id) that has not been implemented yet.");
     } finally {
       setSaving(false);
     }

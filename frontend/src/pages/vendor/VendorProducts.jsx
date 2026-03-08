@@ -100,21 +100,16 @@ export default function VendorProducts() {
       const raw = res.data?.data;
       const list = Array.isArray(raw) ? raw : raw?.products || [];
       setProducts(list);
-      const imageResults = await Promise.allSettled(
-        list.map((p) => api.get(`/api/vendor/products/${p._id || p.id}/images`))
-      );
+      // Images are embedded in the aggregation response (primaryImage field)
       const map = {};
-      imageResults.forEach((result, i) => {
-        const pid = list[i]._id || list[i].id;
-        if (result.status === "fulfilled") {
-          const imgs = result.value?.data?.data;
-          const imgArr = Array.isArray(imgs) ? imgs : [];
-          const primary = imgArr.find((img) => img.isPrimary) || imgArr[0];
-          if (primary) map[pid] = primary.imageUrl || primary.url;
+      list.forEach((p) => {
+        const pid = p._id || p.id;
+        if (p.primaryImage?.imageUrl) {
+          map[pid] = p.primaryImage.imageUrl;
+        } else if (Array.isArray(p.images) && p.images.length > 0) {
+          const primary = p.images.find((img) => img.isPrimary) || p.images[0];
+          if (primary?.imageUrl) map[pid] = primary.imageUrl;
         }
-        const embedded = list[i].images;
-        if (!map[pid] && Array.isArray(embedded) && embedded.length > 0)
-          map[pid] = embedded[0].imageUrl || embedded[0].url;
       });
       setImageMap(map);
     } catch (error) {
@@ -127,18 +122,20 @@ export default function VendorProducts() {
 
   const deleteProduct = async (id) => {
     try {
+      // NOTE: DELETE /api/vendor/products/:id is not yet implemented in the backend.
       await api.delete(`/api/vendor/products/${id}`);
       setProducts((prev) => prev.filter((p) => p._id !== id && p.id !== id));
-    } catch (err) { alert(err?.message || "Failed to delete"); }
+    } catch (err) { alert(err?.message || "Delete not yet supported by the backend"); }
     finally { setDeleteConfirm(null); }
   };
 
   const updateStock = async (id, change) => {
     setStockUpdating((s) => ({ ...s, [id]: true }));
     try {
+      // NOTE: PATCH /api/vendor/products/:id/stock is not yet implemented in the backend.
       await api.patch(`/api/vendor/products/${id}/stock`, { change });
       await fetchProducts();
-    } catch (err) { alert(err?.message || "Failed to update stock"); }
+    } catch (err) { alert(err?.message || "Stock update not yet supported by the backend"); }
     finally { setStockUpdating((s) => ({ ...s, [id]: false })); }
   };
 

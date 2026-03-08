@@ -9,7 +9,7 @@ const roles = [
   { value: "BUYER", label: "Buyer", desc: "Browse & purchase", icon: "🛍️" },
   { value: "VENDOR", label: "Vendor", desc: "Sell & manage trades", icon: "🏪" },
   { value: "ADMIN", label: "Admin", desc: "Manage platform", icon: "⚙️" },
-  { value: "DELIVERY", label: "Delivery", desc: "Deliver orders", icon: "🚚" },
+  { value: "EMPLOYEE", label: "Employee", desc: "Deliver orders", icon: "🚚" },
 ];
 
 export default function Register() {
@@ -47,7 +47,7 @@ export default function Register() {
 
       if (form.role === "VENDOR") navigate("/vendor/setup");
       else if (form.role === "ADMIN") navigate("/admin/dashboard");
-      else if (form.role === "DELIVERY") navigate("/delivery/dashboard");
+      else if (form.role === "EMPLOYEE") navigate("/delivery/dashboard");
       else navigate("/market");
     } catch (error) {
       showToast({ message: error.message || "Registration failed", type: "error" });

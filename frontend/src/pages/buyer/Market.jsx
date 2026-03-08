@@ -21,8 +21,8 @@ export default function Market() {
       .then((res) => { if (!isMounted) return; setProducts(res?.data?.data?.products ?? []); setError(""); })
       .catch((err) => {
         if (!isMounted) return;
-        if (err?.status === 404) setBackendMissing(true);
-        else setError(err.message || "Failed to load products");
+        // /api/products does not exist in the backend yet — show BackendMissing component
+        setBackendMissing(true);
         setProducts([]);
       })
       .finally(() => { if (isMounted) setLoading(false); });

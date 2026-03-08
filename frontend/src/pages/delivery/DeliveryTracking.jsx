@@ -3,6 +3,7 @@ import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
+import BackendMissing from "../../components/ui/BackendMissing";
 import api from "../../services/api";
 import { useToastStore } from "../../store/toastStore";
 
@@ -10,13 +11,15 @@ export default function DeliveryTracking() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
+  const [backendMissing, setBackendMissing] = useState(false);
   const showToast = useToastStore((s) => s.showToast);
 
   useEffect(() => {
+    // NOTE: GET /api/delivery/deliveries does not exist in the backend yet.
     api
       .get("/api/delivery/deliveries")
       .then((res) => setDeliveries(res.data.data?.deliveries || []))
-      .catch(() => setDeliveries([]))
+      .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -53,7 +56,17 @@ export default function DeliveryTracking() {
           </p>
         </div>
         <div className="space-y-6">
-          {deliveries.length === 0 ? (
+          {backendMissing ? (
+            <BackendMissing
+              method="GET"
+              endpoint="/api/delivery/deliveries"
+              todo={[
+                "Create a delivery router mounted at /api/delivery",
+                "Implement GET /api/delivery/deliveries",
+                "Implement POST /api/delivery/deliveries/:id/proof"
+              ]}
+            />
+          ) : deliveries.length === 0 ? (
             <Card className="p-8 text-center text-ink-500 border-2 border-ink-200">No deliveries to track.</Card>
           ) : (
             deliveries.map((d) => (

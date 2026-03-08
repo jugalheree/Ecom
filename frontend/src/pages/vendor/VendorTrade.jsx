@@ -2,19 +2,23 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import BackendMissing from "../../components/ui/BackendMissing";
 import { useNavigate } from "react-router-dom";
 
 export default function VendorTrade() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backendMissing, setBackendMissing] = useState(false);
   const navigate = useNavigate();
 
   const fetchOrders = () => {
+    // NOTE: GET /api/orders/vendor does not exist in the backend yet.
     api
       .get("/api/orders/vendor")
       .then((res) => {
         setOrders(res.data.data?.orders || []);
       })
+      .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
   };
 
@@ -48,7 +52,16 @@ export default function VendorTrade() {
           <p className="text-xl text-ink-600">Manage incoming orders.</p>
         </div>
 
-        {loading ? (
+        {backendMissing ? (
+          <BackendMissing
+            method="GET"
+            endpoint="/api/orders/vendor"
+            todo={[
+              "Implement GET /api/orders/vendor to return orders for the logged-in vendor",
+              "Implement PATCH /api/orders/:id/status to update order status"
+            ]}
+          />
+        ) : loading ? (
           <p>Loading orders...</p>
         ) : orders.length === 0 ? (
           <p>No orders found.</p>
