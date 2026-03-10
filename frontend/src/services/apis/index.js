@@ -30,6 +30,8 @@ export const vendorAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     }),
   products: () => api.get("/api/vendor/allProducts"),
+  // NOTE: updateProduct, deleteProduct, updateStock endpoints do not exist in the current backend.
+  // These are kept as stubs — implement corresponding backend routes before using them.
   updateProduct: (productId, data) =>
     api.patch(`/api/vendor/products/${productId}`, data),
   deleteProduct: (productId) =>

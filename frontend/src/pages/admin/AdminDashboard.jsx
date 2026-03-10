@@ -1,19 +1,27 @@
 import { useEffect, useState } from "react";
 import Loader from "../../components/ui/Loader";
+import BackendMissing from "../../components/ui/BackendMissing";
 import api from "../../services/api";
 
 export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [backendMissing, setBackendMissing] = useState(false);
 
   useEffect(() => {
+    // NOTE: GET /api/admin/analytics does not exist in the backend yet.
     api.get("/api/admin/analytics")
       .then((res) => setAnalytics(res.data.data))
-      .catch(() => setAnalytics({ totalUsers: 0, totalVendors: 0, approvedVendors: 0, pendingVendors: 0, totalOrders: 0, ordersThisMonth: 0, revenueThisMonth: 0 }))
+      .catch(() => {
+        setBackendMissing(true);
+        setAnalytics({ totalUsers: 0, totalVendors: 0, approvedVendors: 0, pendingVendors: 0, totalOrders: 0, ordersThisMonth: 0, revenueThisMonth: 0 });
+      })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-ink-50"><Loader /></div>;
+
+  // NOTE: This component renders with zero-state when the backend route is missing.
 
   const stats = [
     { title: "Total Users", value: analytics?.totalUsers ?? 0, icon: (
@@ -44,6 +52,13 @@ export default function AdminDashboard() {
         <p className="text-ink-400 text-sm mt-0.5">Analytics and platform overview.</p>
       </div>
       <div className="p-6">
+        {backendMissing && (
+          <BackendMissing
+            method="GET"
+            endpoint="/api/admin/analytics"
+            todo="Create an analytics controller that returns totalUsers, totalVendors, approvedVendors, pendingVendors, totalOrders, ordersThisMonth, revenueThisMonth"
+          />
+        )}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {stats.map((s, i) => (
             <div key={i} className="bg-white rounded-2xl border border-ink-100 p-5 hover:shadow-md hover:border-ink-200 transition-all duration-200">

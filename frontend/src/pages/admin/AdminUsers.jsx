@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import api from "../../services/api";
+import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [backendMissing, setBackendMissing] = useState(false);
 
   useEffect(() => {
+    // NOTE: GET /api/admin/users does not exist in the backend yet.
     api.get("/api/admin/users")
       .then((res) => { setUsers(res.data.data?.users || []); setError(""); })
-      .catch((err) => setError(err.response?.data?.message || "Failed to load users"))
+      .catch(() => { setBackendMissing(true); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -17,7 +20,7 @@ export default function AdminUsers() {
     ADMIN: "bg-amber-50 text-amber-700 border border-amber-200",
     VENDOR: "bg-primary-50 text-primary-700 border border-primary-200",
     BUYER: "bg-blue-50 text-blue-700 border border-blue-200",
-    DELIVERY: "bg-purple-50 text-purple-700 border border-purple-200",
+    EMPLOYEE: "bg-purple-50 text-purple-700 border border-purple-200",
   };
 
   return (
@@ -34,6 +37,15 @@ export default function AdminUsers() {
             <div className="flex items-center gap-3 p-6 text-ink-400 text-sm">
               <div className="w-4 h-4 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin" />
               Loading users...
+            </div>
+          )}
+          {backendMissing && (
+            <div className="p-6">
+              <BackendMissing
+                method="GET"
+                endpoint="/api/admin/users"
+                todo="Create a GET /api/admin/users route that returns paginated list of all registered users"
+              />
             </div>
           )}
           {error && <div className="p-6 text-red-500 text-sm bg-red-50 border-b border-red-100">{error}</div>}

@@ -28,7 +28,7 @@ export default function Login() {
       const role = data.user.role;
       if (role === "VENDOR") navigate("/vendor/dashboard");
       else if (role === "ADMIN") navigate("/admin/dashboard");
-      else if (role === "DELIVERY") navigate("/delivery/dashboard");
+      else if (role === "EMPLOYEE") navigate("/delivery/dashboard");
       else navigate("/buyer/dashboard");
     } catch (error) {
       showToast({ message: error.message || "Login failed", type: "error" });

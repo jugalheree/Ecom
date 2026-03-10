@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../services/api";
+import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function VendorOrderDetail() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
+  const [backendMissing, setBackendMissing] = useState(false);
 
   useEffect(() => {
+    // NOTE: GET /api/orders/vendor does not exist in the backend yet.
     api.get(`/api/orders/vendor`).then((res) => {
-      const found = res.data.data.orders.find((o) => o.id === id);
-      setOrder(found);
-    });
+      const found = res.data.data?.orders?.find((o) => o._id === id || o.id === id);
+      setOrder(found || null);
+    }).catch(() => setBackendMissing(true));
   }, [id]);
+
+  if (backendMissing) return (
+    <div className="p-10">
+      <BackendMissing
+        method="GET"
+        endpoint="/api/orders/vendor"
+        todo="Implement GET /api/orders/vendor to return orders belonging to the logged-in vendor"
+      />
+    </div>
+  );
 
   if (!order) return <div className="p-20">Loading...</div>;
 

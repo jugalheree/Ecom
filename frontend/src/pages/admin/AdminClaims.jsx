@@ -2,17 +2,21 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function AdminClaims() {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backendMissing, setBackendMissing] = useState(false);
 
   const fetchClaims = () => {
+    // NOTE: GET /api/admin/claims does not exist in the backend yet.
     api
       .get("/api/admin/claims?page=1&limit=20")
       .then((res) => {
         setClaims(res.data.data?.claims || []);
       })
+      .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
   };
 
@@ -60,8 +64,17 @@ export default function AdminClaims() {
         </div>
 
         <Card className="p-8 border-2 border-ink-200 overflow-x-auto">
-
-          {loading ? (
+          {backendMissing ? (
+            <BackendMissing
+              method="GET"
+              endpoint="/api/admin/claims"
+              todo={[
+                "Create GET /api/admin/claims route returning paginated claims",
+                "Create POST /api/admin/claims/:id/approve route",
+                "Create POST /api/admin/claims/:id/reject route"
+              ]}
+            />
+          ) : loading ? (
             <p>Loading claims...</p>
           ) : (
             <table className="w-full text-sm">
