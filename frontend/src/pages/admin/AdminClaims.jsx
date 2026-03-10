@@ -2,17 +2,21 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function AdminClaims() {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backendMissing, setBackendMissing] = useState(false);
 
   const fetchClaims = () => {
+    // NOTE: GET /api/admin/claims does not exist in the backend yet.
     api
       .get("/api/admin/claims?page=1&limit=20")
       .then((res) => {
         setClaims(res.data.data?.claims || []);
       })
+      .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
   };
 
@@ -51,22 +55,31 @@ export default function AdminClaims() {
       <div className="container-app py-12">
 
         <div className="mb-10">
-          <h1 className="text-5xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl font-display font-bold text-ink-900 mb-4">
             Admin Claims
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Manage refund and dispute claims.
           </p>
         </div>
 
-        <Card className="p-8 border-2 border-stone-200 overflow-x-auto">
-
-          {loading ? (
+        <Card className="p-8 border-2 border-ink-200 overflow-x-auto">
+          {backendMissing ? (
+            <BackendMissing
+              method="GET"
+              endpoint="/api/admin/claims"
+              todo={[
+                "Create GET /api/admin/claims route returning paginated claims",
+                "Create POST /api/admin/claims/:id/approve route",
+                "Create POST /api/admin/claims/:id/reject route"
+              ]}
+            />
+          ) : loading ? (
             <p>Loading claims...</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-stone-200 text-left text-stone-500">
+                <tr className="border-b border-ink-200 text-left text-ink-500">
                   <th className="py-3">Claim ID</th>
                   <th>User</th>
                   <th>Type</th>
@@ -78,7 +91,7 @@ export default function AdminClaims() {
 
               <tbody>
                 {claims.map((c) => (
-                  <tr key={c._id} className="border-b border-stone-200">
+                  <tr key={c._id} className="border-b border-ink-200">
                     <td className="py-4 font-medium">{c.claimId}</td>
                     <td>{c.userId}</td>
                     <td>{c.type}</td>

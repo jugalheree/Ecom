@@ -11,8 +11,9 @@ export default function VendorStock() {
 
   const fetchProducts = async () => {
     try {
-      const res = await api.get("/api/products/vendor/my-products");
-      setProducts(res.data.data.products || []);
+      const res = await api.get("/api/vendor/allProducts");
+      const raw = res.data?.data;
+      setProducts(Array.isArray(raw) ? raw : raw?.products || []);
     } catch (err) {
       console.error("Failed to fetch products", err);
     } finally {
@@ -22,18 +23,12 @@ export default function VendorStock() {
 
   const updateStock = async (id, change) => {
     try {
-      const res = await api.patch(
-        `/api/products/${id}/stock`,
-        { change }
-      );
-
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === id ? { ...p, stock: res.data.data.stock } : p
-        )
-      );
+      // NOTE: /api/vendor/products/:id/stock does not yet exist in the backend.
+      // This is a placeholder — the backend needs to implement this route.
+      await api.patch(`/api/vendor/products/${id}/stock`, { change });
+      await fetchProducts(); // refetch to get latest stock
     } catch (err) {
-      alert(err.message || "Stock update failed");
+      alert(err.message || "Stock update failed — this feature requires a backend route not yet implemented.");
     }
   };
 

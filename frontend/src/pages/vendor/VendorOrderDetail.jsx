@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../services/api";
+import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function VendorOrderDetail() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
+  const [backendMissing, setBackendMissing] = useState(false);
 
   useEffect(() => {
+    // NOTE: GET /api/orders/vendor does not exist in the backend yet.
     api.get(`/api/orders/vendor`).then((res) => {
-      const found = res.data.data.orders.find((o) => o.id === id);
-      setOrder(found);
-    });
+      const found = res.data.data?.orders?.find((o) => o._id === id || o.id === id);
+      setOrder(found || null);
+    }).catch(() => setBackendMissing(true));
   }, [id]);
+
+  if (backendMissing) return (
+    <div className="p-10">
+      <BackendMissing
+        method="GET"
+        endpoint="/api/orders/vendor"
+        todo="Implement GET /api/orders/vendor to return orders belonging to the logged-in vendor"
+      />
+    </div>
+  );
 
   if (!order) return <div className="p-20">Loading...</div>;
 
@@ -26,7 +39,7 @@ export default function VendorOrderDetail() {
           <h1 className="text-3xl font-bold mb-2">
             Order #{order.id}
           </h1>
-          <p className="text-stone-500">
+          <p className="text-ink-500">
             Placed on {new Date(order.createdAt).toLocaleDateString()}
           </p>
         </div>
@@ -42,12 +55,12 @@ export default function VendorOrderDetail() {
                 <div key={step} className="flex-1 text-center">
                   <div
                     className={`w-8 h-8 mx-auto rounded-full mb-2 ${
-                      active ? "bg-black" : "bg-stone-200"
+                      active ? "bg-black" : "bg-ink-200"
                     }`}
                   />
                   <p
                     className={`text-xs ${
-                      active ? "text-black" : "text-stone-400"
+                      active ? "text-black" : "text-ink-400"
                     }`}
                   >
                     {step}
@@ -62,7 +75,7 @@ export default function VendorOrderDetail() {
         <div className="border rounded-2xl p-6 mb-8">
           <h3 className="font-semibold mb-3">Buyer Details</h3>
           <p>{order.buyer}</p>
-          <p className="text-sm text-stone-500">{order.email}</p>
+          <p className="text-sm text-ink-500">{order.email}</p>
         </div>
 
         {/* ITEMS */}
@@ -76,7 +89,7 @@ export default function VendorOrderDetail() {
             >
               <div>
                 <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-stone-500">
+                <p className="text-sm text-ink-500">
                   Quantity: {item.qty}
                 </p>
               </div>

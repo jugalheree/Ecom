@@ -17,11 +17,11 @@ export default function Wishlist() {
 
           <div className="text-6xl mb-6">🤍</div>
 
-          <h1 className="text-4xl font-display font-semibold text-stone-900">
+          <h1 className="text-4xl font-display font-semibold text-ink-900">
             Your wishlist is empty
           </h1>
 
-          <p className="text-stone-600 mt-3 text-lg">
+          <p className="text-ink-600 mt-3 text-lg">
             Save products you like and come back to them later.
           </p>
 
@@ -43,10 +43,10 @@ export default function Wishlist() {
 
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             My wishlist
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Products you’ve saved for later.
           </p>
         </div>
@@ -57,17 +57,17 @@ export default function Wishlist() {
           {wishlist.map((p) => (
             <Card
               key={p.id}
-              className="p-6 border-2 border-stone-200 hover:border-primary-300 transition"
+              className="p-6 border-2 border-ink-200 hover:border-primary-300 transition"
             >
-              <div className="h-40 rounded-2xl bg-stone-100 mb-4 flex items-center justify-center text-stone-400 text-sm">
+              <div className="h-40 rounded-2xl bg-ink-100 mb-4 flex items-center justify-center text-ink-400 text-sm">
                 Image
               </div>
 
-              <h3 className="font-semibold text-stone-900 leading-snug line-clamp-2">
+              <h3 className="font-semibold text-ink-900 leading-snug line-clamp-2">
                 {p.name}
               </h3>
 
-              <p className="text-sm text-stone-600 mt-2">
+              <p className="text-sm text-ink-600 mt-2">
                 AI {p.ai} • ₹{p.price}
               </p>
 

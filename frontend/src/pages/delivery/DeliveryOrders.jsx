@@ -3,6 +3,7 @@ import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
+import BackendMissing from "../../components/ui/BackendMissing";
 import api from "../../services/api";
 import { useToastStore } from "../../store/toastStore";
 
@@ -16,13 +17,15 @@ const statusStyles = {
 export default function DeliveryOrders() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [backendMissing, setBackendMissing] = useState(false);
   const showToast = useToastStore((s) => s.showToast);
 
   const fetchDeliveries = () => {
+    // NOTE: GET /api/delivery/deliveries does not exist in the backend yet.
     api
       .get("/api/delivery/deliveries")
       .then((res) => setDeliveries(res.data.data?.deliveries || []))
-      .catch(() => setDeliveries([]))
+      .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
   };
 
@@ -63,24 +66,35 @@ export default function DeliveryOrders() {
     <div className="min-h-screen bg-white">
       <div className="container-app py-12">
         <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             Assigned deliveries
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Update status for each delivery
           </p>
         </div>
         <div className="space-y-4">
-          {deliveries.length === 0 ? (
-            <Card className="p-8 text-center text-stone-500 border-2 border-stone-200">No deliveries assigned.</Card>
+          {backendMissing ? (
+            <BackendMissing
+              method="GET"
+              endpoint="/api/delivery/deliveries"
+              todo={[
+                "Create a delivery router mounted at /api/delivery",
+                "Implement GET /api/delivery/deliveries",
+                "Implement PATCH /api/delivery/deliveries/:id/status",
+                "Implement POST /api/delivery/deliveries/:id/delivered"
+              ]}
+            />
+          ) : deliveries.length === 0 ? (
+            <Card className="p-8 text-center text-ink-500 border-2 border-ink-200">No deliveries assigned.</Card>
           ) : (
             deliveries.map((d) => (
-              <Card key={d._id} className="p-6 border-2 border-stone-200 hover:border-primary-300 transition-all duration-300">
+              <Card key={d._id} className="p-6 border-2 border-ink-200 hover:border-primary-300 transition-all duration-300">
                 <div className="flex flex-wrap justify-between items-start gap-4">
                   <div>
-                    <p className="font-semibold text-stone-900">{d.orderId}</p>
-                    <p className="text-stone-600 mt-1">{d.address}</p>
-                    <p className="text-sm text-stone-500 mt-1">{d.customerName} • {d.phone}</p>
+                    <p className="font-semibold text-ink-900">{d.orderId}</p>
+                    <p className="text-ink-600 mt-1">{d.address}</p>
+                    <p className="text-sm text-ink-500 mt-1">{d.customerName} • {d.phone}</p>
                   </div>
                   <Badge type={statusStyles[d.status] || "default"}>{d.status?.replace(/_/g, " ")}</Badge>
                 </div>

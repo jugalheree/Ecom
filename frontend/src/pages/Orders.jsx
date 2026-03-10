@@ -17,11 +17,11 @@ export default function Orders() {
 
           <div className="text-6xl mb-6">📦</div>
 
-          <h1 className="text-4xl font-display font-semibold text-stone-900">
+          <h1 className="text-4xl font-display font-semibold text-ink-900">
             No orders yet
           </h1>
 
-          <p className="text-stone-600 mt-3 text-lg">
+          <p className="text-ink-600 mt-3 text-lg">
             Once you place an order, tracking will appear here.
           </p>
 
@@ -41,10 +41,10 @@ export default function Orders() {
 
         {/* Header */}
         <div>
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-stone-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
             My orders
           </h1>
-          <p className="text-xl text-stone-600">
+          <p className="text-xl text-ink-600">
             Track your purchases and delivery status.
           </p>
         </div>
@@ -56,15 +56,15 @@ export default function Orders() {
             const activeIndex = STATUS_STEPS.indexOf(currentStep);
 
             return (
-              <Card key={index} className="p-10 border-2 border-stone-200 space-y-8">
+              <Card key={index} className="p-10 border-2 border-ink-200 space-y-8">
 
                 {/* Order header */}
                 <div className="flex justify-between items-center flex-wrap gap-4">
                   <div>
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-ink-500">
                       Order #{index + 1}
                     </p>
-                    <p className="text-2xl font-bold text-stone-900">
+                    <p className="text-2xl font-bold text-ink-900">
                       ₹{order.total}
                     </p>
                   </div>
@@ -76,7 +76,7 @@ export default function Orders() {
 
                 {/* Timeline */}
                 <div className="relative mt-6">
-                  <div className="absolute top-5 left-[10%] right-[10%] h-[2px] bg-stone-200" />
+                  <div className="absolute top-5 left-[10%] right-[10%] h-[2px] bg-ink-200" />
 
                   <div className="flex justify-between">
                     {STATUS_STEPS.map((step, i) => (
@@ -86,7 +86,7 @@ export default function Orders() {
                           className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold
                           ${i <= activeIndex
                               ? "bg-primary-600 text-white"
-                              : "bg-stone-200 text-stone-500"}`}
+                              : "bg-ink-200 text-ink-500"}`}
                         >
                           {i + 1}
                         </div>
@@ -95,7 +95,7 @@ export default function Orders() {
                           className={`mt-2 text-xs font-medium text-center
                           ${i <= activeIndex
                               ? "text-primary-600"
-                              : "text-stone-400"}`}
+                              : "text-ink-400"}`}
                         >
                           {step}
                         </p>
@@ -106,22 +106,22 @@ export default function Orders() {
                 </div>
 
                 {/* Items */}
-                <div className="space-y-4 border-t border-stone-200 pt-6">
+                <div className="space-y-4 border-t border-ink-200 pt-6">
                   {order.items?.map((item) => (
                     <div
                       key={item.id}
                       className="flex justify-between items-center py-2"
                     >
                       <div>
-                        <p className="font-medium text-stone-900">
+                        <p className="font-medium text-ink-900">
                           {item.name}
                         </p>
-                        <p className="text-sm text-stone-500">
+                        <p className="text-sm text-ink-500">
                           Qty {item.qty}
                         </p>
                       </div>
 
-                      <p className="font-semibold text-stone-900">
+                      <p className="font-semibold text-ink-900">
                         ₹{item.price * item.qty}
                       </p>
                     </div>

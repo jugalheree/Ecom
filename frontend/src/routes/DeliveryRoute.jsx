@@ -9,7 +9,7 @@ export default function DeliveryRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (userRole !== "delivery") {
+  if (userRole !== "employee") {
     return <Navigate to="/" replace />;
   }
 
