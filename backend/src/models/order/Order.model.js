@@ -34,12 +34,28 @@ const orderSchema = new mongoose.Schema(
       enum: [
         "PENDING_PAYMENT",
         "CONFIRMED",
+        "PROCESSING",
         "SHIPPED",
         "DELIVERED",
         "COMPLETED",
         "CANCELLED",
+        "RETURN_REQUESTED",
+        "RETURNED",
+        "REFUNDED",
       ],
       default: "PENDING_PAYMENT",
+    },
+
+    paymentMethod: {
+      type: String,
+      enum: ["TRADE_WALLET", "DUMMY", "UPI", "CARD"],
+      default: "DUMMY",
+    },
+
+    orderNumber: {
+      type: String,
+      unique: true,
+      index: true
     },
 
     paymentStatus: {
@@ -50,7 +66,18 @@ const orderSchema = new mongoose.Schema(
 
     returnWindowEndsAt: Date,
   },
+
   { timestamps: true }
 );
+
+orderSchema.index({ buyerId: 1, createdAt: -1 });
+orderSchema.index({ orderNumber: 1 }, { unique: true });
+orderSchema.index({ orderStatus: 1 });
+
+orderSchema.pre("save", async function() {
+  if (!this.orderNumber) {
+    this.orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+  }
+});
 
 export const Order = mongoose.model("Order", orderSchema);

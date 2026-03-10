@@ -159,6 +159,7 @@ export const placeOrder = asyncHandler(async (req, res) => {
           buyerId,
           items: orderItems,
           totalAmount,
+          paymentMethod: "DUMMY",
           orderStatus: "PENDING_PAYMENT",
           paymentStatus: "PENDING",
           paymentExpiresAt: new Date(
@@ -234,4 +235,173 @@ export const placeOrder = asyncHandler(async (req, res) => {
     session.endSession();
     throw error;
   }
+});
+
+
+
+//dummy payments api
+export const dummyPayOrder = asyncHandler(async (req, res) => {
+
+  const { orderId } = req.params;
+  const userId = req.user._id;
+
+  const order = await Order.findOne({
+    _id: orderId,
+    buyerId: userId,
+  });
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (order.paymentStatus === "PAID") {
+    throw new ApiError(400, "Order already paid");
+  }
+
+  if (order.paymentExpiresAt && order.paymentExpiresAt < new Date()) {
+    throw new ApiError(400, "Payment window expired");
+  }
+
+  order.paymentStatus = "PAID";
+  order.orderStatus = "CONFIRMED";
+
+  await order.save();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      order,
+      "Dummy payment successful"
+    )
+  );
+});
+
+
+
+// get all orders for a user
+export const getMyOrders = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  let { page = 1, limit = 10, status } = req.query;
+
+  page = Math.max(parseInt(page), 1);
+  limit = Math.min(Math.max(parseInt(limit), 1), 50);
+
+  const filter = { buyerId: userId };
+
+  if (status) {
+    filter.orderStatus = status;
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [orders, totalOrders] = await Promise.all([
+    Order.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "items.productId",
+        select: "title price",
+      })
+      .lean(),
+
+    Order.countDocuments(filter),
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        orders,
+        pagination: {
+          total: totalOrders,
+          page,
+          limit,
+          totalPages: Math.ceil(totalOrders / limit),
+        },
+      },
+      "Orders fetched successfully"
+    )
+  );
+});
+
+
+
+//get order details
+export const getOrderDetails = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const userId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new ApiError(400, "Invalid order id");
+  }
+
+  const [order, advancedOrder] = await Promise.all([
+    Order.findById(orderId)
+      .populate({
+        path: "items.productId",
+        select: "title price",
+      })
+      .populate({
+        path: "items.vendorId",
+        select: "shopName",
+      })
+      .lean(),
+
+    AdvancedOrder.findOne({ orderId }).lean(),
+  ]);
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (order.buyerId.toString() !== userId.toString()) {
+    throw new ApiError(403, "Unauthorized access");
+  }
+
+  const ProductImage = mongoose.model("ProductImage");
+
+  const productIds = order.items.map(i => i.productId._id);
+
+  const images = await ProductImage.find({
+    productId: { $in: productIds },
+    isActive: true
+  })
+  .sort({ order: 1 })
+  .select("imageUrl isPrimary productId")
+  .lean();
+
+  const imageMap = {};
+
+  images.forEach(img => {
+    const key = img.productId.toString();
+    if (!imageMap[key]) imageMap[key] = [];
+    imageMap[key].push(img);
+  });
+
+  order.items.forEach(item => {
+    item.productImages = imageMap[item.productId._id.toString()] || [];
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        order: {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          orderStatus: order.orderStatus,
+          paymentStatus: order.paymentStatus,
+          paymentMethod: order.paymentMethod,
+          totalAmount: order.totalAmount,
+          returnWindowEndsAt: order.returnWindowEndsAt,
+          createdAt: order.createdAt,
+          items: order.items,
+        },
+        advancedOrder,
+      },
+      "Order details fetched successfully"
+    )
+  );
 });
