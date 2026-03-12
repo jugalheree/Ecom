@@ -5,15 +5,34 @@ const orderItemSchema = new mongoose.Schema(
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
+      required: true
     },
 
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
+      required: true
     },
 
-    quantity: Number,
-    priceAtPurchase: Number,
+    quantity: {
+      type: Number,
+      required: true
+    },
+
+    priceAtPurchase: {
+      type: Number,
+      required: true
+    },
+
+    status: {
+      type: String,
+      enum: ["PENDING", "SHIPPED", "DELIVERED","CANCELLED", "RETURN_REQUESTED", "RETURNED"],
+      default: "PENDING"
+    },
+
+    shippedAt: Date,
+
+    deliveredAt: Date
   },
   { _id: false }
 );
@@ -55,7 +74,7 @@ const orderSchema = new mongoose.Schema(
     orderNumber: {
       type: String,
       unique: true,
-      index: true
+      // index: true
     },
 
     paymentStatus: {
@@ -63,6 +82,8 @@ const orderSchema = new mongoose.Schema(
       enum: ["PENDING", "PAID", "FAILED", "REFUNDED"],
       default: "PENDING",
     },
+
+    cancelledAt: Date,
 
     returnWindowEndsAt: Date,
   },
@@ -73,6 +94,8 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ buyerId: 1, createdAt: -1 });
 orderSchema.index({ orderNumber: 1 }, { unique: true });
 orderSchema.index({ orderStatus: 1 });
+orderSchema.index({ "items.vendorId": 1 });
+orderSchema.index({ createdAt: -1 });
 
 orderSchema.pre("save", async function() {
   if (!this.orderNumber) {

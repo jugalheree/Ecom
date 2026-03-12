@@ -15,7 +15,8 @@ import VendorTrade from "../pages/vendor/VendorTrade";
 import VendorReports from "../pages/vendor/VendorReports";
 import VendorSetup from "../pages/vendor/VendorSetup";
 import Wishlist from "../pages/Wishlist";
-import Orders from "../pages/Orders";
+import BuyerOrders from "../pages/user/BuyerOrders";
+import BuyerOrderDetail from "../pages/user/BuyerOrderDetail";
 import TradeWallet from "../pages/wallet/TradeWallet";
 import WalletClaims from "../pages/wallet/WalletClaims";
 import RatingCenter from "../pages/ratings/RatingCenter";
@@ -80,7 +81,8 @@ export default function AppRoutes() {
       <Route path="/cart" element={<Cart />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/wishlist" element={<Wishlist />} />
-      <Route path="/orders" element={<Orders />} />
+      <Route path="/orders" element={<BuyerOrders />} />
+      <Route path="/orders/:id" element={<BuyerOrderDetail />} />
       <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
       <Route path="/vendor/dashboard" element={<VendorDashboard />} />
 

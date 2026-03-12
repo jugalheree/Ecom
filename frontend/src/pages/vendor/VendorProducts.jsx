@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api";
+import { vendorAPI } from "../../services/apis/index";
 import { useNavigate } from "react-router-dom";
 
 const placeholderGradient = (id = "") => {
@@ -96,7 +96,7 @@ export default function VendorProducts() {
 
   const fetchProducts = async () => {
     try {
-      const res = await api.get("/api/vendor/allProducts");
+      const res = await vendorAPI.products();
       const raw = res.data?.data;
       const list = Array.isArray(raw) ? raw : raw?.products || [];
       setProducts(list);
@@ -123,7 +123,7 @@ export default function VendorProducts() {
   const deleteProduct = async (id) => {
     try {
       // NOTE: DELETE /api/vendor/products/:id is not yet implemented in the backend.
-      await api.delete(`/api/vendor/products/${id}`);
+      await vendorAPI.deleteProduct(id);
       setProducts((prev) => prev.filter((p) => p._id !== id && p.id !== id));
     } catch (err) { alert(err?.message || "Delete not yet supported by the backend"); }
     finally { setDeleteConfirm(null); }
@@ -133,7 +133,7 @@ export default function VendorProducts() {
     setStockUpdating((s) => ({ ...s, [id]: true }));
     try {
       // NOTE: PATCH /api/vendor/products/:id/stock is not yet implemented in the backend.
-      await api.patch(`/api/vendor/products/${id}/stock`, { change });
+      await vendorAPI.updateStock(id, change);
       await fetchProducts();
     } catch (err) { alert(err?.message || "Stock update not yet supported by the backend"); }
     finally { setStockUpdating((s) => ({ ...s, [id]: false })); }

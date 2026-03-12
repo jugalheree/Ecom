@@ -29,7 +29,7 @@ export const vendorAPI = {
     api.post(`/api/vendor/products/${productId}/images`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
-  products: () => api.get("/api/vendor/allProducts"),
+  products: () => api.get("/api/vendor/products"),
   // NOTE: updateProduct, deleteProduct, updateStock endpoints do not exist in the current backend.
   // These are kept as stubs — implement corresponding backend routes before using them.
   updateProduct: (productId, data) =>
@@ -51,6 +51,9 @@ export const cartAPI = {
 // ─────────────── ORDERS ───────────────
 export const orderAPI = {
   placeOrder: (data) => api.post("/api/orders/place", data),
+  payOrder: (orderId) => api.post(`/api/orders/place/${orderId}/pay`),
+  getMyOrders: (params) => api.get("/api/orders/my-orders", { params }),
+  getOrderDetails: (orderId) => api.get(`/api/orders/my-orders/${orderId}`),
 };
 
 // ─────────────── ADMIN ───────────────

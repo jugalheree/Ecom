@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import { categoryAPI } from "../services/apis/index";
+import { categoryAPI, vendorAPI } from "../services/apis/index";
 import { useCartStore } from "../store/cartStore";
 
 export default function ProductDetail() {
@@ -17,7 +17,7 @@ export default function ProductDetail() {
 
   useEffect(() => {
     // /api/products/:id doesn't exist yet — try vendor allProducts and find by id
-    api.get("/api/vendor/allProducts")
+    vendorAPI.products()
       .then((res) => {
         const raw = res.data?.data;
         const list = Array.isArray(raw) ? raw : raw?.products || [];

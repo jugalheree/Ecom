@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { vendorAPI } from "../../services/apis/index";
 
 export default function EditProduct() {
   const { id } = useParams();
@@ -21,8 +22,7 @@ export default function EditProduct() {
 
   useEffect(() => {
     // Fetch from vendor's own product list then find by id
-    api
-      .get("/api/vendor/allProducts")
+    vendorAPI.products()
       .then((res) => {
         const raw = res.data?.data;
         const products = Array.isArray(raw) ? raw : raw?.products || [];
@@ -53,7 +53,7 @@ export default function EditProduct() {
     setSaving(true);
     try {
       // NOTE: PATCH /api/vendor/products/:id does not exist in the backend yet.
-      await api.patch(`/api/vendor/products/${id}`, {
+      await vendorAPI.updateProduct(id, {
         title: form.title,
         description: form.description,
         price: Number(form.price),
