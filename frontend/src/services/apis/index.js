@@ -30,8 +30,21 @@ export const vendorAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     }),
   products: () => api.get("/api/vendor/products"),
+
+  // ── Vendor Orders ──
+  getOrders: (params) => api.get("/api/vendor/orders", { params }),
+  shipOrder: (orderId, data) =>
+    api.patch(`/api/vendor/orders/${orderId}/ship`, data),
+  reviewReturn: (returnId, data) =>
+    api.patch(`/api/vendor/orders/returns/${returnId}/review`, data),
+  markReturnPickedUp: (returnId) =>
+    api.patch(`/api/vendor/orders/returns/${returnId}/pickup`),
+  markReturnReceived: (returnId) =>
+    api.patch(`/api/vendor/orders/returns/${returnId}/receive`),
+  refundReturn: (returnId, data) =>
+    api.patch(`/api/vendor/orders/returns/${returnId}/refund`, data),
+
   // NOTE: updateProduct, deleteProduct, updateStock endpoints do not exist in the current backend.
-  // These are kept as stubs — implement corresponding backend routes before using them.
   updateProduct: (productId, data) =>
     api.patch(`/api/vendor/products/${productId}`, data),
   deleteProduct: (productId) =>
@@ -48,12 +61,22 @@ export const cartAPI = {
   removeFromCart: (productId) => api.delete(`/api/cart/${productId}`),
 };
 
-// ─────────────── ORDERS ───────────────
+// ─────────────── ORDERS (Buyer) ───────────────
 export const orderAPI = {
   placeOrder: (data) => api.post("/api/orders/place", data),
   payOrder: (orderId) => api.post(`/api/orders/place/${orderId}/pay`),
   getMyOrders: (params) => api.get("/api/orders/my-orders", { params }),
   getOrderDetails: (orderId) => api.get(`/api/orders/my-orders/${orderId}`),
+  confirmDelivery: (orderId, data) =>
+    api.patch(`/api/orders/my-orders/${orderId}/confirm-delivery`, data),
+  cancelOrder: (orderId) =>
+    api.patch(`/api/orders/my-orders/${orderId}/cancel`),
+  requestReturn: (orderId, formData) =>
+    api.post(`/api/orders/my-orders/${orderId}/return`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  getOrderTimeline: (orderId) =>
+    api.get(`/api/orders/my-orders/${orderId}/timeline`),
 };
 
 // ─────────────── ADMIN ───────────────
@@ -80,4 +103,13 @@ export const categoryAPI = {
     api.get(`/api/categories/${categoryId}/attributes`),
   createAttribute: (categoryId, data) =>
     api.post(`/api/categories/${categoryId}/attributes`, data),
+};
+
+// ─────────────── MARKETPLACE ───────────────
+export const marketplaceAPI = {
+  getCategoryTree: () => api.get("/api/marketplace/categories/tree"),
+  getProductsByCategory: (categoryId, params) =>
+    api.get(`/api/marketplace/categories/${categoryId}/products`, { params }),
+  getProductDetails: (productId) =>
+    api.get(`/api/marketplace/products/${productId}`),
 };

@@ -41,7 +41,7 @@ export default function VendorNavbar() {
                 {[
                   { label: "Dashboard", path: "/vendor/dashboard" },
                   { label: "Products", path: "/vendor/products" },
-                  { label: "Orders", path: "/vendor/trade" },
+                  { label: "Orders", path: "/vendor/orders" },
                   { label: "Reports", path: "/vendor/reports" },
                 ].map((item) => (
                   <button key={item.path} onClick={() => { navigate(item.path); setOpen(false); }}

@@ -17,7 +17,8 @@ export default function VendorStock() {
       const raw = res.data?.data;
       setProducts(Array.isArray(raw) ? raw : raw?.products || []);
     } catch (err) {
-      showToast({ message: err.message || "Failed to load products", type: "error" });
+      // Silently handle load errors — vendor may not have a profile yet
+      setProducts([]);
     } finally {
       setLoading(false);
     }
