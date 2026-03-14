@@ -43,4 +43,7 @@ productAttributeValueSchema.index(
   { unique: true }
 );
 
+
+productAttributeValueSchema.index({ attributeCode: 1 });
+
 export const ProductAttributeValue = mongoose.model( "ProductAttributeValue", productAttributeValueSchema);

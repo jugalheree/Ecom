@@ -15,7 +15,8 @@ import VendorTrade from "../pages/vendor/VendorTrade";
 import VendorReports from "../pages/vendor/VendorReports";
 import VendorSetup from "../pages/vendor/VendorSetup";
 import Wishlist from "../pages/Wishlist";
-import Orders from "../pages/Orders";
+import BuyerOrders from "../pages/user/BuyerOrders";
+import BuyerOrderDetail from "../pages/user/BuyerOrderDetail";
 import TradeWallet from "../pages/wallet/TradeWallet";
 import WalletClaims from "../pages/wallet/WalletClaims";
 import RatingCenter from "../pages/ratings/RatingCenter";
@@ -37,6 +38,7 @@ import DeliveryTracking from "../pages/delivery/DeliveryTracking";
 import AddProduct from "../pages/vendor/AddProduct";
 import EditProduct from "../pages/vendor/EditProduct";
 import VendorPage from "../pages/public/VendorPage";
+import VendorOrders from "../pages/vendor/VendorOrders";
 
 export default function AppRoutes() {
   return (
@@ -73,6 +75,7 @@ export default function AppRoutes() {
         <Route path="products/add" element={<AddProduct />} />
         <Route path="products/edit/:id" element={<EditProduct />} />
         <Route path="stock" element={<VendorStock />} />
+        <Route path="orders" element={<VendorOrders />} />
         <Route path="trade" element={<VendorTrade />} />
         <Route path="reports" element={<VendorReports />} />
       </Route>
@@ -80,7 +83,8 @@ export default function AppRoutes() {
       <Route path="/cart" element={<Cart />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/wishlist" element={<Wishlist />} />
-      <Route path="/orders" element={<Orders />} />
+      <Route path="/orders" element={<BuyerOrders />} />
+      <Route path="/orders/:id" element={<BuyerOrderDetail />} />
       <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
       <Route path="/vendor/dashboard" element={<VendorDashboard />} />
 

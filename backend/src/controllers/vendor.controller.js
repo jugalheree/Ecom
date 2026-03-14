@@ -407,6 +407,7 @@ export const uploadProductImages = asyncHandler(async (req, res) => {
 
 
 
+
 export const getProducts = asyncHandler(async (req, res) => {
 
   const userId = req.user._id;

@@ -14,7 +14,7 @@ const uploadOnCloudinary = async (localFilePath) => {
 
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
-      folder: "ecive",
+      folder: "SWASTHYA CHETNA",
     });
 
     // Try to remove the temp file, ignore errors
