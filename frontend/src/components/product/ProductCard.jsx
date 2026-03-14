@@ -26,7 +26,7 @@ export default function ProductCard({ product }) {
       <div className="relative overflow-hidden">
         <div className="h-48 bg-ink-50">
           <img
-            src={product.images?.[0]?.url || "https://images.unsplash.com/photo-1714578187218-d1828f5ebd6e?w=400&auto=format&fit=crop&q=60"}
+            src={product.image || product.images?.[0]?.url || product.primaryImage?.imageUrl || "https://images.unsplash.com/photo-1714578187218-d1828f5ebd6e?w=400&auto=format&fit=crop&q=60"}
             alt={product.title || product.name}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
           />

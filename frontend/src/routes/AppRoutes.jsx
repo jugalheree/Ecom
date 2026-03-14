@@ -38,6 +38,7 @@ import DeliveryTracking from "../pages/delivery/DeliveryTracking";
 import AddProduct from "../pages/vendor/AddProduct";
 import EditProduct from "../pages/vendor/EditProduct";
 import VendorPage from "../pages/public/VendorPage";
+import VendorOrders from "../pages/vendor/VendorOrders";
 
 export default function AppRoutes() {
   return (
@@ -74,6 +75,7 @@ export default function AppRoutes() {
         <Route path="products/add" element={<AddProduct />} />
         <Route path="products/edit/:id" element={<EditProduct />} />
         <Route path="stock" element={<VendorStock />} />
+        <Route path="orders" element={<VendorOrders />} />
         <Route path="trade" element={<VendorTrade />} />
         <Route path="reports" element={<VendorReports />} />
       </Route>
