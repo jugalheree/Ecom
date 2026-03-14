@@ -332,6 +332,8 @@ export const getProductDetails = asyncHandler(async (req, res) => {
   );
 });
 
+
+
 // similar or related products
 export const getSimilarProducts = asyncHandler(async (req, res) => {
   const { productId } = req.params;
@@ -402,3 +404,8 @@ export const getSimilarProducts = asyncHandler(async (req, res) => {
       new ApiResponse(200, result, "Similar products fetched successfully")
     );
 });
+
+
+
+
+// 
