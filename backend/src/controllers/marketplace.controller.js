@@ -408,4 +408,170 @@ export const getSimilarProducts = asyncHandler(async (req, res) => {
 
 
 
-// 
+// search product api
+export const searchProducts = asyncHandler(async (req, res) => {
+
+  let { q, page = 1, limit = 20, sort, price_min, price_max } = req.query;
+
+  if (!q || q.trim().length < 2) {
+    throw new ApiError(400, "Search query must be at least 2 characters");
+  }
+
+  q = q.trim();
+
+  page = parseInt(page);
+  limit = parseInt(limit);
+
+  // Base query
+  const query = {
+    $text: { $search: q },
+    approvalStatus: "APPROVED",
+    isActive: true,
+    stock: { $gt: 0 }
+  };
+
+  // Price filter
+  if (price_min || price_max) {
+    query.price = {};
+    if (price_min) query.price.$gte = Number(price_min);
+    if (price_max) query.price.$lte = Number(price_max);
+  }
+
+  // Sorting logic
+  let sortOption = { score: { $meta: "textScore" } };
+
+  if (sort === "price_low_high") {
+    sortOption = { price: 1 };
+  } else if (sort === "price_high_low") {
+    sortOption = { price: -1 };
+  } else if (sort === "newest") {
+    sortOption = { createdAt: -1 };
+  }
+
+  // Total count
+  const totalProducts = await Product.countDocuments(query);
+
+  // Fetch products
+  const products = await Product.find(query, {
+    score: { $meta: "textScore" }
+  })
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+
+  const productIds = products.map(p => p._id);
+
+  // Fetch primary images
+  const images = await ProductImage.find({
+    productId: { $in: productIds },
+    isPrimary: true,
+    isActive: true
+  }).lean();
+
+  const imageMap = {};
+  images.forEach(img => {
+    imageMap[img.productId.toString()] = img.imageUrl;
+  });
+
+  const result = products.map(p => ({
+    _id: p._id,
+    title: p.title,
+    price: p.price,
+    slug: p.slug,
+    image: imageMap[p._id.toString()] || null
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        products: result,
+        pagination: {
+          totalProducts,
+          currentPage: page,
+          totalPages: Math.ceil(totalProducts / limit),
+          limit
+        }
+      },
+      "Search results fetched successfully"
+    )
+  );
+
+});
+
+
+
+
+
+
+// search suggestion api
+export const getSearchSuggestions = asyncHandler(async (req, res) => {
+
+  let { q } = req.query;
+
+  if (!q || q.trim().length < 2) {
+    throw new ApiError(400, "Minimum 2 characters required");
+  }
+
+  q = q.trim().toLowerCase();
+
+  let suggestions = [];
+
+  // TEXT SEARCH (ranked)
+  const textResults = await Product.find(
+    {
+      $text: { $search: q },
+      approvalStatus: "APPROVED",
+      isActive: true
+    },
+    {
+      score: { $meta: "textScore" },
+      title: 1
+    }
+  )
+    .sort({ score: { $meta: "textScore" } })
+    .limit(5)
+    .lean();
+
+  suggestions.push(...textResults.map(p => p.title));
+
+  // PARTIAL MATCH
+  if (suggestions.length < 10) {
+    const regex = new RegExp(q, "i");
+
+    const regexResults = await Product.find({
+      title: { $regex: regex },
+      approvalStatus: "APPROVED",
+      isActive: true
+    })
+      .select("title")
+      .limit(10 - suggestions.length)
+      .lean();
+
+    suggestions.push(...regexResults.map(p => p.title));
+  }
+
+  // FUZZY MATCH (basic typo)
+  if (suggestions.length < 10) {
+    const fuzzyRegex = new RegExp(q.split("").join(".*"), "i");
+
+    const fuzzyResults = await Product.find({
+      title: { $regex: fuzzyRegex },
+      approvalStatus: "APPROVED",
+      isActive: true
+    })
+      .select("title")
+      .limit(10 - suggestions.length)
+      .lean();
+
+    suggestions.push(...fuzzyResults.map(p => p.title));
+  }
+
+  const uniqueSuggestions = [...new Set(suggestions)].slice(0, 10);
+
+  return res.status(200).json(
+    new ApiResponse(200, uniqueSuggestions, "Suggestions fetched successfully")
+  );
+
+});

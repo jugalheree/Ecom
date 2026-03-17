@@ -117,5 +117,6 @@ productSchema.index({ createdAt: -1 })
 productSchema.index({ approvalStatus: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ stock: 1 });
+productSchema.index({ title: 1 });
 
 export const Product = mongoose.model("Product", productSchema);
