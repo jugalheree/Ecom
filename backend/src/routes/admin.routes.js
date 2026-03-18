@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { approvedProduct, approveVendor, getPendingProducts, getPendingVendors, rejectProduct, rejectVendor } from "../controllers/admin.controller.js";
+import { approvedProduct, approveVendor, getAdminDashboard, getAllUsers, getPendingProducts, getPendingVendors, getUserDetails, rejectProduct, rejectVendor } from "../controllers/admin.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
 
@@ -12,5 +12,8 @@ router.route("/vendors/:vendorId/reject").patch(verifyJWT, authorizeRoles("ADMIN
 router.route("/products/pending").get(verifyJWT, authorizeRoles("ADMIN"), getPendingProducts);
 router.route("/products/:productId/approve").patch(verifyJWT, authorizeRoles("ADMIN"), approvedProduct);
 router.route("/products/:productId/reject").patch(verifyJWT, authorizeRoles("ADMIN"), rejectProduct);
+router.route("/dashboard").get(verifyJWT, authorizeRoles("ADMIN"), getAdminDashboard);
+router.route("/users").get(verifyJWT, authorizeRoles("ADMIN"), getAllUsers);
+router.route("/users/:userId").get(verifyJWT, authorizeRoles("ADMIN"), getUserDetails);
 
 export default router;

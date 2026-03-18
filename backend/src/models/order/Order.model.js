@@ -94,6 +94,7 @@ orderSchema.index({ orderNumber: 1 }, { unique: true });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ "items.vendorId": 1 });
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ paymentStatus: 1 });
 
 orderSchema.pre("save", async function() {
   if (!this.orderNumber) {

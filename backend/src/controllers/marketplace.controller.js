@@ -105,6 +105,10 @@ const getAllChildCategories = async (categoryId) => {
   return result;
 };
 
+
+
+
+
 // Get products by category with pagination and sorting
 export const getProductsByCategory = asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
@@ -195,6 +199,9 @@ export const getProductsByCategory = asyncHandler(async (req, res) => {
   );
 });
 
+
+
+
 // filter options for category
 export const getCategoryFilters = asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
@@ -278,6 +285,8 @@ export const getCategoryFilters = asyncHandler(async (req, res) => {
     )
   );
 });
+
+
 
 // Get product details
 export const getProductDetails = asyncHandler(async (req, res) => {
@@ -572,6 +581,115 @@ export const getSearchSuggestions = asyncHandler(async (req, res) => {
 
   return res.status(200).json(
     new ApiResponse(200, uniqueSuggestions, "Suggestions fetched successfully")
+  );
+
+});
+
+
+
+
+
+
+
+
+// all products 
+export const getMarketplaceProducts = asyncHandler(async (req, res) => {
+
+  let {
+    categoryId,
+    minPrice,
+    maxPrice,
+    sort = "newest",
+    page = 1,
+    limit = 20
+  } = req.query;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 20;
+
+  const filter = {
+    approvalStatus: "APPROVED",
+    isActive: true,
+    stock: { $gt: 0 }
+  };
+
+  // Category filter (optional)
+  if (categoryId) {
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      throw new ApiError(400, "Invalid categoryId");
+    }
+    filter.categoryId = categoryId;
+  }
+
+  // Price filter
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+
+  // Sorting
+  let sortOption = {};
+
+  switch (sort) {
+    case "price_low_high":
+      sortOption = { price: 1 };
+      break;
+    case "price_high_low":
+      sortOption = { price: -1 };
+      break;
+    case "newest":
+      sortOption = { createdAt: -1 };
+      break;
+    default:
+      sortOption = { createdAt: -1 };
+  }
+
+  // Total count
+  const totalProducts = await Product.countDocuments(filter);
+
+  const products = await Product.find(filter)
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+
+  const productIds = products.map(p => p._id);
+
+  const images = await ProductImage.find({
+    productId: { $in: productIds },
+    isPrimary: true,
+    isActive: true
+  }).lean();
+
+  const imageMap = {};
+
+  images.forEach(img => {
+    imageMap[img.productId.toString()] = img.imageUrl;
+  });
+
+  const result = products.map(p => ({
+    _id: p._id,
+    title: p.title,
+    price: p.price,
+    slug: p.slug,
+    image: imageMap[p._id.toString()] || null
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        products: result,
+        pagination: {
+          totalProducts,
+          currentPage: page,
+          totalPages: Math.ceil(totalProducts / limit),
+          limit
+        }
+      },
+      "Marketplace products fetched successfully"
+    )
   );
 
 });
