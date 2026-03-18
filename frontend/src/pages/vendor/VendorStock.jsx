@@ -1,125 +1,94 @@
 import { useEffect, useState } from "react";
 import { vendorAPI } from "../../services/apis/index";
 import { useToastStore } from "../../store/toastStore";
+import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function VendorStock() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
+  const [backendMissing, setBackendMissing] = useState(false);
   const showToast = useToastStore((s) => s.showToast);
 
-  useEffect(() => { fetchProducts(); }, []);
-
-  const fetchProducts = async () => {
+  const load = () => {
     setLoading(true);
-    try {
-      const res = await vendorAPI.products();
-      const raw = res.data?.data;
-      setProducts(Array.isArray(raw) ? raw : raw?.products || []);
-    } catch (err) {
-      // Silently handle load errors — vendor may not have a profile yet
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
+    vendorAPI.products()
+      .then((r) => { const d = r.data?.data; setProducts(Array.isArray(d) ? d : d?.products || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
+
+  useEffect(() => { load(); }, []);
 
   const updateStock = async (id, change) => {
     setUpdating((s) => ({ ...s, [id]: true }));
     try {
       await vendorAPI.updateStock(id, change);
-      await fetchProducts();
-    } catch (err) {
-      showToast({ message: err.message || "Stock update not yet supported by the backend", type: "error" });
-    } finally {
-      setUpdating((s) => ({ ...s, [id]: false }));
-    }
-  };
-
-  const getStockStyle = (stock) => {
-    if (stock === 0) return { bar: "bg-red-400", text: "text-red-600", bg: "bg-red-50 border-red-200", label: "Out of stock" };
-    if (stock <= 5)  return { bar: "bg-amber-400", text: "text-amber-600", bg: "bg-amber-50 border-amber-200", label: "Low stock" };
-    return { bar: "bg-emerald-400", text: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", label: "In stock" };
+      setProducts((prev) => prev.map((p) => p._id === id ? { ...p, stock: (p.stock || 0) + change } : p));
+      showToast({ message: `Stock ${change > 0 ? "increased" : "decreased"}`, type: "success" });
+    } catch {
+      setBackendMissing(true);
+      showToast({ message: "Backend endpoint missing", type: "error" });
+    } finally { setUpdating((s) => ({ ...s, [id]: false })); }
   };
 
   return (
-    <div className="min-h-screen bg-ink-50">
-      <div className="bg-white border-b border-ink-100 px-8 py-7">
-        <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-primary-600 mb-1">Vendor Console</p>
-        <h1 className="text-2xl font-display font-bold text-ink-900">Stock Management</h1>
-        <p className="text-ink-400 text-sm mt-0.5">Manage your product inventory in real time.</p>
+    <div className="min-h-screen bg-sand-50 p-6">
+      <div className="mb-6">
+        <p className="section-label">Vendor</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900 mt-1">Stock Management</h1>
+        <p className="text-ink-400 text-sm mt-0.5">Adjust inventory levels for your products</p>
       </div>
 
-      <div className="p-6">
-        {loading ? (
-          <div className="flex items-center gap-3 p-6 text-ink-400 text-sm">
-            <div className="w-4 h-4 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin" />
-            Loading inventory...
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-ink-100 text-ink-400 text-sm">
-            No products found. Add a product first.
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-ink-100 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-ink-100 bg-ink-50">
-                  <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Product</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Status</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Stock Level</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-display font-bold uppercase tracking-widest text-ink-400">Adjust</th>
+      {backendMissing && <BackendMissing method="PATCH" endpoint="/api/vendor/products/:productId/stock" todo="Add stock update endpoint that accepts a { change: number } body and updates the product stock" />}
+
+      {loading ? (
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="card p-5"><div className="skeleton h-14 rounded-xl" /></div>)}</div>
+      ) : products.length === 0 ? (
+        <div className="card p-16 text-center"><div className="text-5xl mb-4">📦</div><p className="font-display font-bold text-ink-900 text-lg">No products</p></div>
+      ) : (
+        <div className="card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-sand-50 border-b border-ink-100">
+              <tr>
+                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Product</th>
+                <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Current Stock</th>
+                <th className="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 text-right">Adjust</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-100">
+              {products.map((p) => (
+                <tr key={p._id} className="hover:bg-sand-50 transition-colors">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-sand-100 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+                        {p.primaryImage?.imageUrl ? <img src={p.primaryImage.imageUrl} alt="" className="w-full h-full object-cover rounded-xl" /> : "📦"}
+                      </div>
+                      <p className="font-semibold text-ink-900 line-clamp-1">{p.name}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={`font-bold text-lg ${(p.stock || 0) <= 5 ? "text-danger-500" : (p.stock || 0) <= 20 ? "text-amber-600" : "text-emerald-600"}`}>
+                      {p.stock ?? 0}
+                    </span>
+                    {(p.stock || 0) <= 5 && <span className="ml-2 text-[10px] text-danger-500 font-semibold">Low Stock!</span>}
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2 justify-end">
+                      <button onClick={() => updateStock(p._id, -1)} disabled={updating[p._id] || (p.stock || 0) === 0}
+                        className="w-8 h-8 rounded-xl border border-ink-200 text-ink-600 hover:bg-ink-100 font-bold transition-colors disabled:opacity-30">−</button>
+                      <button onClick={() => updateStock(p._id, 1)} disabled={updating[p._id]}
+                        className="w-8 h-8 rounded-xl border border-ink-200 text-ink-600 hover:bg-ink-100 font-bold transition-colors">+</button>
+                      <button onClick={() => updateStock(p._id, 10)} disabled={updating[p._id]}
+                        className="btn-primary text-xs py-1.5 px-3">+10</button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => {
-                  const id = p._id || p.id;
-                  const style = getStockStyle(p.stock ?? 0);
-                  const isUpdating = updating[id];
-                  const barWidth = Math.min(((p.stock ?? 0) / 50) * 100, 100);
-
-                  return (
-                    <tr key={id} className="border-b border-ink-50 hover:bg-ink-50/50 transition-colors">
-                      <td className="px-5 py-4">
-                        <p className="font-semibold text-ink-900">{p.title || p.name}</p>
-                        <p className="text-xs text-ink-400 mt-0.5">₹{p.price?.toLocaleString()}</p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${style.bg} ${style.text}`}>
-                          {style.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 w-48">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-1.5 bg-ink-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all duration-500 ${style.bar}`} style={{ width: `${barWidth}%` }} />
-                          </div>
-                          <span className={`text-sm font-display font-bold w-8 text-right ${style.text}`}>{p.stock ?? 0}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateStock(id, -1)}
-                            disabled={isUpdating || (p.stock ?? 0) === 0}
-                            className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-600 font-bold text-lg flex items-center justify-center hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                          >−</button>
-                          <button
-                            onClick={() => updateStock(id, 1)}
-                            disabled={isUpdating}
-                            className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 font-bold text-lg flex items-center justify-center hover:bg-emerald-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                          >+</button>
-                          {isUpdating && <div className="w-3 h-3 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin" />}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

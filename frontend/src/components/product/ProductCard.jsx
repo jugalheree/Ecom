@@ -1,100 +1,126 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useCartStore } from "../../store/cartStore";
 import { useWishlistStore } from "../../store/wishlistStore";
+import { useToastStore } from "../../store/toastStore";
+import { useState } from "react";
 
 export default function ProductCard({ product }) {
   const addToCart = useCartStore((s) => s.addToCart);
-  const navigate = useNavigate();
-  const wishlist = useWishlistStore((s) => s.wishlist);
-  const toggleWishlist = useWishlistStore((s) => s.toggleWishlist);
-  const isWishlisted = wishlist.some((p) => (p._id || p.id) === (product._id || product.id));
+  const { wishlist, toggleWishlist } = useWishlistStore();
+  const showToast = useToastStore((s) => s.showToast);
+  const [adding, setAdding] = useState(false);
 
-  const handleBuyNow = async () => {
-    await addToCart(product._id || product.id, 1);
-    navigate("/checkout");
+  if (!product) return null;
+
+  const isWishlisted = wishlist?.some((w) => w._id === product._id);
+  const imageUrl = product.primaryImage?.imageUrl || product.imageUrl || null;
+  const discount = product.originalPrice && product.price
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : null;
+
+  const handleAddToCart = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAdding(true);
+    try {
+      const res = await addToCart(product._id, 1);
+      if (res?.success !== false) showToast({ message: "Added to cart!", type: "success" });
+      else showToast({ message: res?.message || "Failed to add", type: "error" });
+    } catch {
+      showToast({ message: "Failed to add to cart", type: "error" });
+    } finally {
+      setAdding(false);
+    }
   };
 
-  const score = product.aiScore ?? product.ai;
-  const scoreColor = score >= 80 ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-    : score >= 60 ? "text-amber-700 bg-amber-50 border-amber-200"
-    : "text-ink-500 bg-ink-50 border-ink-200";
-  const isOutOfStock = product.stock === 0;
+  const handleWishlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist(product);
+    showToast({ message: isWishlisted ? "Removed from wishlist" : "Added to wishlist!", type: "success" });
+  };
 
   return (
-    <div className="group bg-white rounded-2xl border border-ink-100 hover:border-ink-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden flex flex-col">
-      {/* Image */}
-      <div className="relative overflow-hidden">
-        <div className="h-48 bg-ink-50">
-          <img
-            src={product.image || product.images?.[0]?.url || product.primaryImage?.imageUrl || "https://images.unsplash.com/photo-1714578187218-d1828f5ebd6e?w=400&auto=format&fit=crop&q=60"}
-            alt={product.title || product.name}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
-          />
-        </div>
-        {/* Actions overlay */}
-        <button
-          onClick={() => toggleWishlist(product)}
-          className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-xl bg-white/90 backdrop-blur-sm shadow-sm border border-ink-100 hover:scale-110 transition-transform duration-200"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isWishlisted ? "text-red-500" : "text-ink-400"} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-        </button>
-        {/* AI Score */}
-        {score != null && (
-          <div className={`absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-display font-bold border ${scoreColor}`}>
-            ★ {score}
-          </div>
-        )}
-        {isOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-black/60 text-white text-xs font-display font-bold px-3 py-1 rounded-lg backdrop-blur-sm">Sold Out</span>
-          </div>
-        )}
-      </div>
+    <Link to={`/product/${product._id}`} className="group block">
+      <div className="card overflow-hidden hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200">
 
-      {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
-        <p className="text-[10px] font-medium text-ink-400 mb-1 truncate uppercase tracking-wider">
-          {product.vendorId?.shopName || product.vendorName || "Verified Vendor"}
-        </p>
-        <h3 className="font-display font-semibold text-sm text-ink-900 line-clamp-2 mb-3 flex-1 leading-snug">
-          {product.title || product.name}
-        </h3>
+        {/* Image */}
+        <div className="relative overflow-hidden bg-sand-100 aspect-square">
+          {imageUrl ? (
+            <img src={imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-5xl text-ink-300 bg-sand-100">🛍️</div>
+          )}
 
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xl font-display font-bold text-ink-900">₹{product.price?.toLocaleString()}</p>
-          {product.stock <= 5 && product.stock > 0 && (
-            <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg font-bold">
-              {product.stock} left
+          {/* Discount badge */}
+          {discount > 0 && (
+            <span className="absolute top-2.5 left-2.5 bg-brand-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+              -{discount}%
+            </span>
+          )}
+
+          {/* Wishlist */}
+          <button onClick={handleWishlist}
+            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white shadow-card flex items-center justify-center hover:scale-110 transition-transform">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill={isWishlisted ? "#f05f00" : "none"} stroke={isWishlisted ? "#f05f00" : "#8e8e9a"} strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+
+          {/* AI verified badge */}
+          {product.aiVerified && (
+            <span className="absolute bottom-2.5 left-2.5 bg-white/90 backdrop-blur text-[10px] font-semibold text-navy-700 px-2 py-0.5 rounded-full border border-navy-200 flex items-center gap-1">
+              🤖 AI Verified
             </span>
           )}
         </div>
 
-        <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => addToCart(product._id || product.id, 1)}
-            disabled={isOutOfStock}
-            className="flex-1 text-[11px] font-display font-semibold py-2.5 rounded-xl bg-ink-900 text-white hover:bg-ink-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97]"
-          >
-            Add to cart
-          </button>
-          <button
-            onClick={handleBuyNow}
-            disabled={isOutOfStock}
-            className="flex-1 text-[11px] font-display font-semibold py-2.5 rounded-xl border border-ink-200 text-ink-700 hover:border-ink-300 hover:bg-ink-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97]"
-          >
-            Buy now
+        {/* Info */}
+        <div className="p-3.5">
+          <p className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-1">{product.category?.name || "Product"}</p>
+          <h3 className="text-sm font-semibold text-ink-900 line-clamp-2 leading-snug">{product.name}</h3>
+
+          {/* Rating */}
+          {product.avgRating > 0 && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <div className="flex">
+                {[1,2,3,4,5].map((s) => (
+                  <svg key={s} width="11" height="11" viewBox="0 0 24 24" fill={s <= Math.round(product.avgRating) ? "#ff7d07" : "#d9d9de"} stroke="none">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                ))}
+              </div>
+              <span className="text-[11px] text-ink-400">({product.reviewCount || 0})</span>
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-base font-bold text-ink-900">₹{product.price?.toLocaleString()}</span>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <span className="text-xs text-ink-400 line-through">₹{product.originalPrice?.toLocaleString()}</span>
+            )}
+          </div>
+
+          {/* Stock */}
+          {product.stock === 0 && (
+            <p className="text-xs font-semibold text-danger-500 mt-1">Out of stock</p>
+          )}
+
+          {/* Add to cart */}
+          <button onClick={handleAddToCart} disabled={adding || product.stock === 0}
+            className="w-full mt-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200
+              bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-600 hover:text-white hover:border-brand-600
+              disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97]">
+            {adding ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-3.5 h-3.5 border-2 border-brand-300 border-t-white rounded-full animate-spin" />
+                Adding...
+              </span>
+            ) : product.stock === 0 ? "Out of Stock" : "Add to Cart"}
           </button>
         </div>
-
-        <Link
-          to={`/product/${product._id || product.id}`}
-          className="text-center text-[11px] font-medium text-primary-600 hover:text-primary-700 transition-colors"
-        >
-          View details →
-        </Link>
       </div>
-    </div>
+    </Link>
   );
 }

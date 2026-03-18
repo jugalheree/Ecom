@@ -1,107 +1,36 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { useState } from "react";
 
 export default function DeliveryNavbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  const links = [
+    { to: "/delivery/dashboard", label: "Dashboard" },
+    { to: "/delivery/orders",    label: "My Deliveries" },
+    { to: "/delivery/tracking",  label: "Tracking" },
+  ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-stone-200/50">
-      <div className="container-app h-20 flex items-center justify-between">
-        <Link
-          to="/delivery/dashboard"
-          className="text-2xl font-bold font-display text-ink-900 hover:text-primary-600 transition-colors duration-200"
-        >
-          TradeSphere
-        </Link>
-
-        <div className="flex items-center gap-6 text-sm font-medium">
-          <Link
-            to="/delivery/dashboard"
-            className="text-ink-700 hover:text-ink-900 transition-colors duration-200"
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/delivery/orders"
-            className="text-ink-700 hover:text-ink-900 transition-colors duration-200"
-          >
-            Orders
-          </Link>
-          <Link
-            to="/delivery/tracking"
-            className="text-ink-700 hover:text-ink-900 transition-colors duration-200"
-          >
-            Tracking
-          </Link>
-
-          <div className="relative">
-            <button
-              onClick={() => setOpen(!open)}
-              className="flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-ink-100 transition-colors duration-200"
-            >
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center font-semibold shadow-md">
-                {user?.name?.[0]}
-              </div>
-              <span className="text-ink-700 font-medium">Hi, {user?.name}</span>
-            </button>
-
-            {open && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border-2 border-stone-200 overflow-hidden animate-fade-in">
-                <div className="px-5 py-4 border-b border-stone-200 bg-ink-50">
-                  <p className="font-semibold text-ink-900">{user?.name}</p>
-                  <p className="text-xs text-ink-600 uppercase tracking-wide mt-1">Delivery account</p>
-                </div>
-
-                <div className="py-2">
-                  <button
-                    onClick={() => {
-                      navigate("/delivery/dashboard");
-                      setOpen(false);
-                    }}
-                    className="menu-item"
-                  >
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate("/delivery/orders");
-                      setOpen(false);
-                    }}
-                    className="menu-item"
-                  >
-                    Orders
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate("/delivery/tracking");
-                      setOpen(false);
-                    }}
-                    className="menu-item"
-                  >
-                    Tracking
-                  </button>
-
-                  <div className="border-t border-stone-200 my-2" />
-
-                  <button
-                    onClick={() => {
-                      logout();
-                      navigate("/");
-                      setOpen(false);
-                    }}
-                    className="menu-item text-red-600 hover:bg-red-50"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+    <header className="h-[72px] bg-ink-950 border-b border-white/10 flex items-center px-6 gap-4 flex-shrink-0">
+      <Link to="/delivery/dashboard" className="flex items-center gap-2.5 mr-4">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
+          <span className="text-white font-display font-bold text-sm">🚚</span>
         </div>
-      </div>
-    </nav>
+        <span className="text-sm font-display font-bold text-white hidden sm:block">Delivery</span>
+      </Link>
+      <nav className="flex items-center gap-0.5 flex-1">
+        {links.map((l) => (
+          <Link key={l.to} to={l.to}
+            className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+              location.pathname === l.to ? "bg-emerald-600 text-white" : "text-ink-400 hover:text-white hover:bg-white/10"
+            }`}>
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+      <button onClick={() => { logout(); navigate("/"); }} className="text-xs text-ink-400 hover:text-red-400 transition-colors">Sign Out</button>
+    </header>
   );
 }

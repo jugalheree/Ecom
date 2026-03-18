@@ -1,26 +1,13 @@
-export default function BackendMissing({ endpoint, method = "GET", todo }) {
+export default function BackendMissing({ method = "GET", endpoint = "", todo = "" }) {
   return (
-    <div className="w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 my-4">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <span className="text-amber-600 text-sm font-bold">!</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="text-xs font-display font-bold uppercase tracking-wider text-amber-700">Backend route missing</span>
-            <code className="text-xs font-mono bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-lg">
-              <span className="text-emerald-700 font-bold">{method}</span> {endpoint}
-            </code>
-          </div>
-          <ul className="space-y-1">
-            {(Array.isArray(todo) ? todo : [todo]).map((item, i) => (
-              <li key={i} className="text-xs text-amber-800 flex gap-2">
-                <span className="text-amber-400 font-bold flex-shrink-0">→</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <div className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+      <span className="text-xl flex-shrink-0">⚠️</span>
+      <div>
+        <p className="font-semibold text-amber-800 text-sm">Backend endpoint missing</p>
+        <p className="text-xs text-amber-700 mt-0.5 font-mono">
+          <span className="font-bold">{method}</span> {endpoint}
+        </p>
+        {todo && <p className="text-xs text-amber-600 mt-1.5 leading-relaxed">{todo}</p>}
       </div>
     </div>
   );

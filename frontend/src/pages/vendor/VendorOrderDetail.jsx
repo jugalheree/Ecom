@@ -31,7 +31,7 @@ export default function VendorOrderDetail() {
   const statusSteps = ["PENDING", "ACCEPTED", "SHIPPED", "DELIVERED"];
 
   return (
-    <div className="min-h-screen bg-white mt-20">
+    <div className="min-h-screen bg-sand-50">
       <div className="container-app py-16 max-w-4xl">
 
         {/* Header */}

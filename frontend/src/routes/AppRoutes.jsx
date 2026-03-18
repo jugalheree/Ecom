@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Home from "../pages/Home";
 import Market from "../pages/buyer/Market";
 import ProductDetail from "../pages/ProductDetail";
+import SearchResults from "../pages/SearchResults";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import BuyerDashboard from "../pages/buyer/BuyerDashboard";
@@ -39,29 +40,34 @@ import AddProduct from "../pages/vendor/AddProduct";
 import EditProduct from "../pages/vendor/EditProduct";
 import VendorPage from "../pages/public/VendorPage";
 import VendorOrders from "../pages/vendor/VendorOrders";
+import Wallet from "../pages/Wallet";
 
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* ── Public ── */}
       <Route path="/" element={<Home />} />
       <Route path="/market" element={<Market />} />
       <Route path="/product/:id" element={<ProductDetail />} />
+      <Route path="/search" element={<SearchResults />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/vendor/:vendorId" element={<VendorPage />} />
 
-      <Route
-        path="/buyer"
-        element={
-          <ProtectedRoute role="buyer">
-            <BuyerDashboard />
-          </ProtectedRoute>
-        }
-      />
+      {/* ── Buyer ── */}
+      <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+      <Route path="/cart" element={<Cart />} />
+      <Route path="/checkout" element={<Checkout />} />
+      <Route path="/wishlist" element={<Wishlist />} />
+      <Route path="/orders" element={<BuyerOrders />} />
+      <Route path="/orders/:id" element={<BuyerOrderDetail />} />
+      <Route path="/wallet" element={<Wallet />} />
+      <Route path="/wallet/trade" element={<TradeWallet />} />
+      <Route path="/wallet/claims" element={<WalletClaims />} />
+      <Route path="/ratings" element={<RatingCenter />} />
 
-      {/* Vendor setup (before dashboard, for new vendors) */}
+      {/* ── Vendor (all under VendorLayout which has its own navbar) ── */}
       <Route path="/vendor/setup" element={<VendorSetup />} />
-
       <Route
         path="/vendor"
         element={
@@ -70,6 +76,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
+        <Route index element={<VendorDashboard />} />
         <Route path="dashboard" element={<VendorDashboard />} />
         <Route path="products" element={<VendorProducts />} />
         <Route path="products/add" element={<AddProduct />} />
@@ -80,14 +87,7 @@ export default function AppRoutes() {
         <Route path="reports" element={<VendorReports />} />
       </Route>
 
-      <Route path="/cart" element={<Cart />} />
-      <Route path="/checkout" element={<Checkout />} />
-      <Route path="/wishlist" element={<Wishlist />} />
-      <Route path="/orders" element={<BuyerOrders />} />
-      <Route path="/orders/:id" element={<BuyerOrderDetail />} />
-      <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
-      <Route path="/vendor/dashboard" element={<VendorDashboard />} />
-
+      {/* ── Admin (all under AdminLayout which has its own navbar) ── */}
       <Route
         path="/admin"
         element={
@@ -106,6 +106,7 @@ export default function AppRoutes() {
         <Route path="categories" element={<AdminCategories />} />
       </Route>
 
+      {/* ── Delivery (all under DeliveryLayout which has its own navbar) ── */}
       <Route
         path="/delivery"
         element={
@@ -119,10 +120,6 @@ export default function AppRoutes() {
         <Route path="orders" element={<DeliveryOrders />} />
         <Route path="tracking" element={<DeliveryTracking />} />
       </Route>
-
-      <Route path="/wallet" element={<TradeWallet />} />
-      <Route path="/wallet/claims" element={<WalletClaims />} />
-      <Route path="/ratings" element={<RatingCenter />} />
     </Routes>
   );
 }

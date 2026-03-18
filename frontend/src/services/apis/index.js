@@ -110,6 +110,14 @@ export const marketplaceAPI = {
   getCategoryTree: () => api.get("/api/marketplace/categories/tree"),
   getProductsByCategory: (categoryId, params) =>
     api.get(`/api/marketplace/categories/${categoryId}/products`, { params }),
+  getCategoryFilters: (categoryId) =>
+    api.get(`/api/marketplace/categories/${categoryId}/filters`),
   getProductDetails: (productId) =>
     api.get(`/api/marketplace/products/${productId}`),
+  getSimilarProducts: (productId) =>
+    api.get(`/api/marketplace/products/${productId}/similar`),
+  searchProducts: (params) =>
+    api.get("/api/marketplace/search/products", { params }),
+  getSearchSuggestions: (q) =>
+    api.get("/api/marketplace/search/suggestions", { params: { q } }),
 };

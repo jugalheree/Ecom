@@ -15,7 +15,7 @@ export default function ToastContainer() {
   const styles = {
     success: "bg-emerald-600 border-emerald-500",
     error: "bg-red-600 border-red-500",
-    info: "bg-primary-600 border-primary-500",
+    info: "bg-brand-600 border-brand-500",
   };
 
   return (

@@ -9,7 +9,6 @@ export default function AdminDashboard() {
   const [backendMissing, setBackendMissing] = useState(false);
 
   useEffect(() => {
-    // NOTE: GET /api/admin/analytics does not exist in the backend yet.
     api.get("/api/admin/analytics")
       .then((res) => setAnalytics(res.data.data))
       .catch(() => {
@@ -19,59 +18,44 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-ink-50"><Loader /></div>;
-
-  // NOTE: This component renders with zero-state when the backend route is missing.
+  if (loading) return <div className="flex-1 flex items-center justify-center min-h-screen"><Loader size="lg" /></div>;
 
   const stats = [
-    { title: "Total Users", value: analytics?.totalUsers ?? 0, icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    ), accent: "text-blue-500 bg-blue-50 border-blue-100" },
-    { title: "Total Vendors", value: analytics?.totalVendors ?? 0, icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    ), accent: "text-primary-600 bg-primary-50 border-primary-100" },
-    { title: "Approved Vendors", value: analytics?.approvedVendors ?? 0, icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    ), accent: "text-emerald-600 bg-emerald-50 border-emerald-100" },
-    { title: "Pending Vendors", value: analytics?.pendingVendors ?? 0, icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    ), accent: "text-amber-600 bg-amber-50 border-amber-100" },
-    { title: "Orders This Month", value: analytics?.ordersThisMonth ?? 0, icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-    ), accent: "text-ink-600 bg-ink-50 border-ink-200" },
-    { title: "Revenue This Month", value: `₹${(analytics?.revenueThisMonth ?? 0).toLocaleString()}`, icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    ), accent: "text-emerald-600 bg-emerald-50 border-emerald-100" },
+    { title: "Total Users",         value: analytics?.totalUsers ?? 0,                               icon: "👥", color: "bg-blue-50 border-blue-200 text-blue-700" },
+    { title: "Total Vendors",       value: analytics?.totalVendors ?? 0,                             icon: "🏪", color: "bg-brand-50 border-brand-200 text-brand-700" },
+    { title: "Approved Vendors",    value: analytics?.approvedVendors ?? 0,                          icon: "✅", color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+    { title: "Pending Vendors",     value: analytics?.pendingVendors ?? 0,                           icon: "⏳", color: "bg-amber-50 border-amber-200 text-amber-700" },
+    { title: "Orders This Month",   value: analytics?.ordersThisMonth ?? 0,                          icon: "📦", color: "bg-ink-50 border-ink-200 text-ink-700" },
+    { title: "Revenue This Month",  value: `₹${(analytics?.revenueThisMonth ?? 0).toLocaleString()}`, icon: "💰", color: "bg-green-50 border-green-200 text-green-700" },
   ];
 
   return (
-    <div className="min-h-screen bg-ink-50">
-      <div className="bg-white border-b border-ink-100 px-8 py-7">
-        <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-amber-600 mb-1">Admin</p>
-        <h1 className="text-2xl font-display font-bold text-ink-900">Platform Dashboard</h1>
-        <p className="text-ink-400 text-sm mt-0.5">Analytics and platform overview.</p>
+    <div className="min-h-screen bg-sand-50 p-6">
+      <div className="mb-6">
+        <p className="section-label">Admin</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900 mt-1">Platform Dashboard</h1>
+        <p className="text-ink-400 text-sm mt-0.5">Analytics and platform overview</p>
       </div>
-      <div className="p-6">
-        {backendMissing && (
-          <BackendMissing
-            method="GET"
-            endpoint="/api/admin/analytics"
-            todo="Create an analytics controller that returns totalUsers, totalVendors, approvedVendors, pendingVendors, totalOrders, ordersThisMonth, revenueThisMonth"
-          />
-        )}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {stats.map((s, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-ink-100 p-5 hover:shadow-md hover:border-ink-200 transition-all duration-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${s.accent}`}>
-                  {s.icon}
-                </div>
+
+      {backendMissing && (
+        <BackendMissing
+          method="GET" endpoint="/api/admin/analytics"
+          todo="Create analytics controller returning totalUsers, totalVendors, approvedVendors, pendingVendors, totalOrders, ordersThisMonth, revenueThisMonth"
+        />
+      )}
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {stats.map((s, i) => (
+          <div key={i} className={`card p-5 border-2 ${s.color}`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{s.title}</p>
+                <p className="text-2xl font-bold text-ink-900 mt-2">{s.value}</p>
               </div>
-              <p className="text-[11px] font-display font-bold uppercase tracking-widest text-ink-400 mb-1">{s.title}</p>
-              <p className="text-2xl font-display font-bold text-ink-900">{s.value}</p>
+              <span className="text-2xl">{s.icon}</span>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

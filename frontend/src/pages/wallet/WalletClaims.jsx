@@ -1,159 +1,59 @@
-import { useState } from "react";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
+import BackendMissing from "../../components/ui/BackendMissing";
+
+const mockClaims = [
+  { id: "CLM001", orderId: "ORD-9A3F", amount: 2499, status: "PENDING", reason: "Item not delivered", date: "2026-01-15" },
+  { id: "CLM002", orderId: "ORD-7B2E", amount: 5999, status: "RESOLVED", reason: "Wrong product received", date: "2026-01-10" },
+];
+
+const statusBadge = (s) =>
+  s === "RESOLVED" ? "badge-success" :
+  s === "REJECTED" ? "badge-danger"  :
+  "badge-warn";
 
 export default function WalletClaims() {
-  const [claims, setClaims] = useState([
-    {
-      id: 1,
-      amount: 3200,
-      reason: "Order #201 completed",
-      status: "Pending",
-      date: "2026-01-20",
-    },
-    {
-      id: 2,
-      amount: 5400,
-      reason: "Bulk order settlement",
-      status: "Approved",
-      date: "2026-01-18",
-    },
-  ]);
-
-  const [form, setForm] = useState({
-    amount: "",
-    reason: "",
-  });
-
-  const submitClaim = () => {
-    if (!form.amount || !form.reason) return;
-
-    setClaims([
-      {
-        id: Date.now(),
-        amount: Number(form.amount),
-        reason: form.reason,
-        status: "Pending",
-        date: new Date().toISOString().slice(0, 10),
-      },
-      ...claims,
-    ]);
-
-    setForm({ amount: "", reason: "" });
-  };
-
-  const statusColor = (status) => {
-    if (status === "Approved") return "bg-green-100 text-green-700";
-    if (status === "Rejected") return "bg-red-100 text-red-700";
-    return "bg-yellow-100 text-yellow-700";
-  };
-
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-sand-50 py-10">
+      <div className="container-app max-w-3xl">
+        <div className="mb-8">
+          <p className="section-label">Finance</p>
+          <h1 className="text-3xl font-display font-bold text-ink-900 mt-1">Wallet Claims</h1>
+          <p className="text-ink-500 text-sm mt-1">Track your escrow disputes and refund claims</p>
+        </div>
 
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Wallet claims
-        </h1>
-        <p className="text-slate-600 mt-1">
-          Submit and track your escrow release requests.
-        </p>
-      </div>
+        <BackendMissing
+          method="GET"
+          endpoint="/api/wallet/claims"
+          todo="Return list of wallet claims for the current user with orderId, amount, reason, and resolution status"
+        />
 
-      {/* TOP GRID */}
-      <div className="grid md:grid-cols-3 gap-6">
-
-        {/* CLAIM FORM */}
-        <Card className="p-6 md:col-span-1">
-          <h3 className="font-semibold text-lg mb-2">
-            Submit new claim
-          </h3>
-          <p className="text-sm text-slate-600 mb-4">
-            Request release of locked escrow funds.
-          </p>
-
-          <Input
-            label="Claim amount"
-            type="number"
-            placeholder="Enter amount"
-            value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
-          />
-
-          <Input
-            label="Reason"
-            placeholder="Example: Order #203 delivered"
-            value={form.reason}
-            onChange={(e) =>
-              setForm({ ...form, reason: e.target.value })
-            }
-          />
-
-          <Button className="w-full mt-4" onClick={submitClaim}>
-            Submit claim
-          </Button>
-        </Card>
-
-        {/* ESCROW INFO */}
-        <Card className="p-6 md:col-span-2">
-          <h3 className="font-semibold text-lg mb-3">
-            How claims work
-          </h3>
-
-          <ul className="text-sm text-slate-600 space-y-2 list-disc pl-5">
-            <li>Claims can only be made on locked escrow funds.</li>
-            <li>Each claim is reviewed before approval.</li>
-            <li>Once approved, funds move to available balance.</li>
-            <li>Rejected claims can be resubmitted.</li>
-          </ul>
-
-          <div className="mt-5 p-4 rounded-xl bg-blue-50 text-sm text-blue-700">
-            🛡 Claims protect both buyers and vendors by ensuring money is
-            released only after valid order completion.
-          </div>
-        </Card>
-      </div>
-
-      {/* CLAIM HISTORY */}
-      <Card className="p-6">
-        <h3 className="font-semibold text-lg mb-4">
-          Claim history
-        </h3>
-
-        {claims.length === 0 ? (
-          <p className="text-slate-500 text-sm">
-            No claims submitted yet.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {claims.map((c) => (
-              <div
-                key={c.id}
-                className="flex justify-between items-center border-b last:border-b-0 pb-3 last:pb-0"
-              >
-                <div>
-                  <p className="font-medium">₹{c.amount}</p>
-                  <p className="text-sm text-slate-500">
-                    {c.reason} • {c.date}
-                  </p>
+        <div className="space-y-4">
+          {mockClaims.map((claim) => (
+            <div key={claim.id} className="card p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-sand-100 flex items-center justify-center text-xl flex-shrink-0">🛡️</div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-ink-900 text-sm">{claim.id}</p>
+                      <span className={statusBadge(claim.status)}>{claim.status}</span>
+                    </div>
+                    <p className="text-xs text-ink-500">Order #{claim.orderId} · ₹{claim.amount.toLocaleString()}</p>
+                    <p className="text-xs text-ink-400 mt-0.5">{claim.reason}</p>
+                    <p className="text-xs text-ink-300 mt-0.5">{new Date(claim.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  </div>
                 </div>
-
-                <span
-                  className={`text-xs px-3 py-1 rounded-full ${statusColor(
-                    c.status
-                  )}`}
-                >
-                  {c.status}
-                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </Card>
+            </div>
+          ))}
+        </div>
+
+        <div className="card p-5 mt-6 border-2 border-brand-100 bg-brand-50">
+          <h3 className="font-semibold text-brand-900 text-sm mb-1 flex items-center gap-2"><span>💡</span> How to raise a claim</h3>
+          <p className="text-xs text-brand-700 leading-relaxed">
+            To dispute an escrow hold or raise a refund claim, go to your order detail page and use the "Request Return" option. Our team reviews all claims within 24-48 hours.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,125 +1,97 @@
 import { useEffect, useState } from "react";
-import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
-import Button from "../../components/ui/Button";
-import Loader from "../../components/ui/Loader";
-import BackendMissing from "../../components/ui/BackendMissing";
 import api from "../../services/api";
+import BackendMissing from "../../components/ui/BackendMissing";
 import { useToastStore } from "../../store/toastStore";
 
-const statusStyles = {
-  ASSIGNED: "warning",
-  PICKED_UP: "info",
-  OUT_FOR_DELIVERY: "info",
-  DELIVERED: "success",
-};
+const statusBadge = (s) =>
+  s === "DELIVERED"        ? "badge-success" :
+  s === "OUT_FOR_DELIVERY" ? "badge-navy"    :
+  s === "PICKED_UP"        ? "badge-navy"    :
+  "badge-warn";
 
 export default function DeliveryOrders() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backendMissing, setBackendMissing] = useState(false);
+  const [updating, setUpdating] = useState({});
   const showToast = useToastStore((s) => s.showToast);
 
-  const fetchDeliveries = () => {
-    // NOTE: GET /api/delivery/deliveries does not exist in the backend yet.
-    api
-      .get("/api/delivery/deliveries")
+  useEffect(() => {
+    api.get("/api/delivery/deliveries")
       .then((res) => setDeliveries(res.data.data?.deliveries || []))
       .catch(() => setBackendMissing(true))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    setLoading(true);
-    fetchDeliveries();
   }, []);
 
-  const updateStatus = (assignmentId, status) => {
-    api
-      .patch(`/api/delivery/deliveries/${assignmentId}/status`, { status })
-      .then(() => {
-        showToast({ message: "Status updated", type: "success" });
-        fetchDeliveries();
-      })
-      .catch((e) => showToast({ message: e?.message || "Failed to update", type: "error" }));
+  const updateStatus = async (id, status) => {
+    setUpdating((s) => ({ ...s, [id]: true }));
+    try {
+      await api.patch(`/api/delivery/deliveries/${id}/status`, { status });
+      setDeliveries((prev) => prev.map((d) => d._id === id ? { ...d, status } : d));
+      showToast({ message: "Status updated!", type: "success" });
+    } catch {
+      showToast({ message: "Update failed — backend missing", type: "error" });
+    } finally {
+      setUpdating((s) => ({ ...s, [id]: false }));
+    }
   };
-
-  const markDelivered = (assignmentId) => {
-    api
-      .post(`/api/delivery/deliveries/${assignmentId}/delivered`)
-      .then(() => {
-        showToast({ message: "Marked as delivered", type: "success" });
-        fetchDeliveries();
-      })
-      .catch((e) => showToast({ message: e?.message || "Failed", type: "error" }));
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader />
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container-app py-12">
-        <div className="mb-12">
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
-            Assigned deliveries
-          </h1>
-          <p className="text-xl text-ink-600">
-            Update status for each delivery
-          </p>
+    <div className="min-h-screen bg-sand-50 p-6">
+      <div className="mb-6">
+        <p className="section-label">Delivery</p>
+        <h1 className="text-2xl font-display font-bold text-ink-900 mt-1">My Deliveries</h1>
+        <p className="text-ink-400 text-sm mt-0.5">Assigned orders to deliver</p>
+      </div>
+
+      {backendMissing && (
+        <BackendMissing
+          method="GET"
+          endpoint="/api/delivery/deliveries"
+          todo="Return list of delivery assignments for the logged-in employee including order details, address, and current status"
+        />
+      )}
+
+      {loading ? (
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="card p-5"><div className="skeleton h-16 rounded-xl" /></div>)}</div>
+      ) : deliveries.length === 0 && !backendMissing ? (
+        <div className="card p-16 text-center">
+          <div className="text-5xl mb-4">🚚</div>
+          <h3 className="font-display font-bold text-ink-900 text-lg">No deliveries assigned</h3>
+          <p className="text-ink-500 text-sm mt-2">Orders assigned to you will appear here.</p>
         </div>
+      ) : deliveries.length > 0 && (
         <div className="space-y-4">
-          {backendMissing ? (
-            <BackendMissing
-              method="GET"
-              endpoint="/api/delivery/deliveries"
-              todo={[
-                "Create a delivery router mounted at /api/delivery",
-                "Implement GET /api/delivery/deliveries",
-                "Implement PATCH /api/delivery/deliveries/:id/status",
-                "Implement POST /api/delivery/deliveries/:id/delivered"
-              ]}
-            />
-          ) : deliveries.length === 0 ? (
-            <Card className="p-8 text-center text-ink-500 border-2 border-ink-200">No deliveries assigned.</Card>
-          ) : (
-            deliveries.map((d) => (
-              <Card key={d._id} className="p-6 border-2 border-ink-200 hover:border-primary-300 transition-all duration-300">
-                <div className="flex flex-wrap justify-between items-start gap-4">
-                  <div>
-                    <p className="font-semibold text-ink-900">{d.orderId}</p>
-                    <p className="text-ink-600 mt-1">{d.address}</p>
-                    <p className="text-sm text-ink-500 mt-1">{d.customerName} • {d.phone}</p>
+          {deliveries.map((d) => (
+            <div key={d._id} className="card p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-ink-900 text-sm">Order #{d.order?._id?.slice(-8).toUpperCase() || d._id?.slice(-8)}</p>
+                    <span className={statusBadge(d.status)}>{d.status?.replace(/_/g," ")}</span>
                   </div>
-                  <Badge type={statusStyles[d.status] || "default"}>{d.status?.replace(/_/g, " ")}</Badge>
+                  <p className="text-xs text-ink-500">📍 {d.order?.address?.street}, {d.order?.address?.city} — {d.order?.address?.pincode}</p>
+                  <p className="text-xs text-ink-400 mt-0.5">📱 {d.order?.address?.phone || "—"}</p>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   {d.status === "ASSIGNED" && (
-                    <Button variant="accent" className="text-sm" onClick={() => updateStatus(d._id, "PICKED_UP")}>
-                      Picked up
-                    </Button>
+                    <button onClick={() => updateStatus(d._id, "PICKED_UP")} disabled={updating[d._id]}
+                      className="btn-outline text-xs py-1.5 px-3">Mark Picked Up</button>
                   )}
                   {d.status === "PICKED_UP" && (
-                    <Button variant="accent" className="text-sm" onClick={() => updateStatus(d._id, "OUT_FOR_DELIVERY")}>
-                      Out for delivery
-                    </Button>
+                    <button onClick={() => updateStatus(d._id, "OUT_FOR_DELIVERY")} disabled={updating[d._id]}
+                      className="btn-primary text-xs py-1.5 px-3">Out for Delivery</button>
                   )}
-                  {(d.status === "ASSIGNED" || d.status === "PICKED_UP" || d.status === "OUT_FOR_DELIVERY") && (
-                    <Button variant="primary" className="text-sm" onClick={() => markDelivered(d._id)}>
-                      Mark delivered
-                    </Button>
+                  {d.status === "OUT_FOR_DELIVERY" && (
+                    <button onClick={() => updateStatus(d._id, "DELIVERED")} disabled={updating[d._id]}
+                      className="btn-primary text-xs py-1.5 px-3">Mark Delivered ✓</button>
                   )}
                 </div>
-              </Card>
-            ))
-          )}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

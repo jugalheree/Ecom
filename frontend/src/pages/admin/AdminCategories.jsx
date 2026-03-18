@@ -1,373 +1,125 @@
 import { useEffect, useState } from "react";
 import { categoryAPI } from "../../services/apis/index";
-import Card from "../../components/ui/Card";
 import { useToastStore } from "../../store/toastStore";
-import Input from "../../components/ui/Input";
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showNewCatForm, setShowNewCatForm] = useState(false);
-  const [showAttrForm, setShowAttrForm] = useState(null); // categoryId
-  const [catForm, setCatForm] = useState({ name: "", parentCategory: "", isLeaf: false });
-  const [attrForm, setAttrForm] = useState({
-    code: "",
-    label: "",
-    dataType: "string",
-    options: "",
-    unit: "",
-    required: false,
-    isFilterable: false,
-    isComparable: false,
-    aiWeight: 0,
-  });
-  const [actionLoading, setActionLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", description: "", parentCategory: "" });
+  const [creating, setCreating] = useState(false);
   const showToast = useToastStore((s) => s.showToast);
 
-  const fetchCategories = () => {
-    setLoading(true);
-    categoryAPI
-      .getAll()
-      .then((res) => setCategories(res.data?.data || []))
-      .catch((err) =>
-        showToast({ message: err.message || "Failed to load categories", type: "error" })
-      )
+  const load = () => {
+    categoryAPI.getAll()
+      .then((r) => setCategories(r.data?.data || []))
+      .catch(() => showToast({ message: "Failed to load categories", type: "error" }))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  const handleCreateCategory = async (e) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
-    if (!catForm.name) {
-      showToast({ message: "Category name is required", type: "error" });
-      return;
-    }
-    setActionLoading(true);
+    if (!form.name) return;
+    setCreating(true);
     try {
-      await categoryAPI.create({
-        name: catForm.name,
-        parentCategory: catForm.parentCategory || undefined,
-        isLeaf: catForm.isLeaf,
-      });
+      await categoryAPI.create({ name: form.name, description: form.description, parentCategory: form.parentCategory || undefined });
       showToast({ message: "Category created!", type: "success" });
-      setCatForm({ name: "", parentCategory: "", isLeaf: false });
-      setShowNewCatForm(false);
-      fetchCategories();
-    } catch (err) {
-      showToast({ message: err.message || "Failed to create category", type: "error" });
-    } finally {
-      setActionLoading(false);
-    }
+      setForm({ name: "", description: "", parentCategory: "" });
+      setShowForm(false);
+      load();
+    } catch { showToast({ message: "Failed to create category", type: "error" }); }
+    finally { setCreating(false); }
   };
 
-  const handleCreateAttribute = async (e) => {
-    e.preventDefault();
-    if (!attrForm.code || !attrForm.label || !attrForm.dataType) {
-      showToast({ message: "Code, label and data type are required", type: "error" });
-      return;
-    }
-
-    const options =
-      attrForm.dataType === "enum"
-        ? attrForm.options
-            .split(",")
-            .map((o) => o.trim())
-            .filter(Boolean)
-        : [];
-
-    if (attrForm.dataType === "enum" && options.length === 0) {
-      showToast({ message: "Options required for enum type", type: "error" });
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      await categoryAPI.createAttribute(showAttrForm, {
-        ...attrForm,
-        options,
-        aiWeight: Number(attrForm.aiWeight),
-      });
-      showToast({ message: "Attribute added!", type: "success" });
-      setAttrForm({
-        code: "",
-        label: "",
-        dataType: "string",
-        options: "",
-        unit: "",
-        required: false,
-        isFilterable: false,
-        isComparable: false,
-        aiWeight: 0,
-      });
-      setShowAttrForm(null);
-    } catch (err) {
-      showToast({ message: err.message || "Failed to add attribute", type: "error" });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const leafCategories = categories.filter((c) => c.isLeaf);
-  const parentCategories = categories.filter((c) => !c.isLeaf);
-
-  const levelBadgeColor = (level) => {
-    if (level === 0) return "bg-ink-100 text-ink-700";
-    if (level === 1) return "bg-blue-100 text-blue-700";
-    return "bg-purple-100 text-purple-700";
-  };
+  const rootCategories = categories.filter((c) => !c.parentCategory);
+  const subCategories = (parentId) => categories.filter((c) => c.parentCategory === parentId || c.parentCategory?._id === parentId);
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container-app py-12">
-        <div className="flex justify-between items-start mb-10">
-          <div>
-            <h1 className="text-5xl font-display font-bold text-ink-900 mb-4">
-              Category Management
-            </h1>
-            <p className="text-xl text-ink-600">
-              Manage product categories and their attributes.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowNewCatForm(!showNewCatForm)}
-            className="bg-black text-white px-6 py-3 rounded-xl font-medium hover:bg-ink-900 transition"
-          >
-            + New Category
-          </button>
+    <div className="min-h-screen bg-sand-50 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <p className="section-label">Admin</p>
+          <h1 className="text-2xl font-display font-bold text-ink-900 mt-1">Categories</h1>
+          <p className="text-ink-400 text-sm mt-0.5">{categories.length} categories total</p>
         </div>
-
-        {/* Create category form */}
-        {showNewCatForm && (
-          <Card className="p-8 border-2 border-primary-200 mb-8 bg-primary-50/30">
-            <h3 className="text-lg font-semibold text-ink-900 mb-6">Create Category</h3>
-            <form onSubmit={handleCreateCategory} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <Input
-                  label="Category Name *"
-                  value={catForm.name}
-                  onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
-                  placeholder="e.g. Electronics, Laptops"
-                />
-                <div>
-                  <label className="block text-sm font-medium text-ink-700 mb-1">
-                    Parent Category (optional)
-                  </label>
-                  <select
-                    value={catForm.parentCategory}
-                    onChange={(e) =>
-                      setCatForm({ ...catForm, parentCategory: e.target.value })
-                    }
-                    className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                  >
-                    <option value="">None (top-level)</option>
-                    {categories.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={catForm.isLeaf}
-                  onChange={(e) => setCatForm({ ...catForm, isLeaf: e.target.checked })}
-                  className="w-4 h-4 accent-black"
-                />
-                <div>
-                  <span className="text-sm font-medium text-ink-700">Leaf category</span>
-                  <p className="text-xs text-ink-400">
-                    Leaf categories can have products listed in them
-                  </p>
-                </div>
-              </label>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowNewCatForm(false)}
-                  className="flex-1 border-2 border-ink-200 py-2.5 rounded-xl font-medium text-ink-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="flex-1 bg-black text-white py-2.5 rounded-xl font-medium disabled:opacity-50"
-                >
-                  {actionLoading ? "Creating..." : "Create Category"}
-                </button>
-              </div>
-            </form>
-          </Card>
-        )}
-
-        {/* Categories list */}
-        <Card className="p-8 border-2 border-ink-200">
-          {loading ? (
-            <p className="text-ink-500 animate-pulse">Loading categories...</p>
-          ) : categories.length === 0 ? (
-            <p className="text-ink-500 text-center py-8">
-              No categories yet. Create one to get started.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {categories.map((cat) => (
-                <div key={cat._id}>
-                  <div className="flex items-center justify-between p-4 border border-ink-200 rounded-xl hover:bg-ink-50 transition">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${levelBadgeColor(cat.level)}`}
-                      >
-                        L{cat.level}
-                      </span>
-                      <span className="font-medium text-ink-900">{cat.name}</span>
-                      {cat.isLeaf && (
-                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                          Leaf
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {cat.isLeaf && (
-                        <button
-                          onClick={() =>
-                            setShowAttrForm(showAttrForm === cat._id ? null : cat._id)
-                          }
-                          className="text-xs text-primary-600 hover:text-primary-700 font-medium border border-primary-200 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition"
-                        >
-                          + Add Attribute
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Attribute form for this category */}
-                  {showAttrForm === cat._id && (
-                    <div className="ml-8 mt-2 p-6 bg-ink-50 border border-ink-200 rounded-xl">
-                      <h4 className="text-sm font-semibold text-ink-800 mb-4">
-                        Add Attribute to "{cat.name}"
-                      </h4>
-                      <form onSubmit={handleCreateAttribute} className="space-y-4">
-                        <div className="grid md:grid-cols-3 gap-4">
-                          <Input
-                            label="Code *"
-                            placeholder="e.g. color, ram_gb"
-                            value={attrForm.code}
-                            onChange={(e) =>
-                              setAttrForm({ ...attrForm, code: e.target.value.toLowerCase().replace(/\s/g, "_") })
-                            }
-                          />
-                          <Input
-                            label="Label *"
-                            placeholder="e.g. Color, RAM (GB)"
-                            value={attrForm.label}
-                            onChange={(e) =>
-                              setAttrForm({ ...attrForm, label: e.target.value })
-                            }
-                          />
-                          <div>
-                            <label className="block text-sm font-medium text-ink-700 mb-1">
-                              Data Type *
-                            </label>
-                            <select
-                              value={attrForm.dataType}
-                              onChange={(e) =>
-                                setAttrForm({ ...attrForm, dataType: e.target.value })
-                              }
-                              className="w-full rounded-xl border border-ink-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                            >
-                              <option value="string">String</option>
-                              <option value="number">Number</option>
-                              <option value="boolean">Boolean</option>
-                              <option value="enum">Enum (select)</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {attrForm.dataType === "enum" && (
-                          <Input
-                            label="Options (comma-separated) *"
-                            placeholder="Red, Blue, Green"
-                            value={attrForm.options}
-                            onChange={(e) =>
-                              setAttrForm({ ...attrForm, options: e.target.value })
-                            }
-                          />
-                        )}
-
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <Input
-                            label="Unit (optional)"
-                            placeholder="e.g. GB, kg, cm"
-                            value={attrForm.unit}
-                            onChange={(e) =>
-                              setAttrForm({ ...attrForm, unit: e.target.value })
-                            }
-                          />
-                          <Input
-                            label="AI Weight (0-1)"
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={attrForm.aiWeight}
-                            onChange={(e) =>
-                              setAttrForm({ ...attrForm, aiWeight: e.target.value })
-                            }
-                          />
-                        </div>
-
-                        <div className="flex gap-6">
-                          {[
-                            { key: "required", label: "Required" },
-                            { key: "isFilterable", label: "Filterable" },
-                            { key: "isComparable", label: "Comparable" },
-                          ].map(({ key, label }) => (
-                            <label key={key} className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={attrForm[key]}
-                                onChange={(e) =>
-                                  setAttrForm({ ...attrForm, [key]: e.target.checked })
-                                }
-                                className="w-4 h-4 accent-black"
-                              />
-                              <span className="text-sm font-medium text-ink-700">{label}</span>
-                            </label>
-                          ))}
-                        </div>
-
-                        <div className="flex gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setShowAttrForm(null)}
-                            className="flex-1 border-2 border-ink-200 py-2 rounded-xl font-medium text-ink-700 text-sm"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={actionLoading}
-                            className="flex-1 bg-black text-white py-2 rounded-xl font-medium text-sm disabled:opacity-50"
-                          >
-                            {actionLoading ? "Saving..." : "Add Attribute"}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary px-5 py-2.5 text-sm">
+          {showForm ? "Cancel" : "+ New Category"}
+        </button>
       </div>
+
+      {/* Create form */}
+      {showForm && (
+        <div className="card p-6 mb-6 border-2 border-brand-200 bg-brand-50 animate-fade-up">
+          <h2 className="font-display font-bold text-ink-900 text-lg mb-5">Create Category</h2>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-ink-700 mb-1.5">Category Name *</label>
+                <input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
+                  placeholder="e.g. Electronics" className="input-base" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-ink-700 mb-1.5">Parent Category <span className="text-ink-400 font-normal">(optional)</span></label>
+                <select value={form.parentCategory} onChange={(e) => setForm({...form, parentCategory: e.target.value})} className="input-base">
+                  <option value="">Root category</option>
+                  {rootCategories.map((c) => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-semibold text-ink-700 mb-1.5">Description</label>
+                <input value={form.description} onChange={(e) => setForm({...form, description: e.target.value})}
+                  placeholder="Brief description of this category" className="input-base" />
+              </div>
+            </div>
+            <button type="submit" disabled={creating || !form.name} className="btn-primary px-6 py-2.5 text-sm">
+              {creating ? "Creating..." : "Create Category"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="card p-5"><div className="skeleton h-10 rounded-xl" /></div>)}</div>
+      ) : categories.length === 0 ? (
+        <div className="card p-16 text-center">
+          <div className="text-5xl mb-4">🗂️</div>
+          <h3 className="font-display font-bold text-ink-900 text-lg">No categories yet</h3>
+          <p className="text-ink-500 text-sm mt-2">Create your first product category to get started.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rootCategories.map((cat) => {
+            const subs = subCategories(cat._id);
+            return (
+              <div key={cat._id} className="card overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-ink-100 bg-sand-50">
+                  <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm">{cat.name[0]}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-ink-900 text-sm">{cat.name}</p>
+                    {cat.description && <p className="text-xs text-ink-400 mt-0.5 truncate">{cat.description}</p>}
+                  </div>
+                  <span className="badge bg-ink-100 text-ink-500 border border-ink-200 text-[10px]">{subs.length} sub</span>
+                </div>
+                {subs.length > 0 && (
+                  <div className="divide-y divide-ink-50">
+                    {subs.map((sub) => (
+                      <div key={sub._id} className="flex items-center gap-3 px-5 py-3 pl-12">
+                        <span className="text-ink-300 text-sm">└</span>
+                        <p className="text-sm text-ink-700 font-medium">{sub.name}</p>
+                        {sub.description && <p className="text-xs text-ink-400 truncate hidden sm:block">{sub.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

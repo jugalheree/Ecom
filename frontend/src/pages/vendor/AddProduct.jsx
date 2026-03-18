@@ -7,7 +7,7 @@ import { useToastStore } from "../../store/toastStore";
 const FloatingOrbs = () => (
   <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
     <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full opacity-[0.04]"
-      style={{ background: "radial-gradient(circle, #14b8a6, transparent 70%)" }} />
+      style={{ background: "radial-gradient(circle, #ff7d07, transparent 70%)" }} />
     <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full opacity-[0.03]"
       style={{ background: "radial-gradient(circle, #d946ef, transparent 70%)" }} />
   </div>
@@ -33,10 +33,10 @@ function StepRail({ currentStep, completedSteps }) {
               <div
                 className="relative flex items-center justify-center w-11 h-11 rounded-full text-sm font-bold transition-all duration-500"
                 style={{
-                  background: isDone ? "linear-gradient(135deg,#0d9488,#14b8a6)" : isActive ? "linear-gradient(135deg,#131318,#3e3e48)" : "transparent",
-                  border: isDone ? "2px solid #14b8a6" : isActive ? "2px solid #131318" : "2px solid #d9d9de",
+                  background: isDone ? "linear-gradient(135deg,#f05f00,#ff7d07)" : isActive ? "linear-gradient(135deg,#131318,#3e3e48)" : "transparent",
+                  border: isDone ? "2px solid #ff7d07" : isActive ? "2px solid #131318" : "2px solid #d9d9de",
                   color: isDone || isActive ? "#fff" : "#8e8e9a",
-                  boxShadow: isActive ? "0 0 0 4px rgba(19,19,24,0.08),0 4px 16px rgba(19,19,24,0.15)" : isDone ? "0 0 0 4px rgba(20,184,166,0.12)" : "none",
+                  boxShadow: isActive ? "0 0 0 4px rgba(19,19,24,0.08),0 4px 16px rgba(19,19,24,0.15)" : isDone ? "0 0 0 4px rgba(255,125,7,0.12)" : "none",
                   transform: isActive ? "scale(1.08)" : "scale(1)",
                 }}
               >
@@ -47,13 +47,13 @@ function StepRail({ currentStep, completedSteps }) {
                 ) : <span className="font-mono text-xs">{step.icon}</span>}
               </div>
               <div className="mt-2.5 text-center px-1">
-                <p className={`text-xs font-semibold transition-colors duration-300 ${isActive ? "text-ink-900" : isDone ? "text-primary-600" : "text-ink-400"}`}>{step.label}</p>
+                <p className={`text-xs font-semibold transition-colors duration-300 ${isActive ? "text-ink-900" : isDone ? "text-brand-600" : "text-ink-400"}`}>{step.label}</p>
                 <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${isActive ? "text-ink-500" : "text-ink-300"}`}>{step.desc}</p>
               </div>
             </div>
             {!isLast && (
               <div className="flex-1 h-[2px] mt-[22px] mx-2 rounded-full overflow-hidden bg-ink-200">
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: isDone ? "100%" : "0%", background: "linear-gradient(90deg,#0d9488,#14b8a6)" }} />
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: isDone ? "100%" : "0%", background: "linear-gradient(90deg,#f05f00,#ff7d07)" }} />
               </div>
             )}
           </div>
@@ -67,7 +67,7 @@ function FieldLabel({ children, required, hint }) {
   return (
     <div className="flex items-center justify-between mb-2">
       <label style={{ letterSpacing: "0.04em", fontSize: "11px" }} className="text-xs font-bold uppercase tracking-widest text-ink-500">
-        {children}{required && <span className="text-primary-500 ml-1">*</span>}
+        {children}{required && <span className="text-brand-500 ml-1">*</span>}
       </label>
       {hint && <span className="text-[11px] text-ink-400">{hint}</span>}
     </div>
@@ -148,13 +148,13 @@ function ImageDropZone({ images, onAdd, onRemove }) {
     <div className="space-y-4">
       <div onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop} onClick={() => inputRef.current?.click()}
         className="relative cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all duration-300"
-        style={{ borderColor: dragOver ? "#14b8a6" : "#d9d9de", background: dragOver ? "rgba(20,184,166,0.04)" : "#f7f7f8" }}>
+        style={{ borderColor: dragOver ? "#ff7d07" : "#d9d9de", background: dragOver ? "rgba(255,125,7,0.04)" : "#f7f7f8" }}>
         <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
           onChange={(e) => { const files = Array.from(e.target.files).slice(0, 5 - images.length); onAdd(files); }} />
         <div className="flex flex-col items-center gap-3">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-300"
-            style={{ background: dragOver ? "rgba(20,184,166,0.1)" : "white", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", transform: dragOver ? "scale(1.08)" : "scale(1)" }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={dragOver ? "#0d9488" : "#8e8e9a"} strokeWidth="1.5">
+            style={{ background: dragOver ? "rgba(255,125,7,0.1)" : "white", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", transform: dragOver ? "scale(1.08)" : "scale(1)" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={dragOver ? "#f05f00" : "#8e8e9a"} strokeWidth="1.5">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" />
               <polyline points="17 8 12 3 7 8" strokeLinecap="round" strokeLinejoin="round" />
               <line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" />
@@ -171,7 +171,7 @@ function ImageDropZone({ images, onAdd, onRemove }) {
           {images.map((img, i) => (
             <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-ink-200">
               <img src={URL.createObjectURL(img)} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
-              {i === 0 && <div className="absolute top-1.5 left-1.5"><span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "linear-gradient(135deg,#0d9488,#14b8a6)", color: "white" }}>MAIN</span></div>}
+              {i === 0 && <div className="absolute top-1.5 left-1.5"><span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "linear-gradient(135deg,#f05f00,#ff7d07)", color: "white" }}>MAIN</span></div>}
               <button type="button" onClick={() => onRemove(i)} className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-xs font-bold">×</button>
             </div>
           ))}
@@ -222,7 +222,7 @@ function ReviewPanel({ form, images, attributes, categoryAttributes, categories 
               {images.map((img, i) => (
                 <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-ink-200">
                   <img src={URL.createObjectURL(img)} className="w-full h-full object-cover" alt="" />
-                  {i === 0 && <div className="absolute inset-0 bg-primary-600/20 flex items-end justify-center pb-0.5"><span className="text-[8px] font-bold text-white">MAIN</span></div>}
+                  {i === 0 && <div className="absolute inset-0 bg-brand-600/20 flex items-end justify-center pb-0.5"><span className="text-[8px] font-bold text-white">MAIN</span></div>}
                 </div>
               ))}
             </div>
@@ -356,7 +356,7 @@ export default function AddProduct() {
                 <h2 className="text-xl font-bold text-ink-900 font-display">{STEPS[step - 1].label}</h2>
               </div>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#f0fdfa", border: "2px solid #ccfbf1" }}>
-                <span className="text-lg text-primary-600">{STEPS[step - 1].icon}</span>
+                <span className="text-lg text-brand-600">{STEPS[step - 1].icon}</span>
               </div>
             </div>
           </div>
@@ -480,9 +480,9 @@ export default function AddProduct() {
                 <p className="text-sm text-ink-500">Great images dramatically increase conversions. Upload up to 5 high-quality photos.</p>
                 <ImageDropZone images={images} onAdd={(files) => setImages((prev) => [...prev, ...files].slice(0, 5))} onRemove={(idx) => setImages((prev) => prev.filter((_, i) => i !== idx))} />
                 {images.length > 0 && (
-                  <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-primary-50 border border-primary-100">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#0d9488" strokeWidth="1.5" /><path d="M7 5v4M7 3.5v.5" stroke="#0d9488" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                    <span className="text-xs text-primary-700 font-medium">First image will be the primary product photo</span>
+                  <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-brand-50 border border-brand-100">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#f05f00" strokeWidth="1.5" /><path d="M7 5v4M7 3.5v.5" stroke="#f05f00" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                    <span className="text-xs text-brand-700 font-medium">First image will be the primary product photo</span>
                   </div>
                 )}
                 <div className="flex gap-3 pt-2">
@@ -502,11 +502,11 @@ export default function AddProduct() {
                 <div className="rounded-2xl p-5 border-2" style={{ borderColor: "#ccfbf1", background: "linear-gradient(135deg,#f0fdfa,#ccfbf1)" }}>
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "white" }}>
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#0d9488" strokeWidth="1.5" /><path d="M5 8l2.5 2.5L11 5" stroke="#0d9488" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#f05f00" strokeWidth="1.5" /><path d="M5 8l2.5 2.5L11 5" stroke="#f05f00" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-primary-800">Ready for Admin Review</p>
-                      <p className="text-xs text-primary-600 mt-1 leading-relaxed">Your product will be reviewed by TradeSphere admins. Once approved, it'll be visible to buyers in the marketplace.</p>
+                      <p className="text-sm font-bold text-brand-800">Ready for Admin Review</p>
+                      <p className="text-xs text-brand-600 mt-1 leading-relaxed">Your product will be reviewed by TradeSphere admins. Once approved, it'll be visible to buyers in the marketplace.</p>
                     </div>
                   </div>
                 </div>

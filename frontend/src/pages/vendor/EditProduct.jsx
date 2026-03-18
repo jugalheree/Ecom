@@ -92,7 +92,7 @@ export default function EditProduct() {
 
         <div className="bg-white rounded-2xl border border-ink-200 overflow-hidden shadow-sm">
           <div className="px-8 py-6 border-b border-ink-100">
-            <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-primary-600 mb-1">Edit</p>
+            <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-brand-600 mb-1">Edit</p>
             <h1 className="text-2xl font-display font-bold text-ink-900">Update Product</h1>
           </div>
 

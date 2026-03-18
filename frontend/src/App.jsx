@@ -9,7 +9,6 @@ function AppShell() {
   const location = useLocation();
   useAuthStore();
 
-  // Don't show public navbar/footer on role-specific dashboard routes
   const isDashboardRoute =
     location.pathname.startsWith("/vendor") ||
     location.pathname.startsWith("/admin") ||
@@ -17,10 +16,13 @@ function AppShell() {
 
   return (
     <>
-      <Navbar />
-      <main>
+      {/* Only render the public/buyer navbar on non-dashboard routes */}
+      {!isDashboardRoute && <Navbar />}
+
+      <main className={isDashboardRoute ? "" : "page-content"}>
         <AppRoutes />
       </main>
+
       {!isDashboardRoute && <Footer />}
     </>
   );

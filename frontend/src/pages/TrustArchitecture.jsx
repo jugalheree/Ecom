@@ -1,26 +1,26 @@
 export default function TrustArchitecture() {
-  const systems = [
-    { title: "AI trust scoring", desc: "Products and vendors are evaluated through intelligent scoring to ensure quality.", icon: "✦", color: "text-primary-500 bg-primary-50 border-primary-100" },
-    { title: "Secure escrow wallet", desc: "Buyer payments are held safely and released only when order conditions are fulfilled.", icon: "⬡", color: "text-emerald-600 bg-emerald-50 border-emerald-100" },
-    { title: "Verified vendor ecosystem", desc: "Every vendor passes verification and is continuously performance-rated.", icon: "◈", color: "text-blue-600 bg-blue-50 border-blue-100" },
-    { title: "Smart order flow", desc: "Automated order processing, alerts, and tracking create transparency for all parties.", icon: "◎", color: "text-accent-500 bg-accent-50 border-accent-100" },
+  const pillars = [
+    { icon: "🤖", title: "AI Trust Score", desc: "Every product is evaluated using intelligent parameters — vendor history, product quality, return rates, and buyer feedback — to produce a real trust score.", color: "border-brand-200 bg-brand-50" },
+    { icon: "🔒", title: "Escrow Wallet", desc: "Payments are held securely in escrow and only released to vendors after the buyer confirms successful delivery. No risk, no fraud.", color: "border-emerald-200 bg-emerald-50" },
+    { icon: "📋", title: "Verified Vendors", desc: "Every vendor goes through document verification and admin approval before they can list a single product on TradeSphere.", color: "border-navy-200 bg-navy-50" },
+    { icon: "🛡️", title: "Dispute Resolution", desc: "Dedicated dispute and claim management system ensures fair resolution for both buyers and vendors in every transaction.", color: "border-purple-200 bg-purple-50" },
   ];
   return (
-    <section className="w-full py-24 md:py-32 bg-white">
+    <section className="py-20 bg-white">
       <div className="container-app">
-        <div className="max-w-2xl mx-auto text-center mb-14">
-          <p className="text-xs font-display font-bold uppercase tracking-widest text-primary-600 mb-4">Security</p>
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-ink-900 mb-5">Trust & security</h2>
-          <p className="text-ink-500 text-sm leading-relaxed">
-            TradeSphere is engineered as a secure multi-vendor ecosystem with financial protection and intelligent monitoring at its core.
+        <div className="text-center mb-12">
+          <p className="section-label mb-2">Why Trust Us</p>
+          <h2 className="text-4xl font-display font-bold text-ink-900">Built on Trust & Transparency</h2>
+          <p className="text-ink-500 mt-3 text-sm max-w-xl mx-auto leading-relaxed">
+            TradeSphere was built from the ground up with safety and fairness at its core.
           </p>
         </div>
-        <div className="grid md:grid-cols-4 gap-5">
-          {systems.map((s, i) => (
-            <div key={i} className={`p-6 rounded-2xl border-2 ${s.color} hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 group`}>
-              <div className="text-3xl font-display font-bold mb-5 group-hover:scale-110 transition-transform duration-300 inline-block">{s.icon}</div>
-              <h3 className="font-display font-bold text-ink-900 mb-2">{s.title}</h3>
-              <p className="text-ink-500 text-sm leading-relaxed">{s.desc}</p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {pillars.map((p, i) => (
+            <div key={i} className={`rounded-2xl border-2 ${p.color} p-6 hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200`}>
+              <span className="text-3xl block mb-4">{p.icon}</span>
+              <h3 className="font-display font-bold text-ink-900 text-lg mb-2">{p.title}</h3>
+              <p className="text-ink-500 text-sm leading-relaxed">{p.desc}</p>
             </div>
           ))}
         </div>
