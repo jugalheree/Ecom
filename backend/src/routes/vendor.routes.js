@@ -1,7 +1,7 @@
 //Vender.routes.js
 
 import { Router } from "express";
-import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, deleteProduct, updateProduct, updateProductPrice, uploadProductImages, uploadVendorDocuments } from "../controllers/vendor.controller.js";
+import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, deleteProduct, getVendorProductDetails, getVendorProducts, updateProduct, updateProductPrice, uploadProductImages, uploadVendorDocuments } from "../controllers/vendor.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -26,7 +26,7 @@ router.route('/orders/returns/:returnId/refund').patch(verifyJWT, refundReturnRe
 router.route("/products/:productId").patch(verifyJWT, isVendorApproved, updateProduct);
 router.route("/products/:productId/price").patch(verifyJWT, isVendorApproved, updateProductPrice);
 router.route("/products/:productId").delete(verifyJWT, isVendorApproved, deleteProduct);
-
-
+router.route("/products").get(verifyJWT, getVendorProducts);
+router.route("/products/:productId").get(verifyJWT, getVendorProductDetails);
 
 export default router;

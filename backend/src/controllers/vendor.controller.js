@@ -732,3 +732,123 @@ export const deleteProduct = asyncHandler(async (req, res) => {
   );
 
 });
+
+
+
+
+// get product details api (for vender)
+
+export const getVendorProductDetails = asyncHandler(async (req, res) => {
+
+  const { productId } = req.params;
+  const vendorId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid product id");
+  }
+
+  // 🔥 Single query with ownership check
+  const product = await Product.findOne({
+    _id: productId,
+    vendorId
+  }).lean();
+
+  if (!product) {
+    throw new ApiError(404, "Product not found or unauthorized");
+  }
+
+  const [
+    images,
+    attributes,
+    stats,
+    recentOrders
+  ] = await Promise.all([
+
+    // 📸 Images
+    ProductImage.find({
+      productId,
+      isActive: true
+    })
+      .sort({ order: 1 })
+      .lean(),
+
+    // 📊 Attributes
+    ProductAttributeValue.find({
+      productId,
+      isActive: true
+    }).lean(),
+
+    // 📦 Stats
+    Order.aggregate([
+      { $unwind: "$items" },
+      {
+        $match: {
+          "items.productId": new mongoose.Types.ObjectId(productId)
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSoldQty: { $sum: "$items.quantity" },
+          totalRevenue: { $sum: "$items.price" }
+        }
+      }
+    ]),
+
+    // 🧾 Recent orders (very useful for vendor)
+    Order.aggregate([
+      { $unwind: "$items" },
+      {
+        $match: {
+          "items.productId": new mongoose.Types.ObjectId(productId)
+        }
+      },
+      {
+        $project: {
+          orderId: "$_id",
+          quantity: "$items.quantity",
+          price: "$items.price",
+          orderStatus: 1,
+          createdAt: 1
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $limit: 5 }
+    ])
+
+  ]);
+
+  const finalStats = stats[0] || {
+    totalOrders: 0,
+    totalSoldQty: 0,
+    totalRevenue: 0
+  };
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        product: {
+          ...product,
+          isLowStock: product.stock < 5 // 🔥 important UX flag
+        },
+
+        media: {
+          images
+        },
+
+        attributes,
+
+        analytics: finalStats,
+
+        recentOrders
+
+      },
+      "Vendor product details fetched successfully"
+    )
+  );
+
+});
+
+//
