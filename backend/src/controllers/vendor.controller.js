@@ -474,7 +474,10 @@ export const getProducts = asyncHandler(async (req, res) => {
 // get vendor products with pagination, filtering and sorting
 export const getVendorProducts = asyncHandler(async (req, res) => {
 
-  const vendorId = req.user._id;
+  // Lookup the Vendor profile — products are stored with vendorId = vendor._id (NOT user._id)
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = vendor._id;
 
   let {
     page = 1,
@@ -604,7 +607,9 @@ export const getVendorProducts = asyncHandler(async (req, res) => {
 export const updateProduct = asyncHandler(async (req, res) => {
 
   const { productId } = req.params;
-  const vendorId = req.user._id;
+  const _vendorUser = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser._id;
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new ApiError(400, "Invalid product id");
@@ -672,7 +677,9 @@ export const updateProductPrice = asyncHandler(async (req, res) => {
 
   const { productId } = req.params;
   const { price } = req.body;
-  const vendorId = req.user._id;
+  const _vendorUser2 = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser2) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser2._id;
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new ApiError(400, "Invalid product id");
@@ -711,7 +718,9 @@ export const updateProductPrice = asyncHandler(async (req, res) => {
 export const deleteProduct = asyncHandler(async (req, res) => {
 
   const { productId } = req.params;
-  const vendorId = req.user._id;
+  const _vendorUser3 = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser3) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser3._id;
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new ApiError(400, "Invalid product id");
@@ -741,7 +750,9 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 export const getVendorProductDetails = asyncHandler(async (req, res) => {
 
   const { productId } = req.params;
-  const vendorId = req.user._id;
+  const _vendorUser4 = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser4) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser4._id;
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new ApiError(400, "Invalid product id");
@@ -852,3 +863,34 @@ export const getVendorProductDetails = asyncHandler(async (req, res) => {
 });
 
 //
+// ─── Update product stock ─────────────────────────────────────────────────────
+export const updateProductStock = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { productId } = req.params;
+  const { change } = req.body;
+
+  if (change === undefined || typeof change !== "number") {
+    throw new ApiError(400, "A numeric 'change' value is required (positive to add, negative to subtract)");
+  }
+
+  if (!mongoose.isValidObjectId(productId)) {
+    throw new ApiError(400, "Invalid product ID");
+  }
+
+  // Verify vendor owns this product
+  const vendor = await Vendor.findOne({ userId }).lean();
+  if (!vendor) throw new ApiError(403, "Vendor profile not found");
+
+  const product = await Product.findOne({ _id: productId, vendorId: vendor._id, isActive: true });
+  if (!product) throw new ApiError(404, "Product not found or does not belong to this vendor");
+
+  const newStock = (product.stock || 0) + change;
+  if (newStock < 0) throw new ApiError(400, "Stock cannot go below zero");
+
+  product.stock = newStock;
+  await product.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { stock: product.stock }, "Stock updated successfully"));
+});

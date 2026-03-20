@@ -67,7 +67,7 @@ export default function BuyerOrders() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={statusStyles[order.status] || "badge"}>{order.status?.replace(/_/g, " ")}</span>
+                  <span className={statusStyles[order.orderStatus] || "badge"}>{order.orderStatus?.replace(/_/g, " ")}</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-300"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </Link>

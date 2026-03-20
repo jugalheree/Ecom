@@ -72,7 +72,7 @@ export default function Market() {
   useEffect(() => {
     if (!selectedCategoryId) return;
     setLoading(true); setError(""); setProducts([]);
-    const params = { page, limit: 20, sort };
+    const params = { page, limit: 20, sort, saleType: "B2C" };
     if (priceMin) params.priceMin = priceMin;
     if (priceMax) params.priceMax = priceMax;
     Object.entries(attrFilters).forEach(([k, v]) => { if (v) params[k] = v; });
@@ -91,7 +91,7 @@ export default function Market() {
   const applyFilters = () => {
     setPage(1);
     setLoading(true); setError(""); setProducts([]);
-    const params = { page: 1, limit: 20, sort };
+    const params = { page: 1, limit: 20, sort, saleType: "B2C" };
     if (priceMin) params.priceMin = priceMin;
     if (priceMax) params.priceMax = priceMax;
     Object.entries(attrFilters).forEach(([k, v]) => { if (v) params[k] = v; });

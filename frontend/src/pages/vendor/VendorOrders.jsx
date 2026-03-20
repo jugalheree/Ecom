@@ -67,9 +67,9 @@ export default function VendorOrders() {
                   <td className="px-5 py-4 font-semibold text-ink-900">#{o._id?.slice(-8).toUpperCase()}</td>
                   <td className="px-4 py-4 text-ink-500 hidden sm:table-cell">{new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</td>
                   <td className="px-4 py-4 font-bold text-ink-900">₹{o.totalAmount?.toLocaleString()}</td>
-                  <td className="px-4 py-4"><span className={statusBadge(o.status)}>{o.status?.replace(/_/g, " ")}</span></td>
+                  <td className="px-4 py-4"><span className={statusBadge(o.orderStatus)}>{o.orderStatus?.replace(/_/g, " ")}</span></td>
                   <td className="px-4 py-4 text-right">
-                    {(o.status === "CONFIRMED" || o.status === "PENDING") && (
+                    {(o.orderStatus === "CONFIRMED" || o.orderStatus === "PENDING") && (
                       <button onClick={() => handleShip(o._id)} disabled={shipping[o._id]}
                         className="btn-primary text-xs py-1.5 px-3">
                         {shipping[o._id] ? "Shipping..." : "Mark Shipped"}

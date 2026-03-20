@@ -293,7 +293,7 @@ export const getAdminDashboard = asyncHandler(async (req, res) => {
 
     Vendor.countDocuments(),
 
-    VendorVerification.countDocuments({ status: "APPROVED" }),
+    VendorVerification.countDocuments({ status: "VERIFIED" }),
 
     VendorVerification.countDocuments({ status: "PENDING" }),
 

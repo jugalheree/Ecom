@@ -156,6 +156,11 @@ export const getProductsByCategory = asyncHandler(async (req, res) => {
     stock: { $gt: 0 },
   };
 
+  // B2C / B2B separation — pass ?saleType=B2C or ?saleType=B2B
+  if (req.query.saleType) {
+    query.saleType = { $in: [req.query.saleType, "BOTH"] };
+  }
+
   const totalProducts = await Product.countDocuments(query);
 
   const products = await Product.find(query)
@@ -446,6 +451,11 @@ export const searchProducts = asyncHandler(async (req, res) => {
     if (price_max) query.price.$lte = Number(price_max);
   }
 
+  // B2C / B2B separation
+  if (req.query.saleType) {
+    query.saleType = { $in: [req.query.saleType, "BOTH"] };
+  }
+
   // Sorting logic
   let sortOption = { score: { $meta: "textScore" } };
 
@@ -612,6 +622,11 @@ export const getMarketplaceProducts = asyncHandler(async (req, res) => {
     isActive: true,
     stock: { $gt: 0 }
   };
+
+  // B2C / B2B separation — pass ?saleType=B2C or ?saleType=B2B
+  if (req.query.saleType) {
+    filter.saleType = { $in: [req.query.saleType, "BOTH"] };
+  }
 
   // Category filter (optional)
   if (categoryId) {

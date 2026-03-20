@@ -13,7 +13,8 @@ export default function ProductCard({ product }) {
   if (!product) return null;
 
   const isWishlisted = wishlist?.some((w) => w._id === product._id);
-  const imageUrl = product.primaryImage?.imageUrl || product.imageUrl || null;
+  const imageUrl = product.image || product.primaryImage?.imageUrl || product.imageUrl || null;
+  const productName = product.title || product.name || "Product";
   const discount = product.originalPrice && product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
@@ -47,7 +48,7 @@ export default function ProductCard({ product }) {
         {/* Image */}
         <div className="relative overflow-hidden bg-sand-100 aspect-square">
           {imageUrl ? (
-            <img src={imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            <img src={imageUrl} alt={productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-5xl text-ink-300 bg-sand-100">🛍️</div>
           )}
@@ -77,8 +78,8 @@ export default function ProductCard({ product }) {
 
         {/* Info */}
         <div className="p-3.5">
-          <p className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-1">{product.category?.name || "Product"}</p>
-          <h3 className="text-sm font-semibold text-ink-900 line-clamp-2 leading-snug">{product.name}</h3>
+          <p className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-1">{product.category?.name || product.categoryId?.name || "Product"}</p>
+          <h3 className="text-sm font-semibold text-ink-900 line-clamp-2 leading-snug">{productName}</h3>
 
           {/* Rating */}
           {product.avgRating > 0 && (

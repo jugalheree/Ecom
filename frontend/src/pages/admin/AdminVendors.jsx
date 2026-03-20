@@ -8,33 +8,46 @@ export default function AdminVendors() {
   const [acting, setActing] = useState({});
   const showToast = useToastStore((s) => s.showToast);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
     adminAPI.getPendingVendors()
-      .then((r) => setVendors(r.data?.data?.vendors || []))
+      // Backend returns the array directly in data (not wrapped in { vendors: [] })
+      .then((r) => {
+        const d = r.data?.data;
+        setVendors(Array.isArray(d) ? d : d?.vendors || []);
+      })
       .catch(() => showToast({ message: "Failed to load vendors", type: "error" }))
       .finally(() => setLoading(false));
-  }, []);
-
-  const approve = async (id) => {
-    setActing((s) => ({ ...s, [id]: "approving" }));
-    try {
-      await adminAPI.approveVendor(id);
-      setVendors((v) => v.filter((x) => x._id !== id));
-      showToast({ message: "Vendor approved!", type: "success" });
-    } catch { showToast({ message: "Failed", type: "error" }); }
-    finally { setActing((s) => ({ ...s, [id]: null })); }
   };
 
-  const reject = async (id) => {
-    const reason = prompt("Rejection reason:");
-    if (!reason) return;
-    setActing((s) => ({ ...s, [id]: "rejecting" }));
+  useEffect(() => { load(); }, []);
+
+  const approve = async (vendorId) => {
+    setActing((s) => ({ ...s, [vendorId]: "approving" }));
     try {
-      await adminAPI.rejectVendor(id, { reason });
-      setVendors((v) => v.filter((x) => x._id !== id));
+      await adminAPI.approveVendor(vendorId);
+      setVendors((v) => v.filter((x) => x.vendorId?.toString() !== vendorId && x._id?.toString() !== vendorId));
+      showToast({ message: "Vendor approved!", type: "success" });
+    } catch (err) {
+      showToast({ message: err?.message || "Failed to approve vendor", type: "error" });
+    } finally {
+      setActing((s) => ({ ...s, [vendorId]: null }));
+    }
+  };
+
+  const reject = async (vendorId) => {
+    const adminRemark = prompt("Rejection reason:");
+    if (!adminRemark) return;
+    setActing((s) => ({ ...s, [vendorId]: "rejecting" }));
+    try {
+      await adminAPI.rejectVendor(vendorId, { adminRemark });
+      setVendors((v) => v.filter((x) => x.vendorId?.toString() !== vendorId && x._id?.toString() !== vendorId));
       showToast({ message: "Vendor rejected", type: "info" });
-    } catch { showToast({ message: "Failed", type: "error" }); }
-    finally { setActing((s) => ({ ...s, [id]: null })); }
+    } catch (err) {
+      showToast({ message: err?.message || "Failed to reject vendor", type: "error" });
+    } finally {
+      setActing((s) => ({ ...s, [vendorId]: null }));
+    }
   };
 
   return (
@@ -58,35 +71,54 @@ export default function AdminVendors() {
           <table className="w-full text-sm">
             <thead className="bg-sand-50 border-b border-ink-100">
               <tr>
-                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Business Name</th>
+                <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Shop / Business</th>
                 <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden sm:table-cell">Owner</th>
-                <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">Applied</th>
+                <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">GST / PAN</th>
+                <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden lg:table-cell">Applied</th>
                 <th className="px-4 py-3.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
-              {vendors.map((v) => (
-                <tr key={v._id} className="hover:bg-sand-50 transition-colors">
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-ink-900">{v.businessName}</p>
-                    <p className="text-xs text-ink-400 mt-0.5">{v.gstin || "No GSTIN"}</p>
-                  </td>
-                  <td className="px-4 py-4 text-ink-600 hidden sm:table-cell">{v.user?.name || "—"}</td>
-                  <td className="px-4 py-4 text-ink-400 hidden md:table-cell">{v.createdAt ? new Date(v.createdAt).toLocaleDateString("en-IN") : "—"}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 justify-end">
-                      <button onClick={() => approve(v._id)} disabled={acting[v._id]}
-                        className="btn-primary text-xs py-1.5 px-3">
-                        {acting[v._id] === "approving" ? "Approving..." : "Approve"}
-                      </button>
-                      <button onClick={() => reject(v._id)} disabled={acting[v._id]}
-                        className="btn-outline border-danger-200 text-danger-600 hover:bg-red-50 hover:border-danger-400 text-xs py-1.5 px-3">
-                        Reject
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {vendors.map((v) => {
+                // Backend returns vendorId as the ID to pass to approve/reject routes
+                const actionId = v.vendorId?.toString() || v._id?.toString();
+                const isActing = acting[actionId];
+                return (
+                  <tr key={v._id} className="hover:bg-sand-50 transition-colors">
+                    <td className="px-5 py-4">
+                      <p className="font-semibold text-ink-900">{v.shopName || "—"}</p>
+                      <p className="text-xs text-ink-400 mt-0.5">{v.businessType || "—"}</p>
+                    </td>
+                    <td className="px-4 py-4 hidden sm:table-cell">
+                      <p className="text-ink-700 font-medium">{v.name || "—"}</p>
+                      <p className="text-xs text-ink-400">{v.email || v.phone || "—"}</p>
+                    </td>
+                    <td className="px-4 py-4 text-ink-500 hidden md:table-cell">
+                      <p className="text-xs">GST: {v.gstNumber || "—"}</p>
+                      <p className="text-xs">PAN: {v.panNumber || "—"}</p>
+                    </td>
+                    <td className="px-4 py-4 text-ink-400 hidden lg:table-cell">
+                      {v.createdAt ? new Date(v.createdAt).toLocaleDateString("en-IN") : "—"}
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          onClick={() => approve(actionId)}
+                          disabled={!!isActing}
+                          className="btn-primary text-xs py-1.5 px-3">
+                          {isActing === "approving" ? "Approving..." : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => reject(actionId)}
+                          disabled={!!isActing}
+                          className="btn-outline border-danger-200 text-danger-600 hover:bg-red-50 hover:border-danger-400 text-xs py-1.5 px-3">
+                          {isActing === "rejecting" ? "Rejecting..." : "Reject"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

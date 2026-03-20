@@ -8,33 +8,43 @@ export default function AdminProducts() {
   const [acting, setActing] = useState({});
   const showToast = useToastStore((s) => s.showToast);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
     adminAPI.getPendingProducts()
       .then((r) => setProducts(r.data?.data?.products || []))
       .catch(() => showToast({ message: "Failed to load products", type: "error" }))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const approve = async (id) => {
-    setActing((s) => ({ ...s, [id]: true }));
+    setActing((s) => ({ ...s, [id]: "approving" }));
     try {
       await adminAPI.approveProduct(id);
       setProducts((p) => p.filter((x) => x._id !== id));
       showToast({ message: "Product approved!", type: "success" });
-    } catch { showToast({ message: "Failed", type: "error" }); }
-    finally { setActing((s) => ({ ...s, [id]: false })); }
+    } catch (err) {
+      showToast({ message: err?.message || "Failed to approve", type: "error" });
+    } finally {
+      setActing((s) => ({ ...s, [id]: null }));
+    }
   };
 
   const reject = async (id) => {
-    const reason = prompt("Rejection reason:");
-    if (!reason) return;
-    setActing((s) => ({ ...s, [id]: true }));
+    const adminRemark = prompt("Rejection reason:");
+    if (!adminRemark) return;
+    setActing((s) => ({ ...s, [id]: "rejecting" }));
     try {
-      await adminAPI.rejectProduct(id, { reason });
+      // Backend expects { adminRemark } not { reason }
+      await adminAPI.rejectProduct(id, { adminRemark });
       setProducts((p) => p.filter((x) => x._id !== id));
       showToast({ message: "Product rejected", type: "info" });
-    } catch { showToast({ message: "Failed", type: "error" }); }
-    finally { setActing((s) => ({ ...s, [id]: false })); }
+    } catch (err) {
+      showToast({ message: err?.message || "Failed to reject", type: "error" });
+    } finally {
+      setActing((s) => ({ ...s, [id]: null }));
+    }
   };
 
   return (
@@ -60,31 +70,60 @@ export default function AdminProducts() {
               <tr>
                 <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Product</th>
                 <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden sm:table-cell">Vendor</th>
+                <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">Category</th>
                 <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Price</th>
+                <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">Stock</th>
                 <th className="px-4 py-3.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
-              {products.map((p) => (
-                <tr key={p._id} className="hover:bg-sand-50 transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-sand-100 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
-                        {p.primaryImage?.imageUrl ? <img src={p.primaryImage.imageUrl} alt="" className="w-full h-full object-cover rounded-xl" /> : "📦"}
+              {products.map((p) => {
+                const isActing = acting[p._id];
+                return (
+                  <tr key={p._id} className="hover:bg-sand-50 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-sand-100 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
+                          📦
+                        </div>
+                        <div>
+                          {/* Backend returns `title`, not `name` */}
+                          <p className="font-semibold text-ink-900 line-clamp-1">{p.title || p.name || "—"}</p>
+                          {p.adminRemark && (
+                            <p className="text-xs text-danger-500 mt-0.5">Remark: {p.adminRemark}</p>
+                          )}
+                        </div>
                       </div>
-                      <p className="font-semibold text-ink-900 line-clamp-1">{p.name}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-ink-500 hidden sm:table-cell">{p.vendor?.businessName || "—"}</td>
-                  <td className="px-4 py-4 font-bold text-ink-900">₹{p.price?.toLocaleString()}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 justify-end">
-                      <button onClick={() => approve(p._id)} disabled={acting[p._id]} className="btn-primary text-xs py-1.5 px-3">Approve</button>
-                      <button onClick={() => reject(p._id)} disabled={acting[p._id]} className="btn-outline border-danger-200 text-danger-600 hover:bg-red-50 text-xs py-1.5 px-3">Reject</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    {/* Backend populates vendorId with shopName */}
+                    <td className="px-4 py-4 text-ink-500 hidden sm:table-cell">
+                      {p.vendorId?.shopName || "—"}
+                    </td>
+                    {/* Backend populates categoryId with name */}
+                    <td className="px-4 py-4 text-ink-500 hidden md:table-cell">
+                      {p.categoryId?.name || "—"}
+                    </td>
+                    <td className="px-4 py-4 font-bold text-ink-900">₹{p.price?.toLocaleString()}</td>
+                    <td className="px-4 py-4 text-ink-500 hidden md:table-cell">{p.stock ?? "—"}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          onClick={() => approve(p._id)}
+                          disabled={!!isActing}
+                          className="btn-primary text-xs py-1.5 px-3">
+                          {isActing === "approving" ? "Approving..." : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => reject(p._id)}
+                          disabled={!!isActing}
+                          className="btn-outline border-danger-200 text-danger-600 hover:bg-red-50 text-xs py-1.5 px-3">
+                          {isActing === "rejecting" ? "Rejecting..." : "Reject"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

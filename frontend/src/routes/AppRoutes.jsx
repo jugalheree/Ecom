@@ -40,6 +40,8 @@ import AddProduct from "../pages/vendor/AddProduct";
 import EditProduct from "../pages/vendor/EditProduct";
 import VendorPage from "../pages/public/VendorPage";
 import VendorOrders from "../pages/vendor/VendorOrders";
+import VendorMarketplace from "../pages/vendor/VendorMarketplace";
+import VendorRatings from "../pages/vendor/VendorRatings";
 import Wallet from "../pages/Wallet";
 
 export default function AppRoutes() {
@@ -85,6 +87,8 @@ export default function AppRoutes() {
         <Route path="orders" element={<VendorOrders />} />
         <Route path="trade" element={<VendorTrade />} />
         <Route path="reports" element={<VendorReports />} />
+        <Route path="marketplace" element={<VendorMarketplace />} />
+        <Route path="ratings" element={<VendorRatings />} />
       </Route>
 
       {/* ── Admin (all under AdminLayout which has its own navbar) ── */}

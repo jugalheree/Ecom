@@ -1,7 +1,7 @@
 //Vender.routes.js
 
 import { Router } from "express";
-import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, deleteProduct, getVendorProductDetails, getVendorProducts, updateProduct, updateProductPrice, uploadProductImages, uploadVendorDocuments } from "../controllers/vendor.controller.js";
+import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, deleteProduct, getVendorProductDetails, getVendorProducts, updateProduct, updateProductPrice, updateProductStock, uploadProductImages, uploadVendorDocuments } from "../controllers/vendor.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -23,6 +23,7 @@ router.route('/orders/returns/:returnId/review').patch(verifyJWT, authorizeRoles
 router.route('/orders/returns/:returnId/pickup').patch(verifyJWT, markReturnPickedUp);
 router.route('/orders/returns/:returnId/receive').patch(verifyJWT, markReturnReceived);
 router.route('/orders/returns/:returnId/refund').patch(verifyJWT, refundReturnRequest); // this api router will be change in future
+router.route("/products/:productId/stock").patch(verifyJWT, isVendorApproved, updateProductStock);
 router.route("/products/:productId").patch(verifyJWT, isVendorApproved, updateProduct);
 router.route("/products/:productId/price").patch(verifyJWT, isVendorApproved, updateProductPrice);
 router.route("/products/:productId").delete(verifyJWT, isVendorApproved, deleteProduct);

@@ -26,7 +26,7 @@ export default function SearchResults() {
   useEffect(() => {
     if (!q) return;
     setLoading(true);
-    marketplaceAPI.searchProducts({ q, limit: 24 })
+    marketplaceAPI.searchProducts({ q, limit: 24, saleType: "B2C" })
       .then((res) => {
         const d = res.data?.data;
         setProducts(d?.products || []);

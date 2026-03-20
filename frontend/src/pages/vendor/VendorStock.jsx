@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { vendorAPI } from "../../services/apis/index";
 import { useToastStore } from "../../store/toastStore";
-import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function VendorStock() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
-  const [backendMissing, setBackendMissing] = useState(false);
   const showToast = useToastStore((s) => s.showToast);
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  const highlightRef = useRef(null);
 
   const load = () => {
     setLoading(true);
@@ -20,6 +22,13 @@ export default function VendorStock() {
 
   useEffect(() => { load(); }, []);
 
+  // Scroll to highlighted product after load
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId, products]);
+
   const updateStock = async (id, change) => {
     setUpdating((s) => ({ ...s, [id]: true }));
     try {
@@ -27,8 +36,7 @@ export default function VendorStock() {
       setProducts((prev) => prev.map((p) => p._id === id ? { ...p, stock: (p.stock || 0) + change } : p));
       showToast({ message: `Stock ${change > 0 ? "increased" : "decreased"}`, type: "success" });
     } catch {
-      setBackendMissing(true);
-      showToast({ message: "Backend endpoint missing", type: "error" });
+      showToast({ message: "Failed to update stock", type: "error" });
     } finally { setUpdating((s) => ({ ...s, [id]: false })); }
   };
 
@@ -39,8 +47,6 @@ export default function VendorStock() {
         <h1 className="text-2xl font-display font-bold text-ink-900 mt-1">Stock Management</h1>
         <p className="text-ink-400 text-sm mt-0.5">Adjust inventory levels for your products</p>
       </div>
-
-      {backendMissing && <BackendMissing method="PATCH" endpoint="/api/vendor/products/:productId/stock" todo="Add stock update endpoint that accepts a { change: number } body and updates the product stock" />}
 
       {loading ? (
         <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="card p-5"><div className="skeleton h-14 rounded-xl" /></div>)}</div>
@@ -58,13 +64,19 @@ export default function VendorStock() {
             </thead>
             <tbody className="divide-y divide-ink-100">
               {products.map((p) => (
-                <tr key={p._id} className="hover:bg-sand-50 transition-colors">
+                <tr key={p._id}
+                  ref={p._id === highlightId ? highlightRef : null}
+                  className="hover:bg-sand-50 transition-colors"
+                  style={p._id === highlightId ? { background: "#fff8f5", outline: "2px solid #f05f00" } : {}}>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-sand-100 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
-                        {p.primaryImage?.imageUrl ? <img src={p.primaryImage.imageUrl} alt="" className="w-full h-full object-cover rounded-xl" /> : "📦"}
+                        {(p.image || p.primaryImage?.imageUrl) ? <img src={p.image || p.primaryImage?.imageUrl} alt="" className="w-full h-full object-cover rounded-xl" /> : "📦"}
                       </div>
-                      <p className="font-semibold text-ink-900 line-clamp-1">{p.name}</p>
+                      <div>
+                        <p className="font-semibold text-ink-900 line-clamp-1">{p.title || p.name}</p>
+                        {p._id === highlightId && <p className="text-[10px] text-orange-500 font-bold mt-0.5">From Vendor Marketplace</p>}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-4">

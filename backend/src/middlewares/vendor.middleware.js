@@ -16,7 +16,7 @@ export const isVendorApproved = asyncHandler(async (req, res, next) => {
 
   const verification = await VendorVerification.findOne({ vendorId: vendor._id });
 
-  if (verification.status !== "VERIFIED") {
+  if (!verification || verification.status !== "VERIFIED") {
     throw new ApiError(
       403,
       "Vendor not approved by admin yet"
