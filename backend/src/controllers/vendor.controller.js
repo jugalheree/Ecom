@@ -5,7 +5,7 @@ import { User } from "../models/auth/User.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { VendorVerification } from "../models/vendor/VendorVerification.model.js";
 import { Address } from "../models/user/Address.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import  uploadOnCloudinary  from "../utils/cloudinary.js";
 import { Category } from "../models/product/Category.model.js";
 import { Product } from "../models/product/Product.model.js";
 import { CategoryAttribute } from "../models/product/CategoryAttribute.js";
