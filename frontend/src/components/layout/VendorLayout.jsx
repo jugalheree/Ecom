@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useNavigate } from "react-router-dom";
@@ -29,49 +30,16 @@ const navItems = [
     </svg>
   )},
 ];
+=======
+import { Outlet } from "react-router-dom";
+import VendorNavbar from "../navbar/VendorNavbar";
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
 
 export default function VendorLayout() {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
-
   return (
-    <div className="flex min-h-screen bg-ink-50 mt-[72px]">
-      <aside className="w-56 bg-ink-950 flex flex-col fixed left-0 top-[72px] bottom-0 z-40">
-        <div className="px-4 py-4 border-b border-white/5">
-          <p className="text-[10px] font-display font-bold uppercase tracking-[0.15em] text-white/30">Vendor Console</p>
-        </div>
-        <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavLink key={item.to} to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-primary-500/15 text-primary-400 border border-primary-500/20"
-                    : "text-white/45 hover:text-white/75 hover:bg-white/5"
-                }`
-              }
-            >
-              <span className="flex-shrink-0 opacity-80">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="p-2.5 border-t border-white/5">
-          <button
-            onClick={() => { logout(); navigate("/"); }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group text-left"
-          >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-display font-bold text-xs flex-shrink-0">
-              {user?.name?.[0]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white/60 truncate">{user?.name}</p>
-              <p className="text-[10px] text-white/25 group-hover:text-white/40 transition-colors">Sign out</p>
-            </div>
-          </button>
-        </div>
-      </aside>
-      <main className="flex-1 ml-56 min-h-screen bg-ink-50">
+    <div className="flex flex-col min-h-screen bg-sand-50">
+      <VendorNavbar />
+      <main className="flex-1 overflow-x-hidden">
         <Outlet />
       </main>
     </div>

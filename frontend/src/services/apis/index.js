@@ -29,7 +29,11 @@ export const vendorAPI = {
     api.post(`/api/vendor/products/${productId}/images`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+<<<<<<< HEAD
   products: () => api.get("/api/vendor/products"),
+=======
+  products: (params) => api.get("/api/vendor/products", { params }),
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
 
   // ── Vendor Orders ──
   getOrders: (params) => api.get("/api/vendor/orders", { params }),
@@ -44,7 +48,10 @@ export const vendorAPI = {
   refundReturn: (returnId, data) =>
     api.patch(`/api/vendor/orders/returns/${returnId}/refund`, data),
 
+<<<<<<< HEAD
   // NOTE: updateProduct, deleteProduct, updateStock endpoints do not exist in the current backend.
+=======
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
   updateProduct: (productId, data) =>
     api.patch(`/api/vendor/products/${productId}`, data),
   deleteProduct: (productId) =>
@@ -110,6 +117,40 @@ export const marketplaceAPI = {
   getCategoryTree: () => api.get("/api/marketplace/categories/tree"),
   getProductsByCategory: (categoryId, params) =>
     api.get(`/api/marketplace/categories/${categoryId}/products`, { params }),
+<<<<<<< HEAD
   getProductDetails: (productId) =>
     api.get(`/api/marketplace/products/${productId}`),
+=======
+  getCategoryFilters: (categoryId) =>
+    api.get(`/api/marketplace/categories/${categoryId}/filters`),
+  getProductDetails: (productId) =>
+    api.get(`/api/marketplace/products/${productId}`),
+  getSimilarProducts: (productId) =>
+    api.get(`/api/marketplace/products/${productId}/similar`),
+  searchProducts: (params) =>
+    api.get("/api/marketplace/search/products", { params }),
+  getSearchSuggestions: (q) =>
+    api.get("/api/marketplace/search/suggestions", { params: { q } }),
+  getMarketplaceProducts: (params) =>
+    api.get("/api/marketplace/products", { params }),
+};
+
+// ─────────────── VENDOR MARKETPLACE ───────────────
+export const vendorMarketplaceAPI = {
+  // Browse listings (all vendors)
+  getListings: (params) => api.get("/api/vendor-marketplace/listings", { params }),
+  getListingById: (id) => api.get(`/api/vendor-marketplace/listings/${id}`),
+  getStats: () => api.get("/api/vendor-marketplace/stats"),
+
+  // My listings
+  getMyListings: (params) => api.get("/api/vendor-marketplace/my-listings", { params }),
+
+  // CRUD
+  createListing: (data) => api.post("/api/vendor-marketplace/listings", data),
+  updateListing: (id, data) => api.patch(`/api/vendor-marketplace/listings/${id}`, data),
+  deleteListing: (id) => api.delete(`/api/vendor-marketplace/listings/${id}`),
+
+  // Contact
+  contactVendor: (id, data) => api.post(`/api/vendor-marketplace/listings/${id}/contact`, data),
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
 };

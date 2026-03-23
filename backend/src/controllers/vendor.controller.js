@@ -11,8 +11,8 @@ import { Product } from "../models/product/Product.model.js";
 import { CategoryAttribute } from "../models/product/CategoryAttribute.js";
 import { ProductAttributeValue } from "../models/product/ProductAttributeValue.model.js";
 import { ProductImage } from "../models/product/ProductImage.model.js";
-
-
+import mongoose from "mongoose";
+import { Order } from "../models/order/Order.model.js";
 
 // creating vender profile/ new vender registration
 export const createVendorProfile = asyncHandler(async (req, res) => {
@@ -465,4 +465,432 @@ export const getProducts = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, products, "Products fetched successfully"));
 
+});
+
+
+
+
+
+// get vendor products with pagination, filtering and sorting
+export const getVendorProducts = asyncHandler(async (req, res) => {
+
+  // Lookup the Vendor profile — products are stored with vendorId = vendor._id (NOT user._id)
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = vendor._id;
+
+  let {
+    page = 1,
+    limit = 10,
+    status,
+    search,
+    sort = "newest"
+  } = req.query;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+
+  const filter = {
+    vendorId,
+    isActive: true
+  };
+
+  // Approval status filter
+  if (status) {
+    filter.approvalStatus = status;
+  }
+
+  // Search
+  if (search) {
+    filter.title = { $regex: new RegExp(search, "i") };
+  }
+
+  // Sorting
+  let sortOption = {};
+  switch (sort) {
+    case "price_low_high":
+      sortOption = { price: 1 };
+      break;
+    case "price_high_low":
+      sortOption = { price: -1 };
+      break;
+    case "oldest":
+      sortOption = { createdAt: 1 };
+      break;
+    default:
+      sortOption = { createdAt: -1 };
+  }
+
+  const totalProducts = await Product.countDocuments(filter);
+
+  const products = await Product.find(filter)
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+
+  const productIds = products.map(p => p._id);
+
+  // Fetch primary images
+  const images = await ProductImage.find({
+    productId: { $in: productIds },
+    isPrimary: true,
+    isActive: true
+  }).lean();
+
+  const imageMap = {};
+  images.forEach(img => {
+    imageMap[img.productId.toString()] = img.imageUrl;
+  });
+
+  // 🔥 Product sales stats (advanced)
+  const salesStats = await Order.aggregate([
+    { $unwind: "$items" },
+    {
+      $match: {
+        "items.productId": { $in: productIds }
+      }
+    },
+    {
+      $group: {
+        _id: "$items.productId",
+        totalSold: { $sum: "$items.quantity" },
+        revenue: { $sum: "$items.price" }
+      }
+    }
+  ]);
+
+  const statsMap = {};
+  salesStats.forEach(stat => {
+    statsMap[stat._id.toString()] = stat;
+  });
+
+  const result = products.map(p => ({
+    _id: p._id,
+    title: p.title,
+    price: p.price,
+    stock: p.stock,
+    approvalStatus: p.approvalStatus,
+    image: imageMap[p._id.toString()] || null,
+
+    // 🔥 extra insights
+    totalSold: statsMap[p._id]?.totalSold || 0,
+    revenue: statsMap[p._id]?.revenue || 0
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        products: result,
+        pagination: {
+          totalProducts,
+          currentPage: page,
+          totalPages: Math.ceil(totalProducts / limit),
+          limit
+        }
+      },
+      "Vendor products fetched successfully"
+    )
+  );
+
+});
+
+
+
+
+
+
+
+
+// update product details api
+export const updateProduct = asyncHandler(async (req, res) => {
+
+  const { productId } = req.params;
+  const _vendorUser = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser._id;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid product id");
+  }
+
+  const allowedFields = [
+    "title",
+    "description",
+    "price",
+    "stock",
+    "minOrderQty",
+    "maxOrderQty",
+    "minDeliveryDays",
+    "maxDeliveryDays"
+  ];
+
+  const updateData = {};
+
+  allowedFields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      updateData[field] = req.body[field];
+    }
+  });
+
+  if (Object.keys(updateData).length === 0) {
+    throw new ApiError(400, "No valid fields provided for update");
+  }
+
+  // Validation
+  if (updateData.price && updateData.price < 0) {
+    throw new ApiError(400, "Price cannot be negative");
+  }
+
+  if (updateData.stock && updateData.stock < 0) {
+    throw new ApiError(400, "Stock cannot be negative");
+  }
+
+  const product = await Product.findOneAndUpdate(
+    { _id: productId, vendorId },
+    {
+      $set: {
+        ...updateData,
+        approvalStatus: "PENDING",
+        isApproved: false
+      }
+    },
+    { new: true }
+  );
+
+  if (!product) {
+    throw new ApiError(404, "Product not found or unauthorized");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, product, "Product updated, pending admin approval")
+  );
+
+});
+
+
+
+
+//
+export const updateProductPrice = asyncHandler(async (req, res) => {
+
+  const { productId } = req.params;
+  const { price } = req.body;
+  const _vendorUser2 = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser2) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser2._id;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid product id");
+  }
+
+  if (price === undefined || price < 0) {
+    throw new ApiError(400, "Valid price required");
+  }
+
+  const product = await Product.findOneAndUpdate(
+    { _id: productId, vendorId },
+    {
+      $set: {
+        price,
+        approvalStatus: "PENDING",
+        isApproved: false
+      }
+    },
+    { new: true }
+  );
+
+  if (!product) {
+    throw new ApiError(404, "Product not found or unauthorized");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, product, "Price updated, pending approval")
+  );
+
+});
+
+
+
+
+// delete product api
+export const deleteProduct = asyncHandler(async (req, res) => {
+
+  const { productId } = req.params;
+  const _vendorUser3 = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser3) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser3._id;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid product id");
+  }
+
+  const product = await Product.findOneAndUpdate(
+    { _id: productId, vendorId },
+    { $set: { isActive: false } },
+    { new: true }
+  );
+
+  if (!product) {
+    throw new ApiError(404, "Product not found or unauthorized");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, null, "Product deleted successfully")
+  );
+
+});
+
+
+
+
+// get product details api (for vender)
+
+export const getVendorProductDetails = asyncHandler(async (req, res) => {
+
+  const { productId } = req.params;
+  const _vendorUser4 = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!_vendorUser4) throw new ApiError(404, "Vendor profile not found");
+  const vendorId = _vendorUser4._id;
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid product id");
+  }
+
+  // 🔥 Single query with ownership check
+  const product = await Product.findOne({
+    _id: productId,
+    vendorId
+  }).lean();
+
+  if (!product) {
+    throw new ApiError(404, "Product not found or unauthorized");
+  }
+
+  const [
+    images,
+    attributes,
+    stats,
+    recentOrders
+  ] = await Promise.all([
+
+    // 📸 Images
+    ProductImage.find({
+      productId,
+      isActive: true
+    })
+      .sort({ order: 1 })
+      .lean(),
+
+    // 📊 Attributes
+    ProductAttributeValue.find({
+      productId,
+      isActive: true
+    }).lean(),
+
+    // 📦 Stats
+    Order.aggregate([
+      { $unwind: "$items" },
+      {
+        $match: {
+          "items.productId": new mongoose.Types.ObjectId(productId)
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSoldQty: { $sum: "$items.quantity" },
+          totalRevenue: { $sum: "$items.price" }
+        }
+      }
+    ]),
+
+    // 🧾 Recent orders (very useful for vendor)
+    Order.aggregate([
+      { $unwind: "$items" },
+      {
+        $match: {
+          "items.productId": new mongoose.Types.ObjectId(productId)
+        }
+      },
+      {
+        $project: {
+          orderId: "$_id",
+          quantity: "$items.quantity",
+          price: "$items.price",
+          orderStatus: 1,
+          createdAt: 1
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $limit: 5 }
+    ])
+
+  ]);
+
+  const finalStats = stats[0] || {
+    totalOrders: 0,
+    totalSoldQty: 0,
+    totalRevenue: 0
+  };
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        product: {
+          ...product,
+          isLowStock: product.stock < 5 // 🔥 important UX flag
+        },
+
+        media: {
+          images
+        },
+
+        attributes,
+
+        analytics: finalStats,
+
+        recentOrders
+
+      },
+      "Vendor product details fetched successfully"
+    )
+  );
+
+});
+
+//
+// ─── Update product stock ─────────────────────────────────────────────────────
+export const updateProductStock = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { productId } = req.params;
+  const { change } = req.body;
+
+  if (change === undefined || typeof change !== "number") {
+    throw new ApiError(400, "A numeric 'change' value is required (positive to add, negative to subtract)");
+  }
+
+  if (!mongoose.isValidObjectId(productId)) {
+    throw new ApiError(400, "Invalid product ID");
+  }
+
+  // Verify vendor owns this product
+  const vendor = await Vendor.findOne({ userId }).lean();
+  if (!vendor) throw new ApiError(403, "Vendor profile not found");
+
+  const product = await Product.findOne({ _id: productId, vendorId: vendor._id, isActive: true });
+  if (!product) throw new ApiError(404, "Product not found or does not belong to this vendor");
+
+  const newStock = (product.stock || 0) + change;
+  if (newStock < 0) throw new ApiError(400, "Stock cannot go below zero");
+
+  product.stock = newStock;
+  await product.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { stock: product.stock }, "Stock updated successfully"));
 });

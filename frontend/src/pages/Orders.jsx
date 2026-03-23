@@ -36,7 +36,7 @@ export default function Orders() {
 
   // NORMAL PAGE
   return (
-    <div className="min-h-screen  mt-16 bg-white">
+    <div className="min-h-screen bg-sand-50">
       <div className="container-app py-12 space-y-10">
 
         {/* Header */}
@@ -69,7 +69,7 @@ export default function Orders() {
                     </p>
                   </div>
 
-                  <span className="px-4 py-2 rounded-full text-sm bg-primary-50 text-primary-700 font-medium border border-primary-100">
+                  <span className="px-4 py-2 rounded-full text-sm bg-brand-50 text-brand-700 font-medium border border-brand-100">
                     {currentStep}
                   </span>
                 </div>
@@ -85,7 +85,7 @@ export default function Orders() {
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold
                           ${i <= activeIndex
-                              ? "bg-primary-600 text-white"
+                              ? "bg-brand-600 text-white"
                               : "bg-ink-200 text-ink-500"}`}
                         >
                           {i + 1}
@@ -94,7 +94,7 @@ export default function Orders() {
                         <p
                           className={`mt-2 text-xs font-medium text-center
                           ${i <= activeIndex
-                              ? "text-primary-600"
+                              ? "text-brand-600"
                               : "text-ink-400"}`}
                         >
                           {step}

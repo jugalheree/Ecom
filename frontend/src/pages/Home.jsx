@@ -1,162 +1,229 @@
 import { Link } from "react-router-dom";
-import Badge from "../components/ui/Badge";
 import HowItWorks from "./HowItWorks";
 import BuyerVendorSection from "./BuyerVendorSection";
 import PlatformStats from "./PlatformStats";
 import TrustArchitecture from "./TrustArchitecture";
 import FinalCTA from "./FinalCTA";
-import heroImage from "../images/heroSection.png";
 
 const stats = [
-  { value: "1,200+", label: "Active vendors" },
-  { value: "45,000+", label: "Products listed" },
-  { value: "18K+", label: "Monthly trades" },
-  { value: "99.9%", label: "Secure transactions" },
-];
-
-const features = [
-  { icon: "✦", title: "AI Trust Score", desc: "Products are evaluated using intelligent parameters to ensure quality and reliability.", color: "text-primary-500", bg: "bg-primary-50 border-primary-100" },
-  { icon: "⬡", title: "Secure Wallet", desc: "Escrow-based wallet system protects both buyers and vendors throughout every transaction.", color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
-  { icon: "◈", title: "Vendor Ecosystem", desc: "Vendors can trade stock, manage alerts, and expand supply chains seamlessly.", color: "text-accent-500", bg: "bg-accent-50 border-accent-100" },
+  { value: "1,200+", label: "Active Vendors" },
+  { value: "45K+", label: "Products Listed" },
+  { value: "18K+", label: "Monthly Trades" },
+  { value: "99.9%", label: "Secure Transactions" },
 ];
 
 const categories = [
-  { name: "Electronics", icon: "⚡", bg: "bg-blue-500" },
-  { name: "Fashion", icon: "✦", bg: "bg-pink-500" },
-  { name: "Groceries", icon: "◻", bg: "bg-emerald-500" },
-  { name: "Industrial", icon: "⬡", bg: "bg-orange-500" },
+  { name: "Electronics", icon: "⚡", bg: "from-blue-500 to-blue-700", link: "/market?cat=electronics" },
+  { name: "Fashion", icon: "👗", bg: "from-pink-500 to-rose-600", link: "/market?cat=fashion" },
+  { name: "Groceries", icon: "🛒", bg: "from-emerald-500 to-green-700", link: "/market?cat=groceries" },
+  { name: "Industrial", icon: "⚙️", bg: "from-orange-500 to-amber-600", link: "/market?cat=industrial" },
+  { name: "Home & Living", icon: "🏠", bg: "from-teal-500 to-cyan-700", link: "/market?cat=home" },
+  { name: "Beauty", icon: "✨", bg: "from-purple-500 to-violet-700", link: "/market?cat=beauty" },
+  { name: "Sports", icon: "🏆", bg: "from-red-500 to-rose-700", link: "/market?cat=sports" },
+  { name: "Books", icon: "📚", bg: "from-indigo-500 to-indigo-700", link: "/market?cat=books" },
+];
+
+const deals = [
+  { name: "Wireless Headphones Pro", price: "₹2,499", original: "₹4,999", discount: "50%", badge: "Flash Deal", color: "bg-brand-600" },
+  { name: "Smart Watch Series 5", price: "₹5,999", original: "₹9,999", discount: "40%", badge: "Top Seller", color: "bg-navy-600" },
+  { name: "Running Shoes Ultra", price: "₹1,899", original: "₹2,999", discount: "37%", badge: "Limited Stock", color: "bg-emerald-600" },
+  { name: "Portable Bluetooth Speaker", price: "₹1,299", original: "₹2,499", discount: "48%", badge: "Best Value", color: "bg-purple-600" },
+];
+
+const trustBadges = [
+  { icon: "🔒", label: "Secure Escrow Payments" },
+  { icon: "✅", label: "AI-Verified Products" },
+  { icon: "🚚", label: "Fast Delivery" },
+  { icon: "↩️", label: "Easy Returns" },
 ];
 
 export default function Home() {
   return (
     <div className="overflow-hidden">
-      {/* HERO */}
-      <section className="relative min-h-screen flex items-center bg-white pt-20">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(20,184,166,0.08),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(217,70,239,0.04),transparent_60%)]" />
-          <div className="absolute inset-0 opacity-[0.015]"
-            style={{ backgroundImage: `linear-gradient(#131318 1px,transparent 1px),linear-gradient(to right,#131318 1px,transparent 1px)`, backgroundSize: "48px 48px" }} />
-        </div>
 
-        <div className="container-app relative z-10 py-20 md:py-28">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center space-y-7">
-              <div className="inline-flex animate-fade-up">
-                <Badge type="info">✦ AI-Powered B2B & B2C Platform</Badge>
-              </div>
+      {/* ── HERO ── */}
+      <section className="relative bg-gradient-to-br from-ink-950 via-navy-950 to-ink-900 overflow-hidden">
+        {/* decorative circles */}
+        <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-brand-500/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-navy-500/15 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl pointer-events-none" />
 
-              <h1 className="text-6xl md:text-7xl lg:text-8xl font-display font-bold text-ink-900 leading-[1.05] tracking-tight animate-fade-up stagger-1">
-                The future of<br />
-                <span className="gradient-text">commerce</span>
-              </h1>
+        <div className="container-app py-24 md:py-32 relative z-10">
+          <div className="max-w-3xl">
+            <span className="badge-brand mb-6 inline-flex animate-fade-in">🛒 India's Smartest B2B & B2C Platform</span>
 
-              <p className="text-lg md:text-xl text-ink-500 max-w-2xl mx-auto leading-relaxed animate-fade-up stagger-2">
-                A next-generation platform with AI verification, secure escrow, and intelligent trading for businesses of every size.
-              </p>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display text-white leading-[1.08] tracking-tight mt-4 animate-fade-up stagger-1">
+              Shop Smarter,<br />
+              <span className="gradient-text italic font-light">Sell Better.</span>
+            </h1>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 animate-fade-up stagger-3">
-                <Link to="/register">
-                  <button className="inline-flex items-center gap-2 bg-ink-900 text-white text-sm font-display font-semibold px-8 py-4 rounded-xl hover:bg-ink-800 transition-all shadow-sm hover:shadow-lg active:scale-[0.97]">
-                    Start trading free
-                    <span>→</span>
-                  </button>
-                </Link>
-                <Link to="/market">
-                  <button className="inline-flex items-center gap-2 border-2 border-ink-200 text-ink-700 text-sm font-display font-semibold px-8 py-4 rounded-xl hover:border-ink-400 hover:bg-ink-50 transition-all active:scale-[0.97]">
-                    Browse marketplace
-                  </button>
-                </Link>
-              </div>
+            <p className="text-lg md:text-xl text-ink-300 max-w-xl mt-6 leading-relaxed animate-fade-up stagger-2">
+              TradeSphere brings buyers and vendors together with AI-verified products, secure escrow wallets, and a trusted trading ecosystem.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-8 animate-fade-up stagger-3">
+              <Link to="/market">
+                <button className="btn-primary px-8 py-3.5 text-base">Shop Now →</button>
+              </Link>
+              <Link to="/register">
+                <button className="btn-outline border-white/20 text-white hover:border-brand-400 hover:bg-brand-500/10 px-8 py-3.5 text-base">
+                  Sell on TradeSphere
+                </button>
+              </Link>
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-ink-200 border border-ink-200 rounded-2xl overflow-hidden mt-16 animate-fade-up stagger-4">
-              {stats.map((s, i) => (
-                <div key={i} className="bg-white px-6 py-6 text-center">
-                  <p className="text-3xl font-display font-bold text-ink-900">{s.value}</p>
-                  <p className="text-xs text-ink-500 uppercase tracking-wider mt-1 font-medium">{s.label}</p>
+            {/* Trust row */}
+            <div className="flex flex-wrap gap-4 mt-10 animate-fade-up stagger-4">
+              {trustBadges.map((b, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-ink-300">
+                  <span>{b.icon}</span>
+                  <span>{b.label}</span>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
 
-            {/* Hero image */}
-            <div className="mt-14 relative animate-fade-up stagger-5">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-100/40 to-accent-100/30 rounded-3xl blur-3xl scale-105" />
-              <div className="relative bg-white rounded-3xl border-2 border-ink-100 shadow-2xl overflow-hidden px-8 py-8 flex items-center justify-center">
-                <img src={heroImage} alt="Platform Preview" className="max-h-[380px] w-auto object-contain" />
-              </div>
+        {/* Stats bar */}
+        <div className="border-t border-white/10 bg-white/5 backdrop-blur-sm">
+          <div className="container-app py-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              {stats.map((s, i) => (
+                <div key={i}>
+                  <p className="text-2xl md:text-3xl font-display font-bold text-white">{s.value}</p>
+                  <p className="text-xs text-ink-400 font-medium uppercase tracking-wider mt-1">{s.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* TICKER */}
-      <section className="bg-ink-950 py-5 overflow-hidden border-y border-ink-800">
+      {/* ── TICKER ── */}
+      <div className="bg-brand-600 py-3 overflow-hidden">
         <div className="ticker">
           <div className="ticker-track">
-            {[1, 2].map((group) => (
-              <div key={group} className="ticker-group">
-                {["Secure Escrow", "AI Verified Products", "B2B & B2C Commerce", "Vendor Trading Network", "Real-time Analytics", "Escrow Protection"].map((item, i) => (
-                  <div key={i} className="ticker-item">
-                    <span className="ticker-dot" />
+            {[1, 2].map((g) => (
+              <div key={g} className="ticker-group">
+                {["Free Shipping over ₹499", "AI Verified Products", "Secure Escrow Payments", "Easy Returns", "1200+ Verified Vendors", "Shop with Confidence"].map((item, i) => (
+                  <span key={i} className="text-white text-sm font-medium flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 bg-white/60 rounded-full inline-block" />
                     {item}
-                  </div>
+                  </span>
                 ))}
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* FEATURES */}
-      <section className="py-24 md:py-32 bg-white">
+      {/* ── CATEGORIES ── */}
+      <section className="py-16 bg-sand-50">
         <div className="container-app">
-          <div className="text-center mb-16">
-            <p className="text-xs font-display font-bold uppercase tracking-widest text-primary-600 mb-4">Platform Features</p>
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-ink-900 mb-5">Everything you need</h2>
-            <p className="text-ink-500 max-w-xl mx-auto text-sm leading-relaxed">Built for modern businesses that demand excellence at every touchpoint.</p>
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <p className="section-label mb-1">Browse</p>
+              <h2 className="text-3xl font-display text-ink-900">Shop by Category</h2>
+            </div>
+            <Link to="/market" className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+              View all <span>→</span>
+            </Link>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {features.map((f, i) => (
-              <div key={i} className={`group p-8 rounded-2xl border-2 ${f.bg} transition-all duration-300 hover:shadow-lg hover:-translate-y-1`}>
-                <div className={`text-3xl font-display font-bold ${f.color} mb-5`}>{f.icon}</div>
-                <h3 className="text-xl font-display font-bold text-ink-900 mb-3">{f.title}</h3>
-                <p className="text-ink-600 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="py-24 md:py-32 bg-ink-50">
-        <div className="container-app">
-          <div className="text-center mb-14">
-            <p className="text-xs font-display font-bold uppercase tracking-widest text-primary-600 mb-4">Categories</p>
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-ink-900 mb-5">Explore categories</h2>
-            <p className="text-ink-500 max-w-xl mx-auto text-sm">Find exactly what your business needs.</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {categories.map((cat, i) => (
-              <Link key={i} to="/market"
-                className="group bg-white rounded-2xl border-2 border-ink-200 hover:border-primary-300 p-8 flex flex-col items-center gap-4 text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-              >
-                <div className={`w-14 h-14 ${cat.bg} rounded-2xl flex items-center justify-center text-white text-2xl shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+              <Link key={i} to={cat.link}
+                className="group flex flex-col items-center gap-2.5 p-4 bg-white rounded-2xl border border-ink-100 hover:border-brand-200 hover:shadow-card-hover transition-all duration-200 cursor-pointer">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.bg} flex items-center justify-center text-xl shadow-sm group-hover:scale-110 transition-transform duration-200`}>
                   {cat.icon}
                 </div>
-                <span className="font-display font-bold text-ink-900">{cat.name}</span>
+                <span className="text-xs font-semibold text-ink-700 text-center">{cat.name}</span>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      <PlatformStats />
+      {/* ── FLASH DEALS ── */}
+      <section className="py-16 bg-white">
+        <div className="container-app">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <p className="section-label mb-1">🔥 Limited Time</p>
+              <h2 className="text-3xl font-display text-ink-900">Today's Best Deals</h2>
+            </div>
+            <Link to="/market" className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+              All deals <span>→</span>
+            </Link>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {deals.map((d, i) => (
+              <Link to="/market" key={i}
+                className="group card p-5 flex flex-col gap-3 hover:shadow-card-hover transition-all duration-200 hover:-translate-y-1">
+                <div className="w-full h-36 rounded-xl bg-sand-100 flex items-center justify-center text-5xl">
+                  🛍️
+                </div>
+                <div>
+                  <span className={`${d.color} text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full`}>
+                    {d.badge}
+                  </span>
+                  <h3 className="text-sm font-semibold text-ink-900 mt-2 leading-snug">{d.name}</h3>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-lg font-bold text-ink-900">{d.price}</span>
+                    <span className="text-sm text-ink-400 line-through">{d.original}</span>
+                    <span className="text-xs font-bold text-success-600 bg-green-50 px-1.5 py-0.5 rounded-md">{d.discount} off</span>
+                  </div>
+                </div>
+                <button className="btn-primary w-full text-sm py-2">Add to Cart</button>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── VENDOR PROMO BANNER ── */}
+      <section className="py-16 bg-gradient-to-br from-navy-900 to-ink-950">
+        <div className="container-app">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="max-w-xl">
+              <p className="section-label text-brand-400 mb-2">For Sellers</p>
+              <h2 className="text-4xl md:text-5xl font-display text-white leading-tight">
+                Grow your business<br />
+                <span className="text-brand-400 italic font-light">without limits.</span>
+              </h2>
+              <p className="text-ink-300 mt-4 leading-relaxed">
+                Join 1,200+ vendors already selling on TradeSphere. Get AI-powered insights, escrow-protected payments, and a dedicated store — all in one platform.
+              </p>
+              <div className="flex gap-3 mt-6">
+                <Link to="/register">
+                  <button className="btn-primary px-6 py-3">Start Selling Free →</button>
+                </Link>
+                <Link to="/how-it-works">
+                  <button className="btn-outline border-white/20 text-white hover:border-brand-400 hover:bg-brand-500/10 px-6 py-3">Learn More</button>
+                </Link>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+              {[
+                { value: "₹0", label: "Setup Cost", icon: "✅" },
+                { value: "2.5%", label: "Transaction Fee", icon: "💳" },
+                { value: "24hr", label: "Onboarding", icon: "⚡" },
+                { value: "AI", label: "Trust Score", icon: "🤖" },
+              ].map((s, i) => (
+                <div key={i} className="bg-white/10 backdrop-blur rounded-2xl p-4 text-center border border-white/10">
+                  <span className="text-2xl">{s.icon}</span>
+                  <p className="text-2xl font-display font-bold text-white mt-1">{s.value}</p>
+                  <p className="text-xs text-ink-400 mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Sub-pages */}
       <HowItWorks />
       <BuyerVendorSection />
+      <PlatformStats />
       <TrustArchitecture />
       <FinalCTA />
     </div>

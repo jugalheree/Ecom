@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "react-router-dom";
-import Input from "../components/ui/Input";
 import { useAuthStore } from "../store/authStore";
 import { useToastStore } from "../store/toastStore";
 import { useState } from "react";
@@ -40,99 +39,109 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Left panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[45%] bg-ink-950 p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-900/30 via-ink-950 to-ink-950" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent-500/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
+      <div className="hidden lg:flex flex-col justify-between w-[45%] bg-gradient-to-br from-ink-950 via-navy-950 to-ink-900 p-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-navy-500/15 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl pointer-events-none" />
 
+        {/* Logo */}
         <div className="relative z-10 flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-400 flex items-center justify-center shadow-glow">
-            <span className="text-white font-display font-bold text-sm">TS</span>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-brand">
+            <span className="text-white font-display font-bold italic">T</span>
           </div>
-          <span className="text-white font-display font-bold text-xl">TradeSphere</span>
+          <span className="text-xl font-display font-bold text-white">Trade<span className="text-brand-400">Sphere</span></span>
         </div>
 
+        {/* Content */}
         <div className="relative z-10 space-y-6">
           <h2 className="text-4xl font-display font-bold text-white leading-tight">
             Trade smarter,<br />
-            <span className="gradient-text">grow faster.</span>
+            <span className="text-brand-400 italic font-light">grow faster.</span>
           </h2>
           <p className="text-ink-400 leading-relaxed text-sm max-w-sm">
-            Join thousands of businesses using TradeSphere's AI-powered platform for B2B and B2C commerce.
+            Join thousands of buyers and vendors on India's most trusted AI-powered marketplace platform.
           </p>
-          <div className="grid grid-cols-2 gap-4 pt-4">
+
+          {/* Features */}
+          <div className="space-y-3">
             {[
-              { label: "Active Vendors", value: "1,200+" },
-              { label: "Products Listed", value: "45K+" },
-              { label: "Monthly Trades", value: "18K+" },
-              { label: "Success Rate", value: "99.9%" },
-            ].map((s) => (
-              <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <p className="text-xl font-display font-bold text-white">{s.value}</p>
-                <p className="text-xs text-ink-400 mt-1 font-medium">{s.label}</p>
+              { icon: "🔒", text: "Escrow-protected payments" },
+              { icon: "✅", text: "AI-verified product listings" },
+              { icon: "📦", text: "Real-time order tracking" },
+              { icon: "💰", text: "Integrated trade wallet" },
+            ].map((f, i) => (
+              <div key={i} className="flex items-center gap-3 text-sm text-ink-300">
+                <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">{f.icon}</span>
+                {f.text}
               </div>
             ))}
           </div>
         </div>
 
-        <p className="relative z-10 text-xs text-ink-600">© 2024 TradeSphere. All rights reserved.</p>
+        <div className="relative z-10 text-xs text-ink-500">
+          © {new Date().getFullYear()} TradeSphere. All rights reserved.
+        </div>
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md animate-fade-up">
+      <div className="flex-1 flex items-center justify-center p-6 bg-sand-50">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <Link to="/" className="lg:hidden flex items-center gap-2.5 mb-8">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-brand">
+              <span className="text-white font-display font-bold italic text-sm">T</span>
+            </div>
+            <span className="text-lg font-display font-bold text-ink-900">Trade<span className="text-brand-600">Sphere</span></span>
+          </Link>
+
           <div className="mb-8">
-            <h1 className="text-3xl font-display font-bold text-ink-900 mb-2">Welcome back</h1>
-            <p className="text-ink-500 text-sm">Sign in to continue trading on TradeSphere.</p>
+            <h1 className="text-3xl font-display font-bold text-ink-900">Welcome back</h1>
+            <p className="text-ink-500 mt-2 text-sm">Sign in to your TradeSphere account</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <Input
-              label="Email address"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-            />
-
-            <div className="relative">
-              <Input
-                label="Password"
-                type={showPw ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-ink-700 mb-1.5">Email address</label>
+              <input
+                type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="input-base"
               />
-              <button
-                type="button"
-                onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 bottom-3 text-ink-400 hover:text-ink-600 text-xs font-medium transition-colors"
-              >
-                {showPw ? "Hide" : "Show"}
-              </button>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-ink-900 text-white py-3.5 rounded-xl font-display font-semibold text-sm hover:bg-ink-800 transition-all shadow-sm hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-            >
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-semibold text-ink-700">Password</label>
+                <button type="button" className="text-xs text-brand-600 font-medium hover:text-brand-700">Forgot password?</button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="input-base pr-11"
+                />
+                <button type="button" onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600 transition-colors">
+                  {showPw
+                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  }
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-sm mt-2">
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                   Signing in...
                 </span>
-              ) : "Sign in →"}
+              ) : "Sign In →"}
             </button>
           </form>
 
-          <p className="text-sm text-ink-500 text-center mt-8">
+          <p className="text-center text-sm text-ink-500 mt-6">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary-600 font-semibold hover:text-primary-700 transition-colors">
-              Create one free
-            </Link>
+            <Link to="/register" className="text-brand-600 font-semibold hover:text-brand-700">Create one free →</Link>
           </p>
         </div>
       </div>

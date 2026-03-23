@@ -1,11 +1,8 @@
-export default function Loader() {
+export default function Loader({ size = "md", className = "" }) {
+  const sizes = { sm: "w-4 h-4 border-2", md: "w-8 h-8 border-3", lg: "w-12 h-12 border-4" };
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-10">
-      <div className="relative w-10 h-10">
-        <div className="absolute inset-0 rounded-full border-2 border-ink-200" />
-        <div className="absolute inset-0 rounded-full border-2 border-t-primary-500 animate-spin" />
-      </div>
-      <p className="text-xs font-display font-semibold uppercase tracking-widest text-ink-400">Loading</p>
+    <div className={`flex items-center justify-center ${className}`}>
+      <div className={`${sizes[size]} border-ink-200 border-t-brand-600 rounded-full animate-spin`} />
     </div>
   );
 }

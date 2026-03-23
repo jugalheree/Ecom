@@ -139,7 +139,7 @@ export default function BuyerOrderDetail() {
     return (
       <div className="min-h-screen bg-ink-50 mt-[72px] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-ink-200 border-t-primary-500 rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-ink-200 border-t-brand-500 rounded-full animate-spin mx-auto mb-3" />
           <p className="text-xs font-display font-semibold uppercase tracking-widest text-ink-400">Loading order</p>
         </div>
       </div>
@@ -163,7 +163,11 @@ export default function BuyerOrderDetail() {
           </button>
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
+<<<<<<< HEAD
               <p className="text-xs font-display font-bold uppercase tracking-widest text-primary-600 mb-2">Order Detail</p>
+=======
+              <p className="text-xs font-display font-bold uppercase tracking-widest text-brand-600 mb-2">Order Detail</p>
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
               <h1 className="text-3xl font-display font-bold text-ink-900">
                 Order #{order.orderNumber || order.orderId?.toString().slice(-8).toUpperCase()}
               </h1>
@@ -380,7 +384,11 @@ export default function BuyerOrderDetail() {
               <div>
                 <label className="block text-xs font-display font-bold uppercase tracking-widest text-ink-500 mb-1.5">Reason *</label>
                 <select value={returnForm.reason} onChange={(e) => setReturnForm({ ...returnForm, reason: e.target.value })}
+<<<<<<< HEAD
                   className="w-full px-4 py-3 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 bg-white">
+=======
+                  className="w-full px-4 py-3 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 bg-white">
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
                   <option value="">Select a reason</option>
                   {RETURN_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
@@ -390,7 +398,11 @@ export default function BuyerOrderDetail() {
                 <input
                   type="number" min="1" max={returnModal.quantity} value={returnForm.quantity}
                   onChange={(e) => setReturnForm({ ...returnForm, quantity: Number(e.target.value) })}
+<<<<<<< HEAD
                   className="w-full px-4 py-3 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10"
+=======
+                  className="w-full px-4 py-3 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
                 />
               </div>
               <div>
@@ -399,7 +411,11 @@ export default function BuyerOrderDetail() {
                   rows="3" value={returnForm.description}
                   onChange={(e) => setReturnForm({ ...returnForm, description: e.target.value })}
                   placeholder="Describe the issue in detail..."
+<<<<<<< HEAD
                   className="w-full px-4 py-3 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 resize-none"
+=======
+                  className="w-full px-4 py-3 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 resize-none"
+>>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
                 />
               </div>
               <div>

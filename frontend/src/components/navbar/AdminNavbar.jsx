@@ -1,64 +1,46 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { useState } from "react";
 
 export default function AdminNavbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  const links = [
+    { to: "/admin/dashboard", label: "Dashboard" },
+    { to: "/admin/vendors",   label: "Vendors" },
+    { to: "/admin/products",  label: "Products" },
+    { to: "/admin/orders",    label: "Orders" },
+    { to: "/admin/users",     label: "Users" },
+    { to: "/admin/categories",label: "Categories" },
+  ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-ink-950 border-b border-white/5">
-      <div className="container-app h-20 flex items-center justify-between">
-        <Link to="/admin/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
-            <span className="text-white text-xs font-display font-bold">TS</span>
-          </div>
-          <span className="text-base font-display font-bold text-white group-hover:text-amber-400 transition-colors">TradeSphere</span>
-          <span className="text-[10px] font-display font-semibold text-white/30 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">Admin</span>
-        </Link>
-
-        <div className="relative">
-          <button onClick={() => setOpen(!open)}
-            className="flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-xl hover:bg-white/5 transition-all"
-          >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-display font-bold text-xs shadow-sm">
-              {user?.name?.[0]}
-            </div>
-            <span className="text-sm font-medium text-white/60 hidden sm:block">{user?.name?.split(" ")[0]}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`text-white/30 transition-transform ${open ? "rotate-180" : ""}`}>
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-
-          {open && (
-            <div className="absolute right-0 mt-2 w-52 bg-ink-900 rounded-2xl shadow-2xl border border-white/10 overflow-hidden z-50">
-              <div className="px-4 py-3 border-b border-white/5">
-                <p className="font-display font-semibold text-white text-sm">{user?.name}</p>
-                <p className="text-[10px] text-amber-400 font-medium mt-0.5 uppercase tracking-wider">Admin Account</p>
-              </div>
-              <div className="p-1.5">
-                {[
-                  { label: "Dashboard", path: "/admin/dashboard" },
-                  { label: "Users", path: "/admin/users" },
-                  { label: "Orders", path: "/admin/orders" },
-                  { label: "Claims", path: "/admin/claims" },
-                ].map((item) => (
-                  <button key={item.path} onClick={() => { navigate(item.path); setOpen(false); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all">
-                    {item.label}
-                  </button>
-                ))}
-                <div className="border-t border-white/5 my-1" />
-                <button onClick={() => { logout(); navigate("/"); setOpen(false); }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all">
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          )}
+    <header className="h-[72px] bg-ink-950 border-b border-white/10 flex items-center px-6 gap-4 flex-shrink-0">
+      <Link to="/admin/dashboard" className="flex items-center gap-2.5 mr-4">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center">
+          <span className="text-white font-display font-bold text-sm italic">A</span>
         </div>
+        <span className="text-sm font-display font-bold text-white hidden sm:block">Admin Panel</span>
+      </Link>
+      <nav className="flex items-center gap-0.5 flex-1 overflow-x-auto">
+        {links.map((l) => (
+          <Link key={l.to} to={l.to}
+            className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+              location.pathname === l.to ? "bg-amber-500 text-white" : "text-ink-400 hover:text-white hover:bg-white/10"
+            }`}>
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="w-7 h-7 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold text-xs">
+          {user?.name?.[0]?.toUpperCase()}
+        </div>
+        <button onClick={() => { logout(); navigate("/"); }} className="text-xs text-ink-400 hover:text-red-400 transition-colors hidden sm:block">
+          Sign Out
+        </button>
       </div>
-    </nav>
+    </header>
   );
 }

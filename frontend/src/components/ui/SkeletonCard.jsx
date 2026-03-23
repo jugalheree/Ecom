@@ -1,12 +1,13 @@
 export default function SkeletonCard() {
   return (
-    <div className="bg-white border-2 border-ink-100 rounded-2xl p-4 space-y-3 overflow-hidden relative">
-      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-ink-100/60 to-transparent" />
-      <div className="h-44 bg-ink-100 rounded-xl" />
-      <div className="h-3.5 bg-ink-100 rounded-lg w-3/4" />
-      <div className="h-3 bg-ink-100 rounded-lg w-1/2" />
-      <div className="h-3 bg-ink-100 rounded-lg w-1/3" />
-      <div className="h-10 bg-ink-100 rounded-xl mt-4" />
+    <div className="card overflow-hidden">
+      <div className="skeleton aspect-square w-full" />
+      <div className="p-4 space-y-2.5">
+        <div className="skeleton h-3 w-1/3 rounded" />
+        <div className="skeleton h-4 w-3/4 rounded" />
+        <div className="skeleton h-4 w-1/2 rounded" />
+        <div className="skeleton h-9 w-full rounded-xl mt-2" />
+      </div>
     </div>
   );
 }

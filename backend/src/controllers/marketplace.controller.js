@@ -105,6 +105,10 @@ const getAllChildCategories = async (categoryId) => {
   return result;
 };
 
+
+
+
+
 // Get products by category with pagination and sorting
 export const getProductsByCategory = asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
@@ -152,6 +156,11 @@ export const getProductsByCategory = asyncHandler(async (req, res) => {
     stock: { $gt: 0 },
   };
 
+  // B2C / B2B separation — pass ?saleType=B2C or ?saleType=B2B
+  if (req.query.saleType) {
+    query.saleType = { $in: [req.query.saleType, "BOTH"] };
+  }
+
   const totalProducts = await Product.countDocuments(query);
 
   const products = await Product.find(query)
@@ -194,6 +203,9 @@ export const getProductsByCategory = asyncHandler(async (req, res) => {
     )
   );
 });
+
+
+
 
 // filter options for category
 export const getCategoryFilters = asyncHandler(async (req, res) => {
@@ -279,6 +291,8 @@ export const getCategoryFilters = asyncHandler(async (req, res) => {
   );
 });
 
+
+
 // Get product details
 export const getProductDetails = asyncHandler(async (req, res) => {
   const { productId } = req.params;
@@ -331,6 +345,8 @@ export const getProductDetails = asyncHandler(async (req, res) => {
     )
   );
 });
+
+
 
 // similar or related products
 export const getSimilarProducts = asyncHandler(async (req, res) => {
@@ -401,4 +417,294 @@ export const getSimilarProducts = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(200, result, "Similar products fetched successfully")
     );
+});
+
+
+
+
+// search product api
+export const searchProducts = asyncHandler(async (req, res) => {
+
+  let { q, page = 1, limit = 20, sort, price_min, price_max } = req.query;
+
+  if (!q || q.trim().length < 2) {
+    throw new ApiError(400, "Search query must be at least 2 characters");
+  }
+
+  q = q.trim();
+
+  page = parseInt(page);
+  limit = parseInt(limit);
+
+  // Base query
+  const query = {
+    $text: { $search: q },
+    approvalStatus: "APPROVED",
+    isActive: true,
+    stock: { $gt: 0 }
+  };
+
+  // Price filter
+  if (price_min || price_max) {
+    query.price = {};
+    if (price_min) query.price.$gte = Number(price_min);
+    if (price_max) query.price.$lte = Number(price_max);
+  }
+
+  // B2C / B2B separation
+  if (req.query.saleType) {
+    query.saleType = { $in: [req.query.saleType, "BOTH"] };
+  }
+
+  // Sorting logic
+  let sortOption = { score: { $meta: "textScore" } };
+
+  if (sort === "price_low_high") {
+    sortOption = { price: 1 };
+  } else if (sort === "price_high_low") {
+    sortOption = { price: -1 };
+  } else if (sort === "newest") {
+    sortOption = { createdAt: -1 };
+  }
+
+  // Total count
+  const totalProducts = await Product.countDocuments(query);
+
+  // Fetch products
+  const products = await Product.find(query, {
+    score: { $meta: "textScore" }
+  })
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+
+  const productIds = products.map(p => p._id);
+
+  // Fetch primary images
+  const images = await ProductImage.find({
+    productId: { $in: productIds },
+    isPrimary: true,
+    isActive: true
+  }).lean();
+
+  const imageMap = {};
+  images.forEach(img => {
+    imageMap[img.productId.toString()] = img.imageUrl;
+  });
+
+  const result = products.map(p => ({
+    _id: p._id,
+    title: p.title,
+    price: p.price,
+    slug: p.slug,
+    image: imageMap[p._id.toString()] || null
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        products: result,
+        pagination: {
+          totalProducts,
+          currentPage: page,
+          totalPages: Math.ceil(totalProducts / limit),
+          limit
+        }
+      },
+      "Search results fetched successfully"
+    )
+  );
+
+});
+
+
+
+
+
+
+// search suggestion api
+export const getSearchSuggestions = asyncHandler(async (req, res) => {
+
+  let { q } = req.query;
+
+  if (!q || q.trim().length < 2) {
+    throw new ApiError(400, "Minimum 2 characters required");
+  }
+
+  q = q.trim().toLowerCase();
+
+  let suggestions = [];
+
+  // TEXT SEARCH (ranked)
+  const textResults = await Product.find(
+    {
+      $text: { $search: q },
+      approvalStatus: "APPROVED",
+      isActive: true
+    },
+    {
+      score: { $meta: "textScore" },
+      title: 1
+    }
+  )
+    .sort({ score: { $meta: "textScore" } })
+    .limit(5)
+    .lean();
+
+  suggestions.push(...textResults.map(p => p.title));
+
+  // PARTIAL MATCH
+  if (suggestions.length < 10) {
+    const regex = new RegExp(q, "i");
+
+    const regexResults = await Product.find({
+      title: { $regex: regex },
+      approvalStatus: "APPROVED",
+      isActive: true
+    })
+      .select("title")
+      .limit(10 - suggestions.length)
+      .lean();
+
+    suggestions.push(...regexResults.map(p => p.title));
+  }
+
+  // FUZZY MATCH (basic typo)
+  if (suggestions.length < 10) {
+    const fuzzyRegex = new RegExp(q.split("").join(".*"), "i");
+
+    const fuzzyResults = await Product.find({
+      title: { $regex: fuzzyRegex },
+      approvalStatus: "APPROVED",
+      isActive: true
+    })
+      .select("title")
+      .limit(10 - suggestions.length)
+      .lean();
+
+    suggestions.push(...fuzzyResults.map(p => p.title));
+  }
+
+  const uniqueSuggestions = [...new Set(suggestions)].slice(0, 10);
+
+  return res.status(200).json(
+    new ApiResponse(200, uniqueSuggestions, "Suggestions fetched successfully")
+  );
+
+});
+
+
+
+
+
+
+
+
+// all products 
+export const getMarketplaceProducts = asyncHandler(async (req, res) => {
+
+  let {
+    categoryId,
+    minPrice,
+    maxPrice,
+    sort = "newest",
+    page = 1,
+    limit = 20
+  } = req.query;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 20;
+
+  const filter = {
+    approvalStatus: "APPROVED",
+    isActive: true,
+    stock: { $gt: 0 }
+  };
+
+  // B2C / B2B separation — pass ?saleType=B2C or ?saleType=B2B
+  if (req.query.saleType) {
+    filter.saleType = { $in: [req.query.saleType, "BOTH"] };
+  }
+
+  // Category filter (optional)
+  if (categoryId) {
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      throw new ApiError(400, "Invalid categoryId");
+    }
+    filter.categoryId = categoryId;
+  }
+
+  // Price filter
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+
+  // Sorting
+  let sortOption = {};
+
+  switch (sort) {
+    case "price_low_high":
+      sortOption = { price: 1 };
+      break;
+    case "price_high_low":
+      sortOption = { price: -1 };
+      break;
+    case "newest":
+      sortOption = { createdAt: -1 };
+      break;
+    default:
+      sortOption = { createdAt: -1 };
+  }
+
+  // Total count
+  const totalProducts = await Product.countDocuments(filter);
+
+  const products = await Product.find(filter)
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+
+  const productIds = products.map(p => p._id);
+
+  const images = await ProductImage.find({
+    productId: { $in: productIds },
+    isPrimary: true,
+    isActive: true
+  }).lean();
+
+  const imageMap = {};
+
+  images.forEach(img => {
+    imageMap[img.productId.toString()] = img.imageUrl;
+  });
+
+  const result = products.map(p => ({
+    _id: p._id,
+    title: p.title,
+    price: p.price,
+    slug: p.slug,
+    image: imageMap[p._id.toString()] || null
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        products: result,
+        pagination: {
+          totalProducts,
+          currentPage: page,
+          totalPages: Math.ceil(totalProducts / limit),
+          limit
+        }
+      },
+      "Marketplace products fetched successfully"
+    )
+  );
+
 });

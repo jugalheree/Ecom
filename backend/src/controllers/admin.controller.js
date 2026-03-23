@@ -5,6 +5,9 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { VendorVerification } from "../models/vendor/VendorVerification.model.js";
 import { Product } from "../models/product/Product.model.js";
+import { Order } from "../models/order/Order.model.js";
+import mongoose from "mongoose";
+import { Address } from "../models/user/Address.model.js";
 
 // Get all vendor verification requests (Admin)
 export const getPendingVendors = asyncHandler(async (req, res) => {
@@ -244,4 +247,351 @@ export const rejectProduct = asyncHandler(async (req,res)=> {
           "Product rejected successfully"
         )
       );
+});
+
+
+
+// Get admin dashboard data
+export const getAdminDashboard = asyncHandler(async (req, res) => {
+
+  const { range = "month" } = req.query;
+
+  const now = new Date();
+  let startDate;
+
+  // Dynamic date range
+  if (range === "today") {
+    startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+  } else if (range === "week") {
+    startDate = new Date();
+    startDate.setDate(now.getDate() - 7);
+  } else {
+    // default = month
+    startDate = new Date();
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+  }
+
+  const [
+    totalUsers,
+    totalVendors,
+    approvedVendors,
+    pendingVendors,
+    totalOrders,
+    periodOrders,
+    revenueData,
+    totalRevenueData,
+    activeProducts,
+    pendingProducts,
+    recentOrders,
+    orderStatusStats,
+    topProducts
+  ] = await Promise.all([
+
+    User.countDocuments(),
+
+    Vendor.countDocuments(),
+
+    VendorVerification.countDocuments({ status: "VERIFIED" }),
+
+    VendorVerification.countDocuments({ status: "PENDING" }),
+
+    Order.countDocuments(),
+
+    Order.countDocuments({
+      createdAt: { $gte: startDate }
+    }),
+
+    // Revenue in selected range
+    Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate },
+          paymentStatus: "SUCCESS"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$totalAmount" }
+        }
+      }
+    ]),
+
+    // Total revenue
+    Order.aggregate([
+      {
+        $match: { paymentStatus: "SUCCESS" }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$totalAmount" }
+        }
+      }
+    ]),
+
+    Product.countDocuments({
+      isActive: true,
+      approvalStatus: "APPROVED"
+    }),
+
+    Product.countDocuments({
+      approvalStatus: "PENDING"
+    }),
+
+    Order.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("totalAmount orderStatus createdAt")
+      .lean(),
+
+    // Order status breakdown
+    Order.aggregate([
+      {
+        $group: {
+          _id: "$orderStatus",
+          count: { $sum: 1 }
+        }
+      }
+    ]),
+
+    // Top selling products
+    Order.aggregate([
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.productId",
+          totalSold: { $sum: "$items.quantity" }
+        }
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 5 }
+    ])
+
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        overview: {
+          totalUsers,
+          totalVendors,
+          approvedVendors,
+          pendingVendors,
+          totalOrders,
+          activeProducts,
+          pendingProducts
+        },
+
+        revenue: {
+          current: revenueData[0]?.total || 0,
+          total: totalRevenueData[0]?.total || 0
+        },
+
+        orders: {
+          total: totalOrders,
+          currentPeriod: periodOrders,
+          statusBreakdown: orderStatusStats
+        },
+
+        topProducts,
+
+        recentOrders
+
+      },
+      "Admin dashboard data fetched successfully"
+    )
+  );
+
+});
+
+
+
+
+// all user list with their roles
+export const getAllUsers = asyncHandler(async (req, res) => {
+
+  let { page = 1, limit = 10, role, search, sort = "newest" } = req.query;
+
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+
+  const filter = {};
+
+  if (role) {
+    filter.role = role;
+  }
+
+  if (search) {
+    const regex = new RegExp(search, "i");
+    filter.$or = [
+      { name: regex },
+      { email: regex },
+      { phone: regex }
+    ];
+  }
+
+  // Sorting
+  let sortOption = {};
+  if (sort === "oldest") sortOption = { createdAt: 1 };
+  else sortOption = { createdAt: -1 };
+
+  const users = await User.find(filter)
+    .select("-password -refreshToken")
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .lean();
+
+  const userIds = users.map(u => u._id);
+
+  const orderStats = await Order.aggregate([
+    { $match: { buyerId: { $in: userIds } } },
+    {
+      $group: {
+        _id: "$buyerId",
+        totalOrders: { $sum: 1 },
+        totalSpent: { $sum: "$totalAmount" }
+      }
+    }
+  ]);
+
+  const statsMap = {};
+  orderStats.forEach(stat => {
+    statsMap[stat._id.toString()] = stat;
+  });
+
+  const result = users.map(user => ({
+    ...user,
+    totalOrders: statsMap[user._id]?.totalOrders || 0,
+    totalSpent: statsMap[user._id]?.totalSpent || 0
+  }));
+
+  const totalUsers = await User.countDocuments(filter);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        users: result,
+        pagination: {
+          totalUsers,
+          currentPage: page,
+          totalPages: Math.ceil(totalUsers / limit),
+          limit
+        }
+      },
+      "Users fetched successfully"
+    )
+  );
+
+});
+
+
+
+
+
+// all details about user
+export const getUserDetails = asyncHandler(async (req, res) => {
+
+  const { userId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new ApiError(400, "Invalid user id");
+  }
+
+  const user = await User.findById(userId)
+    .select("-password -refreshToken")
+    .lean();
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const isVendor = user.role === "VENDOR";
+
+  const [
+    recentOrders,
+    addresses,
+    stats,
+    vendorProducts,
+    vendorOrderStats
+  ] = await Promise.all([
+
+    Order.find({ buyerId: userId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean(),
+
+    Address.find({ userId }).lean(),
+
+    Order.aggregate([
+      { $match: { buyerId: new mongoose.Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSpent: { $sum: "$totalAmount" }
+        }
+      }
+    ]),
+
+    // Vendor Products
+    isVendor
+      ? Product.find({ vendorId: userId })
+          .select("title price stock approvalStatus")
+          .limit(10)
+          .lean()
+      : [],
+
+    // Vendor Orders
+    isVendor
+      ? Order.aggregate([
+          { $unwind: "$items" },
+          {
+            $match: {
+              "items.vendorId": new mongoose.Types.ObjectId(userId)
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              totalOrders: { $sum: 1 },
+              totalRevenue: { $sum: "$items.price" }
+            }
+          }
+        ])
+      : []
+
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user,
+        addresses,
+
+        buyerData: {
+          recentOrders,
+          stats: stats[0] || { totalOrders: 0, totalSpent: 0 }
+        },
+
+        vendorData: isVendor
+          ? {
+              products: vendorProducts,
+              stats: vendorOrderStats[0] || {
+                totalOrders: 0,
+                totalRevenue: 0
+              }
+            }
+          : null
+      },
+      "User details fetched successfully"
+    )
+  );
+
 });

@@ -1,159 +1,97 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
+import BackendMissing from "../../components/ui/BackendMissing";
 
 export default function TradeWallet() {
-  const navigate = useNavigate();
-
-  const [wallet, setWallet] = useState({
-    available: 12500,
-    locked: 8600,
-    withdrawn: 4200,
-  });
-
+  const [wallet, setWallet] = useState({ available: 12500, locked: 8600, withdrawn: 4200 });
   const [amount, setAmount] = useState("");
+  const [modal, setModal] = useState(false);
 
   const withdraw = () => {
-    if (!amount || amount <= 0 || amount > wallet.available) return;
-
-    setWallet((prev) => ({
-      available: prev.available - Number(amount),
-      locked: prev.locked,
-      withdrawn: prev.withdrawn + Number(amount),
-    }));
-
-    setAmount("");
+    const val = Number(amount);
+    if (!val || val <= 0 || val > wallet.available) return;
+    setWallet((prev) => ({ ...prev, available: prev.available - val, withdrawn: prev.withdrawn + val }));
+    setAmount(""); setModal(false);
   };
 
-  return (
-    <div className="min-h-screen bg-white mt-16">
-      <div className="container-app py-12 space-y-10">
+  const cards = [
+    { label: "Available Balance", value: wallet.available, icon: "✅", color: "bg-emerald-600", note: "Ready to withdraw" },
+    { label: "Locked in Escrow", value: wallet.locked, icon: "🔒", color: "bg-amber-600", note: "Released on delivery" },
+    { label: "Total Withdrawn", value: wallet.withdrawn, icon: "💸", color: "bg-navy-600", note: "Transferred out" },
+  ];
 
-        {/* HEADER */}
-        <div>
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-ink-900 mb-4">
-            Trade Wallet
-          </h1>
-          <p className="text-xl text-ink-600">
-            Manage escrow funds, available balance and withdrawals.
+  return (
+    <div className="min-h-screen bg-sand-50 py-10">
+      <div className="container-app max-w-3xl">
+        <div className="mb-8">
+          <p className="section-label">Finance</p>
+          <h1 className="text-3xl font-display font-bold text-ink-900 mt-1">Trade Wallet</h1>
+          <p className="text-ink-500 text-sm mt-1">Manage escrow funds, available balance and withdrawals</p>
+        </div>
+
+        <BackendMissing
+          method="GET"
+          endpoint="/api/wallet/trade"
+          todo="Return vendor trade wallet with available, locked (escrow), and withdrawn amounts. Also needs POST /api/wallet/withdraw"
+        />
+
+        {/* Balance cards */}
+        <div className="grid sm:grid-cols-3 gap-4 mb-6">
+          {cards.map((c, i) => (
+            <div key={i} className="card p-5">
+              <div className={`w-10 h-10 rounded-xl ${c.color} text-white flex items-center justify-center text-lg mb-3`}>{c.icon}</div>
+              <p className="text-2xl font-bold text-ink-900">₹{c.value.toLocaleString()}</p>
+              <p className="text-xs font-semibold text-ink-500 mt-0.5">{c.label}</p>
+              <p className="text-[10px] text-ink-400 mt-0.5">{c.note}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Withdraw action */}
+        <div className="card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+          <div>
+            <p className="font-semibold text-ink-900 text-sm">Withdraw Available Balance</p>
+            <p className="text-xs text-ink-400 mt-0.5">Transfer ₹{wallet.available.toLocaleString()} to your bank account</p>
+          </div>
+          <button onClick={() => setModal(true)} disabled={wallet.available <= 0} className="btn-primary px-6 py-2.5 text-sm flex-shrink-0">
+            Withdraw Funds
+          </button>
+        </div>
+
+        {/* Escrow info */}
+        <div className="card p-6 bg-amber-50 border-2 border-amber-200">
+          <h3 className="font-display font-bold text-amber-900 text-base mb-2 flex items-center gap-2">
+            <span>🔒</span> How Escrow Works
+          </h3>
+          <p className="text-sm text-amber-800 leading-relaxed">
+            When a buyer places an order, funds are held in escrow and locked in your wallet. They become available to withdraw only after the buyer confirms delivery. This protects both parties in every transaction.
           </p>
         </div>
-
-        {/* HERO BALANCE */}
-        <Card className="p-10 border-2 border-ink-200">
-          <p className="text-ink-500 font-medium">Available balance</p>
-          <h2 className="text-5xl font-bold text-emerald-600 mt-2">
-            ₹{wallet.available.toLocaleString()}
-          </h2>
-
-          <div className="flex gap-4 mt-6">
-            <Button className="px-8 py-3" onClick={withdraw}>
-              Withdraw funds
-            </Button>
-
-            <Button
-              variant="outline"
-              className="px-8 py-3"
-              onClick={() => navigate("/wallet/claims")}
-            >
-              Claims center
-            </Button>
-          </div>
-        </Card>
-
-        {/* STATS */}
-        <div className="grid md:grid-cols-3 gap-8">
-
-          <Balance
-            title="Locked in escrow"
-            value={wallet.locked}
-            yellow
-          />
-
-          <Balance
-            title="Total withdrawn"
-            value={wallet.withdrawn}
-          />
-
-          <Balance
-            title="Lifetime earnings"
-            value={wallet.available + wallet.withdrawn}
-            green
-          />
-
-        </div>
-
-        {/* WITHDRAW + INFO */}
-        <div className="grid lg:grid-cols-2 gap-8">
-
-          {/* WITHDRAW PANEL */}
-          <Card className="p-8 border-2 border-ink-200">
-            <h3 className="text-2xl font-semibold text-ink-900 mb-2">
-              Withdraw funds
-            </h3>
-
-            <p className="text-ink-600 text-sm mb-6">
-              Transfer your available balance to your bank account.
-            </p>
-
-            <Input
-              label="Amount"
-              type="number"
-              placeholder="Enter amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-
-            <Button className="w-full mt-6 py-3" onClick={withdraw}>
-              Withdraw now
-            </Button>
-          </Card>
-
-          {/* INFO PANEL */}
-          <Card className="p-8 border-2 border-ink-200">
-            <h3 className="text-2xl font-semibold text-ink-900 mb-4">
-              How your wallet works
-            </h3>
-
-            <ul className="text-sm text-ink-600 space-y-3 list-disc pl-5">
-              <li>Buyer payments first enter escrow (locked).</li>
-              <li>Locked funds cannot be withdrawn.</li>
-              <li>After order completion, money becomes available.</li>
-              <li>Available funds can be withdrawn anytime.</li>
-            </ul>
-
-            <div className="mt-6 p-4 rounded-xl bg-yellow-50 text-sm text-yellow-700">
-              🔒 ₹{wallet.locked.toLocaleString()} is currently locked in escrow
-              and will be released once related orders are completed.
-            </div>
-          </Card>
-
-        </div>
-
       </div>
+
+      {/* Withdraw modal */}
+      {modal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-card-hover p-6 space-y-5 animate-scale-in">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-display font-bold text-ink-900">Withdraw Funds</h2>
+              <button onClick={() => setModal(false)} className="p-1.5 rounded-lg hover:bg-ink-50 text-ink-400">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <p className="text-sm text-ink-500 bg-sand-50 rounded-xl p-3">
+              Available: <strong className="text-ink-900">₹{wallet.available.toLocaleString()}</strong>
+            </p>
+            <div>
+              <label className="block text-sm font-semibold text-ink-700 mb-1.5">Amount (₹)</label>
+              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Enter amount" className="input-base text-lg font-bold" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setModal(false)} className="btn-outline flex-1 py-2.5 text-sm">Cancel</button>
+              <button onClick={withdraw} className="btn-primary flex-1 py-2.5 text-sm">Confirm Withdrawal</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
-}
-
-/* BALANCE CARD */
-function Balance({ title, value, green, yellow }) {
-  return (
-    <Card className="p-8 border-2 border-ink-200">
-      <p className="text-sm text-ink-500">{title}</p>
-
-      <p
-        className={`text-3xl font-semibold mt-2 ${
-          green
-            ? "text-emerald-600"
-            : yellow
-            ? "text-yellow-600"
-            : "text-ink-900"
-        }`}
-      >
-        ₹{value.toLocaleString()}
-      </p>
-    </Card>
   );
 }
