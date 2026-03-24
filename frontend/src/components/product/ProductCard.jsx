@@ -42,42 +42,8 @@ export default function ProductCard({ product }) {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="group bg-white rounded-2xl border border-ink-100 hover:border-ink-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden flex flex-col">
-      {/* Image */}
-      <div className="relative overflow-hidden">
-        <div className="h-48 bg-ink-50">
-          <img
-            src={product.image || product.images?.[0]?.url || product.primaryImage?.imageUrl || "https://images.unsplash.com/photo-1714578187218-d1828f5ebd6e?w=400&auto=format&fit=crop&q=60"}
-            alt={product.title || product.name}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${isOutOfStock ? "opacity-50 grayscale" : ""}`}
-          />
-        </div>
-        {/* Actions overlay */}
-        <button
-          onClick={() => toggleWishlist(product)}
-          className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-xl bg-white/90 backdrop-blur-sm shadow-sm border border-ink-100 hover:scale-110 transition-transform duration-200"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className={isWishlisted ? "text-red-500" : "text-ink-400"} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-        </button>
-        {/* AI Score */}
-        {score != null && (
-          <div className={`absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-display font-bold border ${scoreColor}`}>
-            ★ {score}
-          </div>
-        )}
-        {isOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-black/60 text-white text-xs font-display font-bold px-3 py-1 rounded-lg backdrop-blur-sm">Sold Out</span>
-          </div>
-        )}
-      </div>
-=======
     <Link to={`/product/${product._id}`} className="group block">
       <div className="card overflow-hidden hover:shadow-card-hover hover:-translate-y-1 transition-all duration-200">
->>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
 
         {/* Image */}
         <div className="relative overflow-hidden bg-sand-100 aspect-square">

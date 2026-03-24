@@ -12,25 +12,17 @@ export default function VendorStock() {
   const highlightId = searchParams.get("highlight");
   const highlightRef = useRef(null);
 
-  const load = () => {
+  const load = async () => {
     setLoading(true);
-<<<<<<< HEAD
     try {
       const res = await vendorAPI.products();
       const raw = res.data?.data;
       setProducts(Array.isArray(raw) ? raw : raw?.products || []);
-    } catch (err) {
-      // Silently handle load errors — vendor may not have a profile yet
+    } catch {
       setProducts([]);
     } finally {
       setLoading(false);
     }
-=======
-    vendorAPI.products()
-      .then((r) => { const d = r.data?.data; setProducts(Array.isArray(d) ? d : d?.products || []); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
->>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
   };
 
   useEffect(() => { load(); }, []);

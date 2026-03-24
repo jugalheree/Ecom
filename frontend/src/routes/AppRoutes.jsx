@@ -40,12 +40,9 @@ import AddProduct from "../pages/vendor/AddProduct";
 import EditProduct from "../pages/vendor/EditProduct";
 import VendorPage from "../pages/public/VendorPage";
 import VendorOrders from "../pages/vendor/VendorOrders";
-<<<<<<< HEAD
-=======
 import VendorMarketplace from "../pages/vendor/VendorMarketplace";
 import VendorRatings from "../pages/vendor/VendorRatings";
 import Wallet from "../pages/Wallet";
->>>>>>> b1d2a068b48b187ba11dd8d1429f74b415f5cfb0
 
 export default function AppRoutes() {
   return (
