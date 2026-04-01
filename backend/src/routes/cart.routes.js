@@ -5,10 +5,10 @@ import { addToCart, getCart, removeFromCart, updateCartQuantity } from "../contr
 
 const router = Router();
 
-router.route('/').get(verifyJWT, getCart);
-router.route('/add').post(verifyJWT, addToCart);
-router.route('/update').patch(verifyJWT, updateCartQuantity);
-router.route('/:productId').delete(verifyJWT, removeFromCart);
-
+// FIX: Cart operations restricted to BUYER role only
+router.route('/').get(verifyJWT, authorizeRoles("BUYER"), getCart);
+router.route('/add').post(verifyJWT, authorizeRoles("BUYER"), addToCart);
+router.route('/update').patch(verifyJWT, authorizeRoles("BUYER"), updateCartQuantity);
+router.route('/:productId').delete(verifyJWT, authorizeRoles("BUYER"), removeFromCart);
 
 export default router;

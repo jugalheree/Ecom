@@ -94,6 +94,13 @@ const vendorMarketplaceListingSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Category for filtering
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      default: null,
+    },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -121,6 +128,7 @@ vendorMarketplaceListingSchema.pre("save", function () {
 
 vendorMarketplaceListingSchema.index({ vendorId: 1 });
 vendorMarketplaceListingSchema.index({ listingType: 1 });
+vendorMarketplaceListingSchema.index({ categoryId: 1 });
 vendorMarketplaceListingSchema.index({ expiryDate: 1 });
 vendorMarketplaceListingSchema.index({ isActive: 1 });
 vendorMarketplaceListingSchema.index({ createdAt: -1 });

@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 
+// Clothing standard sizes
+const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "FREE SIZE",
+  "28", "30", "32", "34", "36", "38", "40", "42", "44", "46"];
+
 const productSchema = new mongoose.Schema(
   {
     vendorId: {
@@ -77,6 +81,43 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ── Product Standards & Dates ─────────────────────────────────────────
+    manufacturingDate: {
+      type: Date,
+      default: null,
+    },
+
+    expiryDate: {
+      type: Date,
+      default: null,
+    },
+
+    hasExpiry: {
+      type: Boolean,
+      default: false,
+    },
+
+    // For clothing products — standard sizes available
+    clothingSizes: {
+      type: [String],
+      enum: CLOTHING_SIZES,
+      default: [],
+    },
+
+    // Category-level standard fields (JSON object of key standards)
+    productStandards: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
+    // e.g. "FOOD", "CLOTHING", "ELECTRONICS", "PHARMA", "GENERAL"
+    productCategory: {
+      type: String,
+      default: "GENERAL",
+    },
+
+    // ─────────────────────────────────────────────────────────────────────
+
     aiScore: {
       type: Number,
       default: 0,
@@ -107,16 +148,13 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index({ title: "text", description: "text" });
 productSchema.index({ categoryId: 1 })
-
 productSchema.index({ vendorId: 1 })
-
 productSchema.index({ price: 1 })
-
 productSchema.index({ createdAt: -1 })
-
 productSchema.index({ approvalStatus: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ stock: 1 });
 productSchema.index({ title: 1 });
+productSchema.index({ expiryDate: 1 });
 
 export const Product = mongoose.model("Product", productSchema);

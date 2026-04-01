@@ -45,7 +45,11 @@ export const addToCart = asyncHandler(async (req, res) => {
   );
 
   if (existingItem) {
-    existingItem.quantity += quantity;
+    const newQuantity = existingItem.quantity + quantity;
+    if (newQuantity > product.stock) {
+      throw new ApiError(400, "Insufficient stock for requested quantity");
+    }
+    existingItem.quantity = newQuantity;
   } else {
     cart.items.push({
       productId,
@@ -98,7 +102,6 @@ export const updateCartQuantity = asyncHandler(async (req, res) => {
   }
 
   quantity = Number(quantity);
-  console.log("Quantity: ", quantity);
 
   if (isNaN(quantity) || quantity < 1) {
     throw new ApiError(400, "Invalid quantity");

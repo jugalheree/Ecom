@@ -65,6 +65,14 @@ const userSchema = new mongoose.Schema(
         type: String
     },
 
+    passwordResetToken: {
+      type: String,
+    },
+
+    passwordResetExpiry: {
+      type: Date,
+    },
+
   },
   { timestamps: true }
 );
@@ -93,11 +101,15 @@ userSchema.methods.generateAccessToken = function () {
         _id: this._id,
         email: this.email,
         role: this.role
-    }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '1h' });
+    }, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m',  // FIX: was ACCESS_TOKEN_EXPIRY (matched wrong key)
+    });
 };
 
 userSchema.methods.generateRefreshToken = function () {
-    return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '7d' });
+    return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRY || '7d',
+    });
 };
 
 export const User = mongoose.model("User", userSchema);

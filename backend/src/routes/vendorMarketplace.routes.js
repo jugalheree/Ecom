@@ -13,6 +13,7 @@ import {
   getMyListings,
   contactListingVendor,
   getMarketplaceStats,
+  getMarketplaceCategories,
 } from "../controllers/vendorMarketplace.controller.js";
 
 const router = Router();
@@ -24,7 +25,7 @@ router
   .post(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, createListing);
 
 router.route("/stats").get(verifyJWT, authorizeRoles("VENDOR"), getMarketplaceStats);
-
+router.route("/categories").get(verifyJWT, authorizeRoles("VENDOR"), getMarketplaceCategories);
 router.route("/my-listings").get(verifyJWT, authorizeRoles("VENDOR"), getMyListings);
 
 router

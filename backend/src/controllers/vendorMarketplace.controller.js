@@ -6,6 +6,8 @@ import { VendorMarketplaceListing } from "../models/vendor/VendorMarketplaceList
 import { Vendor } from "../models/vendor/Vendor.model.js";
 import { Product } from "../models/product/Product.model.js";
 import { ProductImage } from "../models/product/ProductImage.model.js";
+import { Category } from "../models/product/Category.model.js";
+import { Address } from "../models/user/Address.model.js";
 
 // ─── Helper: compute dynamic discount based on expiry date ──────────────────
 const computeExpiryDiscount = (expiryDate, basePrice) => {
@@ -50,6 +52,7 @@ export const getMarketplaceListings = asyncHandler(async (req, res) => {
     sort = "newest",
     minPrice,
     maxPrice,
+    categoryId,
   } = req.query;
 
   page = parseInt(page) || 1;
@@ -59,6 +62,10 @@ export const getMarketplaceListings = asyncHandler(async (req, res) => {
 
   if (listingType && ["NEW", "SURPLUS"].includes(listingType)) {
     filter.listingType = listingType;
+  }
+
+  if (categoryId && mongoose.isValidObjectId(categoryId)) {
+    filter.categoryId = new mongoose.Types.ObjectId(categoryId);
   }
 
   if (minPrice || maxPrice) {
@@ -112,9 +119,30 @@ export const getMarketplaceListings = asyncHandler(async (req, res) => {
         as: "primaryImage",
       },
     },
+    { $unwind: { path: "$primaryImage", preserveNullAndEmptyArrays: true } },
+    // Lookup vendor primary address
     {
-      $unwind: { path: "$primaryImage", preserveNullAndEmptyArrays: true },
+      $lookup: {
+        from: "addresses",
+        let: { addrs: "$vendor.businessAddresses" },
+        pipeline: [
+          { $match: { $expr: { $in: ["$_id", { $ifNull: ["$$addrs", []] }] } } },
+          { $limit: 1 },
+        ],
+        as: "vendorAddress",
+      },
     },
+    { $unwind: { path: "$vendorAddress", preserveNullAndEmptyArrays: true } },
+    // Lookup category
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
   ];
 
   // Search on title
@@ -148,10 +176,24 @@ export const getMarketplaceListings = asyncHandler(async (req, res) => {
       contactInfo: 1,
       inquiryCount: 1,
       createdAt: 1,
+      categoryId: 1,
+      category: { _id: "$category._id", name: "$category.name" },
       vendor: {
         _id: "$vendor._id",
         shopName: "$vendor.shopName",
         businessType: "$vendor.businessType",
+        address: {
+          $cond: {
+            if: { $ifNull: ["$vendorAddress._id", false] },
+            then: {
+              area: "$vendorAddress.area",
+              city: "$vendorAddress.city",
+              state: "$vendorAddress.state",
+              pincode: "$vendorAddress.pincode",
+            },
+            else: null,
+          },
+        },
       },
       productId: 1,
       primaryImage: { imageUrl: "$primaryImage.imageUrl" },
@@ -276,6 +318,7 @@ export const createListing = asyncHandler(async (req, res) => {
     reason,
     condition = "NEW",
     contactInfo,
+    categoryId,
   } = req.body;
 
   // Validate
@@ -352,6 +395,7 @@ export const createListing = asyncHandler(async (req, res) => {
     reason: reason?.trim(),
     condition,
     contactInfo: contactInfo?.trim(),
+    categoryId: (categoryId && mongoose.isValidObjectId(categoryId)) ? categoryId : (product.categoryId || null),
     isActive: true,
   });
 
@@ -573,5 +617,22 @@ export const getMarketplaceStats = asyncHandler(async (req, res) => {
       },
       "Marketplace stats fetched"
     )
+  );
+});
+
+// ─── GET /api/vendor-marketplace/categories ──────────────────────────────────
+export const getMarketplaceCategories = asyncHandler(async (req, res) => {
+  const categoryIds = await VendorMarketplaceListing.distinct("categoryId", {
+    isActive: true,
+    stock: { $gt: 0 },
+    categoryId: { $ne: null },
+  });
+
+  const categories = await Category.find({ _id: { $in: categoryIds } })
+    .select("_id name slug")
+    .lean();
+
+  return res.status(200).json(
+    new ApiResponse(200, categories, "Marketplace categories fetched")
   );
 });

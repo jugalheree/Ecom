@@ -72,7 +72,13 @@ export default function BuyerOrderDetail() {
 
   useEffect(() => {
     fetchOrderDetails(id).then((res) => {
-      if (!res.success) showToast({ message: res.message || "Failed to load order", type: "error" });
+      if (!res.success) {
+        const msg = res.message || "";
+        // Suppress auth errors — handled by global interceptor
+        if (!msg.includes("unauthorized") && !msg.includes("401") && !msg.includes("token")) {
+          showToast({ message: msg || "Failed to load order", type: "error" });
+        }
+      }
     });
     fetchOrderTimeline(id);
   }, [id]);
@@ -151,7 +157,7 @@ export default function BuyerOrderDetail() {
   const { order, advancedOrder } = currentOrder;
   const returnWindowActive = order.returnWindowEndsAt && new Date(order.returnWindowEndsAt) > new Date();
   const canCancel = !TERMINAL.includes(order.orderStatus) &&
-    !order.items?.some((i) => i.status === "SHIPPED" || i.status === "DELIVERED");
+    !order.items?.some((i) => ["SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(i.status));
 
   return (
     <div className="min-h-screen bg-ink-50 mt-[72px]">
@@ -200,7 +206,7 @@ export default function BuyerOrderDetail() {
                   const shopName = typeof vendor === "object" ? vendor.shopName : null;
                   const primaryImg = item.productImages?.find((img) => img.isPrimary) || item.productImages?.[0];
                   const itemStatus = item.status || "PENDING";
-                  const canConfirm = itemStatus === "SHIPPED";
+                  const canConfirm = itemStatus === "SHIPPED" || itemStatus === "OUT_FOR_DELIVERY";
                   const canReturn = order.orderStatus === "DELIVERED" && itemStatus === "DELIVERED" && returnWindowActive;
 
                   return (
@@ -274,27 +280,228 @@ export default function BuyerOrderDetail() {
               </div>
             )}
 
-            {/* Timeline */}
-            {timeline.length > 0 && (
-              <div className="bg-white rounded-2xl border border-ink-200 p-6">
-                <h2 className="font-display font-bold text-ink-900 mb-5">Order Timeline</h2>
-                <div className="space-y-4">
-                  {timeline.map((event, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-ink-100 flex items-center justify-center text-sm flex-shrink-0">
-                        {TIMELINE_ICONS[event.status] || "•"}
+            {/* ── Amazon-style Delivery Tracking ── */}
+            {(() => {
+              const tracking = order.deliveryTracking || [];
+              const TRACK_STEPS = [
+                { status: "ORDER_PLACED",      label: "Order Placed",       icon: "🛒", desc: "We received your order" },
+                { status: "PAYMENT_CONFIRMED", label: "Payment Confirmed",  icon: "💳", desc: "Payment verified" },
+                { status: "PROCESSING",        label: "Processing",         icon: "⚙️", desc: "Vendor preparing your order" },
+                { status: "PACKED",            label: "Packed",             icon: "📦", desc: "Order packed & ready" },
+                { status: "PICKED_UP",         label: "Picked Up",          icon: "🚛", desc: "Picked up by delivery partner" },
+                { status: "IN_TRANSIT",        label: "In Transit",         icon: "🚚", desc: "On the way to your location" },
+                { status: "OUT_FOR_DELIVERY",  label: "Out for Delivery",   icon: "📍", desc: "Arriving today!" },
+                { status: "DELIVERED",         label: "Delivered",          icon: "✅", desc: "Order delivered" },
+              ];
+
+              const completedStatuses = new Set(tracking.map((t) => t.status));
+              // Find current step index
+              let currentIdx = -1;
+              for (let i = TRACK_STEPS.length - 1; i >= 0; i--) {
+                if (completedStatuses.has(TRACK_STEPS[i].status)) { currentIdx = i; break; }
+              }
+
+              return (
+                <div className="bg-white rounded-2xl border border-ink-200 p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="font-display font-bold text-ink-900">Delivery Tracking</h2>
+                    {order.estimatedDeliveryDate && (
+                      <div className="text-right">
+                        <p className="text-xs text-ink-400">Estimated Delivery</p>
+                        <p className="text-sm font-bold text-brand-600">
+                          {new Date(order.estimatedDeliveryDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ink-900">{event.message}</p>
-                        <p className="text-xs text-ink-400 mt-0.5">
-                          {event.time && new Date(event.time).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    )}
+                  </div>
+
+                  {/* Delivery address */}
+                  {order.deliveryAddress?.city && (
+                    <div className="mb-6 p-3 bg-sand-50 rounded-xl border border-ink-100 flex items-start gap-2.5">
+                      <span className="text-base mt-0.5">📍</span>
+                      <div>
+                        <p className="text-xs font-semibold text-ink-700">{order.deliveryAddress.name}</p>
+                        <p className="text-xs text-ink-500">
+                          {[order.deliveryAddress.street, order.deliveryAddress.area, order.deliveryAddress.city, order.deliveryAddress.state, order.deliveryAddress.pincode].filter(Boolean).join(", ")}
                         </p>
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Step tracker */}
+                  <div className="space-y-0">
+                    {TRACK_STEPS.map((step, i) => {
+                      const isDone = i <= currentIdx;
+                      const isCurrent = i === currentIdx;
+                      const matchedEvent = tracking.find((t) => t.status === step.status);
+                      const isLast = i === TRACK_STEPS.length - 1;
+
+                      return (
+                        <div key={step.status} className="flex gap-4">
+                          {/* Line + dot */}
+                          <div className="flex flex-col items-center">
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0 transition-all duration-300 ${
+                              isDone
+                                ? isCurrent
+                                  ? "bg-brand-500 shadow-lg shadow-brand-200 scale-110"
+                                  : "bg-green-500"
+                                : "bg-ink-100 grayscale opacity-40"
+                            }`}>
+                              {step.icon}
+                            </div>
+                            {!isLast && (
+                              <div className={`w-0.5 flex-1 min-h-[24px] my-1 rounded-full transition-all duration-300 ${isDone && i < currentIdx ? "bg-green-400" : "bg-ink-200"}`} />
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className={`pb-4 flex-1 ${isLast ? "" : "min-h-[52px]"}`}>
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm font-semibold transition-colors ${isDone ? isCurrent ? "text-brand-700" : "text-green-700" : "text-ink-400"}`}>
+                                {step.label}
+                              </p>
+                              {isCurrent && (
+                                <span className="text-[10px] font-bold bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full animate-pulse">CURRENT</span>
+                              )}
+                            </div>
+                            <p className={`text-xs mt-0.5 ${isDone ? "text-ink-500" : "text-ink-300"}`}>
+                              {matchedEvent?.message || step.desc}
+                            </p>
+                            {matchedEvent?.timestamp && (
+                              <p className="text-[10px] text-ink-400 mt-0.5">
+                                {new Date(matchedEvent.timestamp).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Cancelled state */}
+                  {order.orderStatus === "CANCELLED" && (
+                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+                      <span className="text-xl">❌</span>
+                      <div>
+                        <p className="text-sm font-bold text-red-700">Order Cancelled</p>
+                        {order.cancelledAt && (
+                          <p className="text-xs text-red-500 mt-0.5">{new Date(order.cancelledAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
+
+            {/* ── Return Lifecycle Timeline ── */}
+            {order.items?.some(item => ["RETURN_REQUESTED","RETURNED","REFUNDED"].includes(item.status)) && (() => {
+              const RETURN_STEPS = [
+                { status: "RETURN_REQUESTED", label: "Return Requested",   icon: "↩️",  desc: "Your return request has been submitted" },
+                { status: "RETURN_APPROVED",  label: "Return Approved",    icon: "✅",  desc: "Vendor has approved your return request" },
+                { status: "RETURN_PICKED_UP", label: "Picked Up",          icon: "🚛",  desc: "Item picked up from your address" },
+                { status: "RETURN_RECEIVED",  label: "Received by Vendor", icon: "🏪",  desc: "Vendor has received the returned item" },
+                { status: "REFUND_COMPLETED", label: "Refund Processed",   icon: "💰",  desc: "Refund has been credited to your wallet" },
+              ];
+
+              // Use timeline (from getOrderTimeline) which has all return statuses
+              const timelineStatuses = new Set((timeline || []).map(t => t.status));
+              const timelineMap = {};
+              (timeline || []).forEach(t => { timelineMap[t.status] = t; });
+
+              // Find the furthest completed return step
+              let currentReturnIdx = -1;
+              RETURN_STEPS.forEach((step, i) => {
+                if (timelineStatuses.has(step.status)) currentReturnIdx = i;
+              });
+              // Fallback: if no timeline data yet, at least show RETURN_REQUESTED if item has it
+              if (currentReturnIdx === -1 && order.items?.some(i => i.status === "RETURN_REQUESTED")) {
+                currentReturnIdx = 0;
+              }
+
+              const returnItems = order.items?.filter(item =>
+                ["RETURN_REQUESTED","RETURNED","REFUNDED"].includes(item.status)
+              );
+
+              const latestStep = RETURN_STEPS[currentReturnIdx];
+
+              return (
+                <div className="bg-white rounded-2xl border border-orange-200 p-6 mt-4">
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="text-xl">↩️</span>
+                    <h2 className="font-display font-bold text-ink-900">Return Progress</h2>
+                    <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full ml-auto">
+                      {latestStep?.label || "Return Requested"}
+                    </span>
+                  </div>
+
+                  {/* Returning items */}
+                  {returnItems?.map((item, i) => {
+                    const product = item.productId;
+                    const title = typeof product === "object" ? product.title : "Product";
+                    return (
+                      <div key={i} className="mb-4 p-3 bg-orange-50 rounded-xl border border-orange-100 flex items-center gap-3">
+                        <span className="text-lg">📦</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-ink-900 truncate">{title}</p>
+                          <p className="text-xs text-ink-500">Qty: {item.quantity}</p>
+                        </div>
+                        <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-lg">
+                          {item.status?.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {/* Step tracker */}
+                  <div className="space-y-0 mt-4">
+                    {RETURN_STEPS.map((step, i) => {
+                      const isDone = i <= currentReturnIdx;
+                      const isCurrent = i === currentReturnIdx;
+                      const isLast = i === RETURN_STEPS.length - 1;
+                      const event = timelineMap[step.status];
+
+                      return (
+                        <div key={step.status} className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0 transition-all duration-300 ${
+                              isDone
+                                ? isCurrent
+                                  ? "bg-orange-500 shadow-lg shadow-orange-200 scale-110"
+                                  : "bg-orange-400"
+                                : "bg-ink-100 grayscale opacity-40"
+                            }`}>
+                              {step.icon}
+                            </div>
+                            {!isLast && (
+                              <div className={`w-0.5 flex-1 min-h-[24px] my-1 rounded-full ${isDone && i < currentReturnIdx ? "bg-orange-400" : "bg-ink-200"}`} />
+                            )}
+                          </div>
+                          <div className={`pb-4 flex-1 ${isLast ? "" : "min-h-[52px]"}`}>
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm font-semibold ${isDone ? isCurrent ? "text-orange-700" : "text-orange-600" : "text-ink-400"}`}>
+                                {step.label}
+                              </p>
+                              {isCurrent && (
+                                <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full animate-pulse">CURRENT</span>
+                              )}
+                            </div>
+                            <p className={`text-xs mt-0.5 ${isDone ? "text-ink-500" : "text-ink-300"}`}>
+                              {event?.message || step.desc}
+                            </p>
+                            {event?.time && (
+                              <p className="text-[10px] text-ink-400 mt-0.5">
+                                {new Date(event.time).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Summary */}

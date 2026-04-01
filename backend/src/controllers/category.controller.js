@@ -58,7 +58,6 @@ export const createCategoryAttribute = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Category ID is required");
   }
 
-  console.log("Body Content:", req.body); // Debugging log to check the request body
 
   const {
     code,

@@ -9,6 +9,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Vendor } from "../models/vendor/Vendor.model.js";
 import { ReturnRequest } from "../models/order/ReturnRequest.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { TradeWallet } from "../models/finance/TradeWallet.model.js";
+import { WalletTransaction } from "../models/finance/WalletTransaction.model.js";
+import { Coupon } from "../models/finance/Coupon.model.js";
+import { User } from "../models/auth/User.model.js";
+import { sendOrderConfirmationEmail } from "../utils/email.js";
 
 const RETURN_WINDOW_DAYS = 7;
 const PAYMENT_EXPIRY_MINUTES = 15;
@@ -24,7 +29,16 @@ export const placeOrder = asyncHandler(async (req, res) => {
       scheduledDate,
       isRecurring,
       recurringIntervalDays,
+      deliveryAddress,
+      couponCode,
+      paymentMethod = "TRADE_WALLET",
     } = req.body;
+
+    // ── Payment method validation ──
+    const ALLOWED_PAYMENT_METHODS = ["TRADE_WALLET", "COD"];
+    if (!ALLOWED_PAYMENT_METHODS.includes(paymentMethod)) {
+      throw new ApiError(400, `Invalid payment method. Allowed: ${ALLOWED_PAYMENT_METHODS.join(", ")}`);
+    }
 
     // -------------------------
     // ✅ Basic Validation
@@ -37,6 +51,17 @@ export const placeOrder = asyncHandler(async (req, res) => {
 
     if (isRecurring && (!recurringIntervalDays || recurringIntervalDays <= 0)) {
       throw new ApiError(400, "Valid recurring interval required");
+    }
+
+    // FIX: Validate scheduledDate EARLY — before any DB writes or stock deductions
+    if (scheduledDate) {
+      const scheduled = new Date(scheduledDate);
+      if (isNaN(scheduled.getTime())) {
+        throw new ApiError(400, "Invalid scheduled date format");
+      }
+      if (scheduled <= new Date()) {
+        throw new ApiError(400, "Scheduled date must be in the future");
+      }
     }
 
     // -------------------------
@@ -140,7 +165,53 @@ export const placeOrder = asyncHandler(async (req, res) => {
     const bulkResult = await Product.bulkWrite(bulkStockOps, { session });
 
     if (bulkResult.modifiedCount !== selectedItems.length) {
-      throw new ApiError(400, "Stock issue detected");
+      throw new ApiError(400, "One or more items are out of stock. Please refresh your cart.");
+    }
+
+    // -------------------------
+    // ✅ Apply Coupon (if provided)
+    // -------------------------
+    let discountAmount = 0;
+    let appliedCoupon = null;
+
+    if (couponCode) {
+      appliedCoupon = await Coupon.findOne({
+        code: couponCode.toUpperCase().trim(),
+        isActive: true,
+      }).session(session);
+
+      if (!appliedCoupon) throw new ApiError(400, "Invalid or inactive coupon code");
+      if (appliedCoupon.expiresAt && new Date() > appliedCoupon.expiresAt) throw new ApiError(400, "Coupon has expired");
+      if (appliedCoupon.usageLimit !== null && appliedCoupon.usedCount >= appliedCoupon.usageLimit) {
+        throw new ApiError(400, "Coupon usage limit reached");
+      }
+      if (totalAmount < appliedCoupon.minOrderValue) {
+        throw new ApiError(400, `Minimum order of ₹${appliedCoupon.minOrderValue} required for this coupon`);
+      }
+
+      if (appliedCoupon.discountType === "PERCENT") {
+        discountAmount = Math.round((totalAmount * appliedCoupon.discountValue) / 100);
+        if (appliedCoupon.maxDiscount) discountAmount = Math.min(discountAmount, appliedCoupon.maxDiscount);
+      } else {
+        discountAmount = Math.min(appliedCoupon.discountValue, totalAmount);
+      }
+    }
+
+    const finalAmount = Math.max(0, totalAmount - discountAmount);
+
+    // -------------------------
+    // ✅ Wallet Payment (if selected)
+    // -------------------------
+    let wallet = null;
+    if (paymentMethod === "TRADE_WALLET") {
+      wallet = await TradeWallet.findOne({ userId: buyerId }).session(session);
+      if (!wallet) throw new ApiError(400, "Wallet not found. Please add funds first.");
+      const available = wallet.balance - wallet.locked;
+      if (available < finalAmount) {
+        throw new ApiError(400, `Insufficient wallet balance. Available: ₹${available.toFixed(2)}, Required: ₹${finalAmount.toFixed(2)}`);
+      }
+      wallet.balance -= finalAmount;
+      await wallet.save({ session });
     }
 
     // -------------------------
@@ -151,16 +222,44 @@ export const placeOrder = asyncHandler(async (req, res) => {
       returnWindowEndsAt.getDate() + RETURN_WINDOW_DAYS
     );
 
+    // Estimate delivery: find max delivery days across items
+    const maxDeliveryDays = Math.max(
+      ...orderItems.map((oi) => {
+        const p = productMap.get(oi.productId.toString());
+        return p?.maxDeliveryDays || 5;
+      })
+    );
+    const estimatedDeliveryDate = new Date();
+    estimatedDeliveryDate.setDate(estimatedDeliveryDate.getDate() + maxDeliveryDays);
+
+    const isWalletPaid = paymentMethod === "TRADE_WALLET";
+
     const [order] = await Order.create(
       [
         {
           buyerId,
           items: orderItems,
-          totalAmount,
-          paymentMethod: "DUMMY",
-          orderStatus: "PENDING_PAYMENT",
-          paymentStatus: "PENDING",
-          paymentExpiresAt: new Date(
+          totalAmount: finalAmount,
+          discountAmount,
+          couponCode: appliedCoupon?.code,
+          deliveryAddress: deliveryAddress || {},
+          estimatedDeliveryDate,
+          deliveryTracking: [
+            {
+              status: "ORDER_PLACED",
+              message: "Your order has been placed successfully",
+              timestamp: new Date(),
+            },
+            ...(isWalletPaid ? [{
+              status: "PAYMENT_CONFIRMED",
+              message: "Payment received via Trade Wallet",
+              timestamp: new Date(),
+            }] : []),
+          ],
+          paymentMethod,
+          orderStatus: isWalletPaid ? "CONFIRMED" : "PENDING_PAYMENT",
+          paymentStatus: isWalletPaid ? "PAID" : "PENDING",
+          paymentExpiresAt: isWalletPaid ? undefined : new Date(
             Date.now() + PAYMENT_EXPIRY_MINUTES * 60 * 1000
           ),
           returnWindowEndsAt,
@@ -169,15 +268,29 @@ export const placeOrder = asyncHandler(async (req, res) => {
       { session }
     );
 
+    // Record wallet debit transaction
+    if (isWalletPaid) {
+      await WalletTransaction.create([{
+        userId: buyerId,
+        type: "DEBIT",
+        amount: finalAmount,
+        description: `Payment for order #${order._id}`,
+        status: "COMPLETED",
+        orderId: order._id,
+      }], { session });
+    }
+
+    // Increment coupon usage count atomically
+    if (appliedCoupon) {
+      await Coupon.findByIdAndUpdate(appliedCoupon._id, { $inc: { usedCount: 1 } }, { session });
+    }
+
     // -------------------------
     // ✅ Handle Scheduled / Recurring
     // -------------------------
     if (scheduledDate) {
       const scheduled = new Date(scheduledDate);
-
-      if (scheduled <= new Date()) {
-        throw new ApiError(400, "Scheduled date must be future");
-      }
+      // (Validation already done at the top of this function)
 
       await AdvancedOrder.create(
         [
@@ -217,15 +330,25 @@ export const placeOrder = asyncHandler(async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Send order confirmation email (non-blocking)
+    try {
+      const buyer = await User.findById(buyerId).select("email name").lean();
+      if (buyer?.email) {
+        const itemsForEmail = orderItems.map((oi) => {
+          const p = productMap.get(oi.productId.toString());
+          return { title: p?.title, quantity: oi.quantity, priceAtPurchase: oi.priceAtPurchase };
+        });
+        sendOrderConfirmationEmail(buyer.email, buyer.name, { ...order.toObject(), items: itemsForEmail }).catch(() => {});
+      }
+    } catch {}
+
+    const successMsg = isWalletPaid
+      ? "Order placed and payment confirmed!"
+      : "Order placed successfully. Complete payment to confirm.";
+
     return res
       .status(201)
-      .json(
-        new ApiResponse(
-          201,
-          order,
-          "Order placed successfully. Awaiting payment."
-        )
-      );
+      .json(new ApiResponse(201, order, successMsg));
   } catch (error) {
     // -------------------------
     // ❌ Rollback on Error
@@ -236,36 +359,65 @@ export const placeOrder = asyncHandler(async (req, res) => {
   }
 });
 
-//dummy payments api
-export const dummyPayOrder = asyncHandler(async (req, res) => {
+// POST /api/orders/place/:orderId/pay — pay a pending order via Trade Wallet
+export const walletPayOrder = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const userId = req.user._id;
 
-  const order = await Order.findOne({
-    _id: orderId,
-    buyerId: userId,
-  });
-
-  if (!order) {
-    throw new ApiError(404, "Order not found");
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new ApiError(400, "Invalid order ID");
   }
 
-  if (order.paymentStatus === "PAID") {
-    throw new ApiError(400, "Order already paid");
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const order = await Order.findOne({ _id: orderId, buyerId: userId }).session(session);
+    if (!order) throw new ApiError(404, "Order not found");
+    if (order.paymentStatus === "PAID") throw new ApiError(400, "Order already paid");
+    if (order.paymentExpiresAt && order.paymentExpiresAt < new Date()) {
+      throw new ApiError(400, "Payment window has expired. Please place a new order.");
+    }
+
+    const wallet = await TradeWallet.findOne({ userId }).session(session);
+    if (!wallet) throw new ApiError(400, "Wallet not found. Please add funds first.");
+
+    const available = wallet.balance - wallet.locked;
+    if (available < order.totalAmount) {
+      throw new ApiError(400, `Insufficient wallet balance. Available: ₹${available.toFixed(2)}, Required: ₹${order.totalAmount.toFixed(2)}`);
+    }
+
+    wallet.balance -= order.totalAmount;
+    await wallet.save({ session });
+
+    await WalletTransaction.create([{
+      userId,
+      type: "DEBIT",
+      amount: order.totalAmount,
+      description: `Payment for order #${order._id}`,
+      status: "COMPLETED",
+      orderId: order._id,
+    }], { session });
+
+    order.paymentStatus = "PAID";
+    order.paymentMethod = "TRADE_WALLET";
+    order.orderStatus = "CONFIRMED";
+    order.deliveryTracking.push({
+      status: "PAYMENT_CONFIRMED",
+      message: "Payment received via Trade Wallet",
+      timestamp: new Date(),
+    });
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json(new ApiResponse(200, order, "Payment successful. Order confirmed!"));
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  if (order.paymentExpiresAt && order.paymentExpiresAt < new Date()) {
-    throw new ApiError(400, "Payment window expired");
-  }
-
-  order.paymentStatus = "PAID";
-  order.orderStatus = "CONFIRMED";
-
-  await order.save();
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, order, "Dummy payment successful"));
 });
 
 // get all orders for a user
@@ -443,6 +595,17 @@ export const getVendorOrders = asyncHandler(async (req, res) => {
       },
     },
 
+    // Lookup buyer name
+    {
+      $lookup: {
+        from: "users",
+        localField: "buyerId",
+        foreignField: "_id",
+        as: "buyerInfo",
+      },
+    },
+    { $unwind: { path: "$buyerInfo", preserveNullAndEmptyArrays: true } },
+
     {
       $project: {
         orderNumber: 1,
@@ -450,8 +613,11 @@ export const getVendorOrders = asyncHandler(async (req, res) => {
         paymentStatus: 1,
         createdAt: 1,
         totalAmount: 1,
+        deliveryAddress: 1,
         items: 1,
         productDetails: 1,
+        buyerName: "$buyerInfo.name",
+        buyerPhone: "$buyerInfo.phone",
       },
     },
 
@@ -486,7 +652,7 @@ export const getVendorOrders = asyncHandler(async (req, res) => {
 
 export const shipOrderItem = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
-  const { productId } = req.body;
+  const { productId, action } = req.body; // action: PACK | PICKUP | SHIP | OUT_FOR_DELIVERY | DELIVER
   const userId = req.user._id;
 
   if (!mongoose.Types.ObjectId.isValid(orderId)) {
@@ -510,7 +676,11 @@ export const shipOrderItem = asyncHandler(async (req, res) => {
   });
 
   if (!order) {
-    throw new ApiError(403, "You cannot ship this product");
+    throw new ApiError(403, "You cannot update this product");
+  }
+
+  if (order.orderStatus === "CANCELLED") {
+    throw new ApiError(400, "Order is cancelled");
   }
 
   const item = order.items.find(
@@ -519,21 +689,50 @@ export const shipOrderItem = asyncHandler(async (req, res) => {
       i.vendorId.toString() === vendor._id.toString()
   );
 
-  if (item.status === "SHIPPED") {
-    throw new ApiError(400, "Item already shipped");
+  const trackingStep = action || "SHIP";
+
+  // Status machine
+  const statusMap = {
+    PACK: { itemStatus: "PACKED", orderStatus: "PROCESSING", trackStatus: "PACKED", msg: "Your order has been packed and is ready for pickup" },
+    PICKUP: { itemStatus: "PICKED_UP", orderStatus: "PICKED_UP", trackStatus: "PICKED_UP", msg: "Order picked up by delivery partner" },
+    SHIP: { itemStatus: "SHIPPED", orderStatus: "SHIPPED", trackStatus: "IN_TRANSIT", msg: "Your order is on its way!" },
+    OUT_FOR_DELIVERY: { itemStatus: "OUT_FOR_DELIVERY", orderStatus: "OUT_FOR_DELIVERY", trackStatus: "OUT_FOR_DELIVERY", msg: "Out for delivery — your order will arrive today!" },
+    DELIVER: { itemStatus: "DELIVERED", orderStatus: "DELIVERED", trackStatus: "DELIVERED", msg: "Order delivered successfully. Enjoy your purchase!" },
+  };
+
+  const step = statusMap[trackingStep] || statusMap.SHIP;
+
+  item.status = step.itemStatus;
+  if (step.itemStatus === "SHIPPED") item.shippedAt = new Date();
+  if (step.itemStatus === "PACKED") item.packedAt = new Date();
+  if (step.itemStatus === "PICKED_UP") item.pickedUpAt = new Date();
+  if (step.itemStatus === "OUT_FOR_DELIVERY") item.outForDeliveryAt = new Date();
+  if (step.itemStatus === "DELIVERED") item.deliveredAt = new Date();
+
+  // Check if all items have the same or later status
+  const allAtStatus = order.items.every((i) => i.status === step.itemStatus || i.status === "DELIVERED");
+  if (allAtStatus) {
+    order.orderStatus = step.orderStatus;
   }
 
-  if (order.orderStatus === "CANCELLED") {
-    throw new ApiError(400, "Order is cancelled");
-  }
+  // Add tracking entry
+  order.deliveryTracking.push({
+    status: step.trackStatus,
+    message: step.msg,
+    timestamp: new Date(),
+  });
 
-  item.status = "SHIPPED";
-  item.shippedAt = new Date();
-
-  const allShipped = order.items.every((i) => i.status === "SHIPPED");
-
-  if (allShipped) {
-    order.orderStatus = "SHIPPED";
+  // If delivered, also add tracking + update vendor stats
+  if (step.itemStatus === "DELIVERED") {
+    // Update vendor delivery speed score (simplified)
+    const diffMs = new Date() - order.createdAt;
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    const expectedDays = 5; // default
+    const speedScore = diffDays <= expectedDays ? 10 : Math.max(1, 10 - (diffDays - expectedDays));
+    await Vendor.findByIdAndUpdate(vendor._id, {
+      $inc: { totalOrders: 1 },
+      $set: { deliverySpeedScore: speedScore },
+    });
   }
 
   await order.save();
@@ -581,7 +780,7 @@ export const confirmDelivery = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Item already delivered");
   }
 
-  if (item.status !== "SHIPPED") {
+  if (item.status !== "SHIPPED" && item.status !== "OUT_FOR_DELIVERY") {
     throw new ApiError(400, "Item is not shipped yet");
   }
 
@@ -610,53 +809,86 @@ export const cancelOrder = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid order ID");
   }
 
-  const order = await Order.findOne({
-    _id: orderId,
-    buyerId: userId,
-  });
+  // FIX: Wrap in a session/transaction so stock restore and order update are atomic
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!order) {
-    throw new ApiError(404, "Order not found");
-  }
+  try {
+    const order = await Order.findOne({
+      _id: orderId,
+      buyerId: userId,
+    }).session(session);
 
-  if (["CANCELLED", "DELIVERED", "COMPLETED"].includes(order.orderStatus)) {
-    throw new ApiError(400, "Order cannot be cancelled");
-  }
+    if (!order) {
+      throw new ApiError(404, "Order not found");
+    }
 
-  const shippedItem = order.items.some(
-    (item) => item.status === "SHIPPED" || item.status === "DELIVERED"
-  );
+    if (["CANCELLED", "DELIVERED", "COMPLETED"].includes(order.orderStatus)) {
+      throw new ApiError(400, "Order cannot be cancelled");
+    }
 
-  if (shippedItem) {
-    throw new ApiError(
-      400,
-      "Order cannot be cancelled because items are already shipped"
+    const shippedItem = order.items.some(
+      (item) =>
+        item.status === "SHIPPED" ||
+        item.status === "OUT_FOR_DELIVERY" ||
+        item.status === "DELIVERED"
     );
+
+    if (shippedItem) {
+      throw new ApiError(
+        400,
+        "Order cannot be cancelled because items are already shipped"
+      );
+    }
+
+    // Restore stock atomically within the transaction
+    const bulkStockOps = order.items.map((item) => ({
+      updateOne: {
+        filter: { _id: item.productId },
+        update: { $inc: { stock: item.quantity } },
+      },
+    }));
+
+    await Product.bulkWrite(bulkStockOps, { session });
+
+    // Refund wallet if payment was via Trade Wallet
+    if (order.paymentMethod === "TRADE_WALLET" && order.paymentStatus === "PAID") {
+      const wallet = await TradeWallet.findOne({ userId }).session(session);
+      if (wallet) {
+        wallet.balance = Math.round((wallet.balance + order.totalAmount) * 100) / 100;
+        await wallet.save({ session });
+        await WalletTransaction.create([{
+          userId,
+          type: "CREDIT",
+          amount: order.totalAmount,
+          description: `Refund for cancelled order #${order._id}`,
+          status: "COMPLETED",
+          orderId: order._id,
+        }], { session });
+      }
+    }
+
+    // Cancel all items
+    order.items.forEach((item) => {
+      item.status = "CANCELLED";
+    });
+
+    order.orderStatus = "CANCELLED";
+    order.cancelledAt = new Date();
+
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, order, "Order cancelled successfully"));
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-
-  // restore stock
-  const bulkStockOps = order.items.map((item) => ({
-    updateOne: {
-      filter: { _id: item.productId },
-      update: { $inc: { stock: item.quantity } },
-    },
-  }));
-
-  await Product.bulkWrite(bulkStockOps);
-
-  // cancel items
-  order.items.forEach((item) => {
-    item.status = "CANCELLED";
-  });
-
-  order.orderStatus = "CANCELLED";
-  order.cancelledAt = new Date();
-
-  await order.save();
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, order, "Order cancelled successfully"));
 });
 
 
@@ -669,7 +901,6 @@ export const requestReturn = asyncHandler(async (req, res) => {
   const { productId, reason, description, images } = req.body;
   const buyerId = req.user._id;
   const quantity = Number(req.body.quantity);
-  console.log(req.body);
 
   const uploadedImages = [];
 
@@ -753,6 +984,7 @@ export const requestReturn = asyncHandler(async (req, res) => {
     orderId,
     productId,
     buyerId,
+    status: { $nin: ["REJECTED"] },
   });
 
   if (existingReturn) {
@@ -831,6 +1063,18 @@ export const reviewReturnRequest = asyncHandler(async (req, res) => {
   else {
     returnRequest.status = "REJECTED";
     returnRequest.rejectedAt = new Date();
+
+    // Reset the order item status back to DELIVERED so buyer can re-request if within window
+    const order = await Order.findById(returnRequest.orderId);
+    if (order) {
+      const item = order.items.find(
+        (i) => i.productId.toString() === returnRequest.productId.toString()
+      );
+      if (item && item.status === "RETURN_REQUESTED") {
+        item.status = "DELIVERED";
+        await order.save();
+      }
+    }
   }
 
   returnRequest.vendorRemark = remark;
@@ -853,12 +1097,22 @@ export const reviewReturnRequest = asyncHandler(async (req, res) => {
 export const markReturnPickedUp = asyncHandler(async (req, res) => {
 
   const { returnId } = req.params;
+  const userId = req.user._id;
 
   if (!mongoose.Types.ObjectId.isValid(returnId)) {
     throw new ApiError(400, "Invalid return id");
   }
 
-  const returnRequest = await ReturnRequest.findById(returnId);
+  // FIX: Verify the requesting user is the vendor who owns this return request
+  const vendor = await Vendor.findOne({ userId });
+  if (!vendor) {
+    throw new ApiError(404, "Vendor profile not found");
+  }
+
+  const returnRequest = await ReturnRequest.findOne({
+    _id: returnId,
+    vendorId: vendor._id,  // FIX: scoped to this vendor — was fetching by ID alone
+  });
 
   if (!returnRequest) {
     throw new ApiError(404, "Return request not found");
@@ -974,7 +1228,7 @@ export const refundReturnRequest = asyncHandler(async (req, res) => {
 
   await returnRequest.save();
 
-  // update order item
+  // update order item + optionally credit wallet
   const order = await Order.findById(returnRequest.orderId);
 
   if (order) {
@@ -999,12 +1253,37 @@ export const refundReturnRequest = asyncHandler(async (req, res) => {
     }
 
     await order.save();
+
+    // ── Credit refund to buyer's wallet ─────────────────────────────
+    // Refund goes to wallet if: method is TRADE_WALLET, or original payment was wallet
+    const shouldCreditWallet =
+      refundMethod === "TRADE_WALLET" ||
+      refundMethod === "WALLET" ||
+      order.paymentMethod === "TRADE_WALLET";
+
+    if (shouldCreditWallet && refundAmount > 0) {
+      const buyerWallet = await TradeWallet.findOneAndUpdate(
+        { userId: order.buyerId },
+        { $inc: { balance: refundAmount } },
+        { upsert: true, new: true }
+      );
+
+      await WalletTransaction.create({
+        userId: order.buyerId,
+        type: "CREDIT",
+        amount: refundAmount,
+        description: `Refund for order #${order.orderNumber || order._id.toString().slice(-8).toUpperCase()}`,
+        status: "COMPLETED",
+        reference: order._id,
+        referenceModel: "Order",
+      });
+    }
   }
 
   return res.status(200).json(
     new ApiResponse(
       200,
-      returnRequest,
+      { ...returnRequest.toObject(), walletCredited: refundMethod === "TRADE_WALLET" || order?.paymentMethod === "TRADE_WALLET" },
       "Refund processed successfully"
     )
   );
@@ -1128,4 +1407,23 @@ export const getOrderTimeline = asyncHandler(async (req, res) => {
     )
   );
 
+});
+
+// ── Get vendor return requests ─────────────────────────────────────────────
+export const getVendorReturns = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const { status } = req.query;
+  const filter = { vendorId: vendor._id };
+  if (status) filter.status = status;
+
+  const returns = await ReturnRequest.find(filter)
+    .populate("orderId", "orderNumber totalAmount")
+    .populate("productId", "title primaryImage price")
+    .populate("buyerId", "name email phone")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return res.status(200).json(new ApiResponse(200, returns, "Return requests fetched"));
 });

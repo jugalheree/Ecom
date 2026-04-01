@@ -1,59 +1,58 @@
 import axios from "axios";
 
+// FIX: Use VITE_API_BASE_URL to match the actual .env key name (was VITE_API_URL causing silent fallback to localhost)
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  withCredentials: true, // Important for cookies (refreshToken)
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8000",
+  withCredentials: true, // Sends httpOnly cookies on every request — primary auth mechanism
 });
 
-// Request interceptor: attach access token from localStorage
-api.interceptors.request.use((config) => {
-  try {
-    const authData = localStorage.getItem("auth");
-    if (authData) {
-      const { token } = JSON.parse(authData);
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return config;
-});
+// FIX: Removed request interceptor that read JWT token from localStorage.
+// Auth is now handled entirely via httpOnly cookies set by the backend.
+// This eliminates the XSS token-theft vector.
 
-// Response interceptor
+// Response interceptor — handle 401s with silent token refresh via cookie
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error) => {
+  failedQueue.forEach((prom) => (error ? prom.reject(error) : prom.resolve()));
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
 
-    // If 401 and not a retry, try to refresh the token
+    // If 401 and not already a retry, attempt silent token refresh via cookie
     if (
       error.response?.status === 401 &&
       !original._retry &&
       !original.url?.includes("/auth/refresh-token")
     ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => api(original))
+          .catch((err) => Promise.reject(err));
+      }
+
       original._retry = true;
+      isRefreshing = true;
+
       try {
-        const refreshRes = await axios.post(
-          `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/auth/refresh-token`,
+        // Refresh happens via httpOnly cookie — no token in body needed
+        await axios.post(
+          `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/api/auth/refresh-token`,
           {},
           { withCredentials: true }
         );
-        const newToken = refreshRes.data?.data?.accessToken;
-        if (newToken) {
-          // Update stored token
-          const authData = localStorage.getItem("auth");
-          if (authData) {
-            const parsed = JSON.parse(authData);
-            parsed.token = newToken;
-            localStorage.setItem("auth", JSON.stringify(parsed));
-          }
-          original.headers.Authorization = `Bearer ${newToken}`;
-          return api(original);
-        }
+
+        processQueue(null);
+        return api(original);
       } catch {
-        // Refresh failed — redirect to login
+        processQueue(new Error("Session expired"));
         localStorage.removeItem("auth");
         if (
           !window.location.pathname.includes("/login") &&
@@ -61,6 +60,9 @@ api.interceptors.response.use(
         ) {
           window.location.href = "/login";
         }
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
       }
     }
 

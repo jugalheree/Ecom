@@ -9,6 +9,7 @@ const vendorDeliveryStaffSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
 
     totalDeliveries: { type: Number, default: 0 },
+    activeDeliveries: { type: Number, default: 0 },
     delayedDeliveries: { type: Number, default: 0 },
   },
   { timestamps: true }

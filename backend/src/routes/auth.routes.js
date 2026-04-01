@@ -4,6 +4,8 @@ import {
   loginUser,
   refreshAccessToken,
   logoutUser,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/auth.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -22,5 +24,9 @@ router.route('/refresh-token').post(refreshAccessToken);
 
 // Logout (protected)
 router.route('/logout').post(verifyJWT, logoutUser);
+
+// Forgot / Reset password (public)
+router.route('/forgot-password').post(forgotPassword);
+router.route('/reset-password').post(resetPassword);
 
 export default router;

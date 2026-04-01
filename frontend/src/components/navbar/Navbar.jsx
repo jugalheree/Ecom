@@ -6,9 +6,9 @@ import AdminNavbar from "./AdminNavbar";
 import DeliveryNavbar from "./DeliveryNavbar";
 
 export default function Navbar() {
-  const { token, role } = useAuthStore();
+  const { user, role } = useAuthStore();
 
-  if (!token) return <PublicNavbar />;
+  if (!user) return <PublicNavbar />;
   if (role === "vendor") return <VendorNavbar />;
   if (role === "admin") return <AdminNavbar />;
   if (role === "delivery") return <DeliveryNavbar />;
