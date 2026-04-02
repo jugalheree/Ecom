@@ -361,17 +361,20 @@ function ReviewPanel({ form, images, attributes, categoryAttributes, categories 
 export default function AddProduct() {
   const navigate = useNavigate();
   const showToast = useToastStore((s) => s.showToast);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // only leaf cats for selection
+  const [allCategories, setAllCategories] = useState([]); // all cats for grouping
   const [categoryAttributes, setCategoryAttributes] = useState([]);
   const [form, setForm] = useState({
     title: "", description: "", price: "", stock: "",
     categoryId: "", saleType: "B2C",
     minDeliveryDays: "1", maxDeliveryDays: "5",
     manufacturingDate: "", expiryDate: "",
+    clothingSizes: [],
   });
   const [attributes, setAttributes] = useState({});
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [catLoading, setCatLoading] = useState(true);
   const [step, setStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState([]);
   const [createdProductId, setCreatedProductId] = useState(null);
@@ -379,12 +382,16 @@ export default function AddProduct() {
   const selectedCategory = categories.find((c) => c._id === form.categoryId);
   const isClothCategory = selectedCategory?.name?.toLowerCase().match(/cloth|textile|fabric|apparel|garment|fashion|wear/);
 
-  useEffect(() => {
+  const loadCategories = () => {
+    setCatLoading(true);
     categoryAPI.getAll().then((res) => {
       const all = res.data?.data || [];
+      setAllCategories(all);
       setCategories(all.filter((c) => c.isLeaf));
-    }).catch(() => {});
-  }, []);
+    }).catch(() => {}).finally(() => setCatLoading(false));
+  };
+
+  useEffect(() => { loadCategories(); }, []);
 
   useEffect(() => {
     if (!form.categoryId) { setCategoryAttributes([]); setAttributes({}); return; }
@@ -418,6 +425,7 @@ export default function AddProduct() {
       };
       if (form.manufacturingDate) payload.manufacturingDate = form.manufacturingDate;
       if (form.expiryDate) payload.expiryDate = form.expiryDate;
+      if (form.clothingSizes && form.clothingSizes.length > 0) payload.clothingSizes = JSON.stringify(form.clothingSizes);
       const res = await vendorAPI.createProduct(payload);
       const productId = res.data?.data?._id;
       setCreatedProductId(productId);
@@ -499,19 +507,63 @@ export default function AddProduct() {
                 </div>
                 <div>
                   <FieldLabel required>Category</FieldLabel>
-                  <div className="relative">
-                    <StyledSelect name="categoryId" value={form.categoryId} onChange={handleChange} required>
-                      <option value="">Select a category</option>
-                      {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                    </StyledSelect>
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="#8e8e9a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <StyledSelect name="categoryId" value={form.categoryId} onChange={handleChange} required>
+                        <option value="">Select a category</option>
+                        {/* Group leaf categories under their parent */}
+                        {(() => {
+                          const rootCats = allCategories.filter(c => !c.parentCategory);
+                          const orphanLeaves = categories.filter(c => {
+                            const parentId = typeof c.parentCategory === "object" ? c.parentCategory?._id : c.parentCategory;
+                            return !parentId || !allCategories.find(r => r._id === parentId);
+                          });
+                          return (
+                            <>
+                              {rootCats.map(parent => {
+                                const children = categories.filter(c => {
+                                  const parentId = typeof c.parentCategory === "object" ? c.parentCategory?._id : c.parentCategory;
+                                  return parentId?.toString() === parent._id?.toString();
+                                });
+                                if (children.length === 0 && !parent.isLeaf) return null;
+                                return (
+                                  <optgroup key={parent._id} label={parent.name}>
+                                    {parent.isLeaf && <option value={parent._id}>{parent.name}</option>}
+                                    {children.map(child => (
+                                      <option key={child._id} value={child._id}>{child.name}</option>
+                                    ))}
+                                  </optgroup>
+                                );
+                              })}
+                              {orphanLeaves.map(c => (
+                                <option key={c._id} value={c._id}>{c.name}</option>
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </StyledSelect>
+                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="#8e8e9a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </div>
                     </div>
+                    <button type="button" onClick={loadCategories} disabled={catLoading}
+                      title="Refresh categories"
+                      className="px-3 py-2 rounded-xl border-2 border-ink-200 text-ink-400 hover:border-ink-400 hover:text-ink-700 transition-all disabled:opacity-40">
+                      {catLoading
+                        ? <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                      }
+                    </button>
                   </div>
+                  {catLoading && <p className="text-[11px] text-ink-400 mt-1">Loading categories...</p>}
                 </div>
-                <div>
-                  <FieldLabel required>Sale Channel</FieldLabel>
-                  <SaleTypeSelector value={form.saleType} onChange={(v) => setForm({ ...form, saleType: v })} />
+                {/* B2C only — sale type is fixed */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                  <span className="text-emerald-600 text-sm">🛒</span>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-800">B2C — Consumer Retail</p>
+                    <p className="text-[11px] text-emerald-600">Products listed here are for direct consumer sales</p>
+                  </div>
                 </div>
                 <div>
                   <FieldLabel hint="Optional">Description</FieldLabel>
@@ -562,7 +614,33 @@ export default function AddProduct() {
                 </div>
 
                 {isClothCategory && (
-                  <ClothQualityChecker description={form.description} title={form.title} />
+                  <>
+                    {/* Clothing Sizes */}
+                    <div>
+                      <FieldLabel hint="Select all that apply">Available Sizes</FieldLabel>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {["XS","S","M","L","XL","XXL","XXXL","FREE SIZE","28","30","32","34","36","38","40","42","44","46"].map((size) => {
+                          const selected = (form.clothingSizes || []).includes(size);
+                          return (
+                            <button key={size} type="button"
+                              onClick={() => {
+                                const cur = form.clothingSizes || [];
+                                setForm({ ...form, clothingSizes: selected ? cur.filter(s => s !== size) : [...cur, size] });
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-sm font-semibold border-2 transition-all ${
+                                selected ? "bg-ink-900 text-white border-ink-900" : "bg-white text-ink-600 border-ink-200 hover:border-ink-400"
+                              }`}>
+                              {size}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {(form.clothingSizes || []).length > 0 && (
+                        <p className="text-xs text-green-600 mt-2">✓ {form.clothingSizes.length} size{form.clothingSizes.length !== 1 ? "s" : ""} selected</p>
+                      )}
+                    </div>
+                    <ClothQualityChecker description={form.description} title={form.title} />
+                  </>
                 )}
 
                 <div className="pt-2">

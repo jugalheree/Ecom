@@ -1,7 +1,265 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "../../store/toastStore";
-import { vendorMarketplaceAPI, vendorAPI } from "../../services/apis/index";
+import { vendorMarketplaceAPI, vendorAPI, dealAPI, marketplaceAPI } from "../../services/apis/index";
+
+// ─── Product Preview Modal ─────────────────────────────────────────────────────
+function ProductPreviewModal({ productId, item, onClose, onMakeDeal }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!productId) return;
+    marketplaceAPI.getProductDetails(productId)
+      .then((r) => setDetail(r.data?.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [productId]);
+
+  const product = detail?.product;
+  const vendor  = detail?.vendor;
+  const images  = detail?.images || [];
+  const attrs   = detail?.attributes || [];
+  const primaryImg = detail?.primaryImage?.imageUrl || images[0]?.imageUrl;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-ink-100 px-6 py-4 flex items-center justify-between z-10">
+          <h2 className="font-display font-bold text-ink-900">Product Details</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-ink-50">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-ink-200 border-t-brand-500 rounded-full animate-spin" />
+          </div>
+        ) : !product ? (
+          <div className="text-center py-20 text-ink-500">Product not found</div>
+        ) : (
+          <div className="p-6 space-y-6">
+            <div className="flex gap-5">
+              {/* Image */}
+              <div className="w-32 h-32 rounded-2xl bg-sand-100 flex-shrink-0 overflow-hidden">
+                {primaryImg
+                  ? <img src={primaryImg} alt={product.title} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>}
+              </div>
+              {/* Core info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-600 mb-1">{item?.vendor?.shopName || vendor?.shopName || "Vendor"}</p>
+                <h3 className="font-display font-bold text-ink-900 text-xl leading-snug">{product.title}</h3>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl font-bold text-ink-900">₹{(item?.discountedPrice || product.price)?.toLocaleString()}</span>
+                  <span className="text-sm text-ink-400">/ {item?.unit || "piece"}</span>
+                  {product.originalPrice && product.originalPrice !== product.price && (
+                    <span className="text-sm text-ink-400 line-through">₹{product.originalPrice?.toLocaleString()}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-2 text-xs text-ink-500">
+                  <span>📦 {item?.stock ?? product.stock} available</span>
+                  <span>•</span>
+                  <span className={product.stock > 0 ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
+                    {product.stock > 0 ? "In Stock" : "Out of Stock"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            {product.description && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Description</p>
+                <p className="text-sm text-ink-600 leading-relaxed">{product.description}</p>
+              </div>
+            )}
+
+            {/* Specifications */}
+            {attrs.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Specifications</p>
+                <div className="bg-sand-50 rounded-xl overflow-hidden divide-y divide-ink-100">
+                  {attrs.map((a, i) => (
+                    <div key={i} className="flex items-center px-4 py-2.5 gap-4">
+                      <span className="w-36 flex-shrink-0 text-xs font-semibold text-ink-400 uppercase tracking-wide">
+                        {a.label || a.attributeCode}
+                      </span>
+                      <span className="text-sm text-ink-900">{String(a.value)}{a.unit ? ` ${a.unit}` : ""}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Vendor */}
+            {vendor && (
+              <div className="flex items-center gap-3 p-4 bg-sand-50 rounded-xl border border-ink-200">
+                <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-sm">
+                  {vendor.shopName?.[0]?.toUpperCase() || "V"}
+                </div>
+                <div>
+                  <p className="text-xs text-ink-400">Sold by</p>
+                  <p className="font-semibold text-ink-900 text-sm">{vendor.shopName}</p>
+                </div>
+              </div>
+            )}
+
+            {/* CTA */}
+            {item && onMakeDeal && (
+              <button
+                onClick={() => { onClose(); onMakeDeal(item); }}
+                className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all"
+                style={{ background: "linear-gradient(135deg,#f05f00,#ff7d07)" }}>
+                🤝 Make a Deal
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Make Deal Modal ──────────────────────────────────────────────────────────
+function MakeDealModal({ item, onClose, onSuccess }) {
+  const showToast = useToastStore(s => s.showToast);
+  const [form, setForm] = useState({
+    proposedPrice: String(item.discountedPrice || ""),
+    proposedQty: "1",
+    terms: "",
+    deliveryDays: "7",
+    deliveryAddress: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const total = (Number(form.proposedPrice) || 0) * (Number(form.proposedQty) || 0);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.proposedPrice || !form.proposedQty) { showToast({ message: "Price and quantity required", type: "error" }); return; }
+    if (Number(form.proposedQty) > item.stock) { showToast({ message: `Only ${item.stock} units available`, type: "error" }); return; }
+    setSubmitting(true);
+    try {
+      await dealAPI.propose({
+        listingId: item._id,
+        proposedPrice: Number(form.proposedPrice),
+        proposedQty: Number(form.proposedQty),
+        terms: form.terms,
+        deliveryDays: Number(form.deliveryDays),
+        deliveryAddress: form.deliveryAddress,
+        dealType: "VENDOR_TO_VENDOR",
+      });
+      showToast({ message: "Deal proposed! Check your Deals page for updates.", type: "success" });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to propose deal";
+      const isOwnListing = msg.toLowerCase().includes("own listing");
+      showToast({ message: isOwnListing ? "You can't make a deal on your own listing" : msg, type: "error" });
+    } finally { setSubmitting(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="px-6 pt-6 pb-4 border-b border-ink-100">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-ink-900 font-display">🤝 Make a Deal</h2>
+              <p className="text-sm text-ink-400 mt-0.5">Propose terms to {item.vendor?.shopName || "vendor"}</p>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-xl bg-ink-50 flex items-center justify-center text-ink-600 hover:bg-ink-100">✕</button>
+          </div>
+        </div>
+
+        {/* Product info */}
+        <div className="px-6 py-4 bg-sand-50 border-b border-ink-100">
+          <p className="text-sm font-bold text-ink-900">{item.title}</p>
+          <p className="text-xs text-ink-500 mt-0.5">Listed at ₹{item.discountedPrice?.toLocaleString()}/{item.unit} · {item.stock} available</p>
+        </div>
+
+        {/* Vendor-to-Vendor delivery tag */}
+        <div className="mx-6 mt-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-50 border border-purple-200">
+          <span className="text-base">🏭</span>
+          <div>
+            <p className="text-xs font-bold text-purple-800">Vendor-to-Vendor Delivery</p>
+            <p className="text-[10px] text-purple-600">This is a B2B trade. A delivery person will be assigned to move goods between vendor warehouses.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Delivery address for buyer-vendor */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">📍 Delivery Address *</label>
+            <textarea rows={2} required value={form.deliveryAddress}
+              onChange={e => setForm(f => ({...f, deliveryAddress: e.target.value}))}
+              placeholder="Your warehouse / shop address where goods should be delivered..."
+              className="input-base resize-none" />
+            <p className="text-[10px] text-ink-400 mt-1">The seller will see this address and a delivery person will be assigned.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Your Price (₹/unit) *</label>
+              <input type="number" min="1" required value={form.proposedPrice}
+                onChange={e => setForm(f => ({...f, proposedPrice: e.target.value}))}
+                className="input-base" />
+              {Number(form.proposedPrice) < item.discountedPrice && (
+                <p className="text-[10px] text-amber-600 mt-1">Below listed price — seller may counter</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Quantity *</label>
+              <input type="number" min="1" max={item.stock} required value={form.proposedQty}
+                onChange={e => setForm(f => ({...f, proposedQty: e.target.value}))}
+                className="input-base" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Delivery Days</label>
+            <input type="number" min="1" value={form.deliveryDays}
+              onChange={e => setForm(f => ({...f, deliveryDays: e.target.value}))}
+              className="input-base" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Terms & Notes (optional)</label>
+            <textarea rows={2} value={form.terms}
+              onChange={e => setForm(f => ({...f, terms: e.target.value}))}
+              placeholder="e.g. Payment upfront, delivery by end of month..."
+              className="input-base resize-none" />
+          </div>
+
+          {total > 0 && (
+            <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl text-center">
+              <p className="text-xs text-green-600 font-medium">Deal Total</p>
+              <p className="text-2xl font-bold text-green-700">₹{total.toLocaleString()}</p>
+              <p className="text-xs text-green-500">{form.proposedQty} units × ₹{form.proposedPrice}/unit</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-3 rounded-xl border-2 border-ink-200 text-sm font-semibold text-ink-600 hover:border-ink-400">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting}
+              className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg,#f05f00,#ff7d07)" }}>
+              {submitting ? "Proposing..." : "Propose Deal 🤝"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const daysUntilExpiry = (expiryDate) => {
@@ -348,7 +606,7 @@ function ContactModal({ item, onClose }) {
 }
 
 // ─── Listing Card ─────────────────────────────────────────────────────────────
-function ListingCard({ item, onContact, onGoToProduct }) {
+function ListingCard({ item, onContact, onMakeDeal, onGoToProduct, myVendorId }) {
   const days = item.daysUntilExpiry ?? daysUntilExpiry(item.expiryDate);
   const discount = item.discountPercent ||
     (item.originalPrice && item.originalPrice !== item.discountedPrice
@@ -357,6 +615,16 @@ function ListingCard({ item, onContact, onGoToProduct }) {
   const cond = CONDITIONS[item.condition] || CONDITIONS.NEW;
   const isNew = item.listingType === "NEW";
   const productId = item.productId?._id || item.productId;
+  const isOwnListing = myVendorId && (
+    item.vendorId?._id === myVendorId ||
+    item.vendorId === myVendorId ||
+    item.vendor?._id === myVendorId
+  );
+
+  const vendorAddr = item.vendor?.address;
+  const addrStr = vendorAddr
+    ? [vendorAddr.area, vendorAddr.city].filter(Boolean).join(", ")
+    : null;
 
   return (
     <div className="bg-white rounded-2xl border border-ink-100 hover:border-brand-200 hover:shadow-lg transition-all duration-300 overflow-hidden group flex flex-col">
@@ -383,17 +651,31 @@ function ListingCard({ item, onContact, onGoToProduct }) {
             {isNew ? "New Stock" : "Surplus"}
           </span>
         </div>
+        {item.category?.name && (
+          <div className="absolute bottom-3 right-3">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/90 text-ink-600 border border-ink-200">
+              {item.category.name}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="p-4 flex flex-col flex-1">
         <h3 className="text-sm font-bold text-ink-900 leading-snug line-clamp-2 mb-2">{item.title}</h3>
 
-        {/* Vendor */}
-        <div className="flex items-center gap-1.5 mb-3">
-          <div className="w-5 h-5 rounded-md bg-brand-100 flex items-center justify-center text-[10px] font-bold text-brand-600">
-            {(item.vendor?.shopName || "V")[0]}
+        {/* Vendor + address */}
+        <div className="mb-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-md bg-brand-100 flex items-center justify-center text-[10px] font-bold text-brand-600">
+              {(item.vendor?.shopName || "V")[0]}
+            </div>
+            <span className="text-xs text-ink-500 truncate font-medium">{item.vendor?.shopName || "Vendor"}</span>
           </div>
-          <span className="text-xs text-ink-500 truncate">{item.vendor?.shopName || "Vendor"}</span>
+          {addrStr && (
+            <p className="text-[10px] text-ink-400 mt-0.5 ml-6.5 flex items-center gap-1">
+              <span>📍</span>{addrStr}
+            </p>
+          )}
         </div>
 
         {/* Expiry badge */}
@@ -422,18 +704,24 @@ function ListingCard({ item, onContact, onGoToProduct }) {
         <div className="flex gap-2">
           {productId && (
             <button
-              onClick={() => onGoToProduct(productId)}
-              title="View this product in your stock"
+              onClick={() => onGoToProduct(productId, item)}
+              title="View product details"
               className="flex-shrink-0 px-3 py-2.5 rounded-xl text-xs font-semibold border-2 border-ink-200 text-ink-600 hover:border-ink-400 hover:bg-ink-50 transition-all">
-              View Product
+              View
             </button>
           )}
-          <button
-            onClick={() => onContact(item)}
-            className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all group-hover:shadow-md active:scale-[0.97] text-white"
-            style={{ background: "linear-gradient(135deg,#131318,#3e3e48)" }}>
-            Contact Vendor
-          </button>
+          {isOwnListing ? (
+            <span className="flex-1 py-2.5 rounded-xl text-xs font-bold text-center bg-ink-100 text-ink-400 border border-ink-200">
+              Your Listing
+            </span>
+          ) : (
+            <button
+              onClick={() => onMakeDeal(item)}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all group-hover:shadow-md active:scale-[0.97] text-white"
+              style={{ background: "linear-gradient(135deg,#f05f00,#ff7d07)" }}>
+              🤝 Make Deal
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -447,14 +735,19 @@ export default function VendorMarketplace() {
 
   const [listings, setListings] = useState([]);
   const [vendorProducts, setVendorProducts] = useState([]);
+  const [myVendorId, setMyVendorId] = useState(null);
   const [stats, setStats] = useState({ totalListings: 0, expiringCount: 0, avgDiscount: 0, surplusCount: 0 });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [contactItem, setContactItem] = useState(null);
+  const [dealItem, setDealItem] = useState(null);
+  const [previewItem, setPreviewItem] = useState(null); // { productId, item }
 
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const loadListings = useCallback(async () => {
     setLoading(true);
@@ -462,6 +755,7 @@ export default function VendorMarketplace() {
       const params = { sort };
       if (activeTab !== "all") params.listingType = activeTab;
       if (search) params.search = search;
+      if (selectedCategory) params.categoryId = selectedCategory;
 
       const [listingsRes, statsRes] = await Promise.allSettled([
         vendorMarketplaceAPI.getListings(params),
@@ -480,13 +774,20 @@ export default function VendorMarketplace() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, sort]); // search is applied client-side for responsiveness
+  }, [activeTab, sort, selectedCategory]); // search is applied client-side for responsiveness
 
   useEffect(() => {
     loadListings();
   }, [loadListings]);
 
-  // Load vendor products for the create listing form
+  // Load categories for filter bar
+  useEffect(() => {
+    vendorMarketplaceAPI.getCategories()
+      .then((r) => setCategories(r.data?.data || []))
+      .catch(() => {});
+  }, []);
+
+  // Load vendor products for the create listing form + get own vendorId to hide deal button
   useEffect(() => {
     vendorAPI.products()
       .then((r) => {
@@ -494,20 +795,28 @@ export default function VendorMarketplace() {
         setVendorProducts(Array.isArray(d) ? d : d?.products || []);
       })
       .catch(() => {});
+    vendorAPI.getProfile()
+      .then((r) => setMyVendorId(r.data?.data?._id || null))
+      .catch(() => {});
   }, []);
 
-  const handleGoToProduct = (productId) => {
-    navigate(`/vendor/stock?highlight=${productId}`);
+  const handleGoToProduct = (productId, item) => {
+    setPreviewItem({ productId, item });
   };
+
+  const [hideOwnListings, setHideOwnListings] = useState(true);
 
   // Client-side search filter
   const filteredListings = listings.filter((item) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      item.title?.toLowerCase().includes(q) ||
-      item.vendor?.shopName?.toLowerCase().includes(q)
-    );
+    if (search) {
+      const q = search.toLowerCase();
+      if (!item.title?.toLowerCase().includes(q) && !item.vendor?.shopName?.toLowerCase().includes(q)) return false;
+    }
+    if (hideOwnListings && myVendorId) {
+      const isOwn = item.vendorId?._id === myVendorId || item.vendorId === myVendorId || item.vendor?._id === myVendorId;
+      if (isOwn) return false;
+    }
+    return true;
   });
 
   const newListings = filteredListings.filter((l) => l.listingType === "NEW");
@@ -562,8 +871,8 @@ export default function VendorMarketplace() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Search + Sort */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Search + Sort + Hide own */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400"
               viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -583,7 +892,44 @@ export default function VendorMarketplace() {
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
           </select>
+          <button
+            onClick={() => setHideOwnListings(v => !v)}
+            className={`flex-shrink-0 px-4 py-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+              hideOwnListings
+                ? "bg-ink-900 text-white border-ink-900"
+                : "bg-white text-ink-600 border-ink-200 hover:border-ink-400"
+            }`}
+          >
+            {hideOwnListings ? "👁 Showing Others" : "👁 Showing All"}
+          </button>
         </div>
+
+        {/* Category filter */}
+        {categories.length > 0 && (
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+            <button
+              onClick={() => setSelectedCategory("")}
+              className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={{
+                background: selectedCategory === "" ? "#131318" : "white",
+                color: selectedCategory === "" ? "white" : "#70707e",
+                border: `2px solid ${selectedCategory === "" ? "#131318" : "#e2e2e8"}`,
+              }}>
+              All Categories
+            </button>
+            {categories.map((cat) => (
+              <button key={cat._id} onClick={() => setSelectedCategory(cat._id)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                style={{
+                  background: selectedCategory === cat._id ? "#f05f00" : "white",
+                  color: selectedCategory === cat._id ? "white" : "#70707e",
+                  border: `2px solid ${selectedCategory === cat._id ? "#f05f00" : "#e2e2e8"}`,
+                }}>
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Tab bar */}
         <div className="flex gap-2 mb-8">
@@ -637,7 +983,7 @@ export default function VendorMarketplace() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {newListings.map(item => (
-                      <ListingCard key={item._id} item={item} onContact={setContactItem} onGoToProduct={handleGoToProduct} />
+                      <ListingCard key={item._id} item={item} onContact={setContactItem} onMakeDeal={setDealItem} onGoToProduct={handleGoToProduct} myVendorId={myVendorId} />
                     ))}
                   </div>
                 )}
@@ -681,7 +1027,7 @@ export default function VendorMarketplace() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {surplusListings.map(item => (
-                      <ListingCard key={item._id} item={item} onContact={setContactItem} onGoToProduct={handleGoToProduct} />
+                      <ListingCard key={item._id} item={item} onContact={setContactItem} onMakeDeal={setDealItem} onGoToProduct={handleGoToProduct} myVendorId={myVendorId} />
                     ))}
                   </div>
                 )}
@@ -712,6 +1058,25 @@ export default function VendorMarketplace() {
       {/* Contact Modal */}
       {contactItem && (
         <ContactModal item={contactItem} onClose={() => setContactItem(null)} />
+      )}
+
+      {/* Make Deal Modal */}
+      {dealItem && (
+        <MakeDealModal
+          item={dealItem}
+          onClose={() => setDealItem(null)}
+          onSuccess={() => { setDealItem(null); loadListings(); }}
+        />
+      )}
+
+      {/* Product Preview Modal */}
+      {previewItem && (
+        <ProductPreviewModal
+          productId={previewItem.productId}
+          item={previewItem.item}
+          onClose={() => setPreviewItem(null)}
+          onMakeDeal={(item) => { setPreviewItem(null); setDealItem(item); }}
+        />
       )}
     </div>
   );

@@ -24,7 +24,13 @@ export default function ProductCard({ product }) {
     e.stopPropagation();
     setAdding(true);
     try {
-      const res = await addToCart(product._id, 1);
+      const productData = {
+        title: productName,
+        price: product.price,
+        imageUrl: imageUrl,
+        vendor: product.vendor || product.vendorId?.shopName || "",
+      };
+      const res = await addToCart(product._id, 1, productData);
       if (res?.success !== false) showToast({ message: "Added to cart!", type: "success" });
       else showToast({ message: res?.message || "Failed to add", type: "error" });
     } catch {

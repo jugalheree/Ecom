@@ -324,12 +324,26 @@ export const getProductDetails = asyncHandler(async (req, res) => {
     _id: product.vendorId,
     isActive: true,
   })
-    .select("shopName")
+    .select("_id shopName businessType")
     .lean();
 
-  const attributes = await ProductAttributeValue.find({
+  const attributeValues = await ProductAttributeValue.find({
     productId: product._id,
   }).lean();
+
+  // Fetch category attribute definitions to get labels
+  const categoryAttrs = await CategoryAttribute.find({
+    categoryId: product.categoryId,
+    isActive: true,
+  }).lean();
+  const attrLabelMap = {};
+  categoryAttrs.forEach((a) => { attrLabelMap[a.code] = { label: a.label, unit: a.unit }; });
+
+  const attributes = attributeValues.map((av) => ({
+    ...av,
+    label: attrLabelMap[av.attributeCode]?.label || av.attributeCode,
+    unit: attrLabelMap[av.attributeCode]?.unit || null,
+  }));
 
   return res.status(200).json(
     new ApiResponse(
@@ -707,4 +721,52 @@ export const getMarketplaceProducts = asyncHandler(async (req, res) => {
     )
   );
 
+});
+// ── GET /api/marketplace/vendors/:vendorId — Public vendor profile with address ──
+export const getVendorPublicProfile = asyncHandler(async (req, res) => {
+  const { vendorId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(vendorId)) {
+    throw new ApiError(400, "Invalid vendor ID");
+  }
+
+  const vendor = await Vendor.findOne({ _id: vendorId, isActive: true })
+    .select("shopName businessType deliveryRadiusKm vendorScore totalOrders businessAddresses shopLocation")
+    .populate({
+      path: "businessAddresses",
+      select: "area city state pincode buildingNameOrNumber landmark",
+    })
+    .lean();
+
+  if (!vendor) throw new ApiError(404, "Vendor not found");
+
+  // Product count
+  const productCount = await Product.countDocuments({
+    vendorId: vendor._id,
+    approvalStatus: "APPROVED",
+    isActive: true,
+  });
+
+  const primaryAddress = vendor.businessAddresses?.[0] || null;
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      _id: vendor._id,
+      shopName: vendor.shopName,
+      businessType: vendor.businessType,
+      vendorScore: vendor.vendorScore,
+      totalOrders: vendor.totalOrders,
+      productCount,
+      address: primaryAddress
+        ? {
+            line1: primaryAddress.buildingNameOrNumber,
+            area: primaryAddress.area,
+            city: primaryAddress.city,
+            state: primaryAddress.state,
+            pincode: primaryAddress.pincode,
+            landmark: primaryAddress.landmark || null,
+          }
+        : null,
+    }, "Vendor profile fetched")
+  );
 });

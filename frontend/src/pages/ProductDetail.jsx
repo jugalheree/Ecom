@@ -50,7 +50,14 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     setAdding(true);
-    const result = await addToCart(product._id, quantity);
+    const imageUrl = images[activeImage]?.imageUrl || null;
+    const productData = {
+      title: product.title,
+      price: product.price,
+      imageUrl,
+      vendor: vendor?.shopName || "",
+    };
+    const result = await addToCart(product._id, quantity, productData);
     setAdding(false);
     if (result?.success !== false) showToast({ message: "Added to cart!", type: "success" });
     else showToast({ message: result?.message || "Failed to add to cart", type: "error" });
@@ -100,7 +107,7 @@ export default function ProductDetail() {
           <span>/</span>
           <Link to="/market" className="hover:text-brand-600 transition-colors">Marketplace</Link>
           <span>/</span>
-          <span className="text-ink-600 font-medium truncate max-w-xs">{product.name}</span>
+          <span className="text-ink-600 font-medium truncate max-w-xs">{product.title}</span>
         </div>
       </div>
 
@@ -222,16 +229,17 @@ export default function ProductDetail() {
 
             {/* Vendor */}
             {vendor && (
-              <div className="card p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-navy-400 to-navy-600 text-white flex items-center justify-center font-bold text-sm">
-                  {vendor.businessName?.[0] || "V"}
+              <a href={`/vendor/${vendor._id}`} className="card p-4 flex items-center gap-3 hover:shadow-card-hover transition-shadow cursor-pointer">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center font-bold text-sm">
+                  {vendor.shopName?.[0]?.toUpperCase() || "V"}
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-xs text-ink-400">Sold by</p>
-                  <p className="font-semibold text-ink-900 text-sm">{vendor.businessName}</p>
-                  {vendor.aiScore > 0 && <p className="text-xs text-brand-600">🤖 AI Score: {vendor.aiScore}/100</p>}
+                  <p className="font-semibold text-ink-900 text-sm truncate">{vendor.shopName || "Unknown Vendor"}</p>
+                  {vendor.businessType && <p className="text-xs text-ink-400">{vendor.businessType}</p>}
                 </div>
-              </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-300 flex-shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+              </a>
             )}
 
             {/* Trust badges */}
@@ -272,8 +280,8 @@ export default function ProductDetail() {
                   <p className="text-ink-400 text-sm">No specifications available.</p>
                 ) : attributes.map((a, i) => (
                   <div key={i} className={`flex items-start gap-4 py-2.5 ${i !== 0 ? "border-t border-ink-100" : ""}`}>
-                    <span className="w-32 flex-shrink-0 text-xs font-semibold text-ink-400 uppercase tracking-wide">{a.attribute?.name || a.name}</span>
-                    <span className="text-sm text-ink-900">{a.value}</span>
+                    <span className="w-36 flex-shrink-0 text-xs font-semibold text-ink-500 uppercase tracking-wide">{a.label || a.attribute?.label || a.attribute?.name || a.attributeCode}</span>
+                    <span className="text-sm text-ink-900">{String(a.value)}{a.unit ? ` ${a.unit}` : ""}</span>
                   </div>
                 ))}
               </div>

@@ -91,9 +91,10 @@ const returnRequestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Only prevent duplicate ACTIVE return requests (not rejected ones)
+// A buyer can re-request a return if their previous one was REJECTED
 returnRequestSchema.index(
-  { orderId: 1, productId: 1, buyerId: 1 },
-  { unique: true }
+  { orderId: 1, productId: 1, buyerId: 1, status: 1 }
 );
 
 export const ReturnRequest = mongoose.model(

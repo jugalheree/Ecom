@@ -1,21 +1,13 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
-import {
-  getAssignedDeliveries,
-  updateStatus,
-  markDelivered,
-  uploadProof,
-} from "../controllers/delivery.controller.js";
+import { getDeliveryOrders, updateDeliveryStatus } from "../controllers/delivery.controller.js";
 
 const router = Router();
 
-router.use(verifyJWT);
-router.use(authorizeRoles("DELIVERY"));
+router.use(verifyJWT, authorizeRoles("EMPLOYEE"));
 
-router.get("/deliveries", getAssignedDeliveries);
-router.patch("/deliveries/:assignmentId/status", updateStatus);
-router.post("/deliveries/:assignmentId/delivered", markDelivered);
-router.post("/deliveries/:assignmentId/proof", uploadProof);
+router.route("/orders").get(getDeliveryOrders);
+router.route("/orders/:orderId/status").patch(updateDeliveryStatus);
 
 export default router;

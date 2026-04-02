@@ -96,5 +96,5 @@
   .stagger-5 { animation-delay: 0.42s; }
 
   /* ── Page wrapper: pushes content below fixed navbar ── */
-  .page-content { @apply pt-[72px]; }
+  .page-content { @apply pt-[92px]; }
 }

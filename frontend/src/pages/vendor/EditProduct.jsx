@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../services/api";
 import { vendorAPI } from "../../services/apis/index";
+import api from "../../services/api";
+import { useToastStore } from "../../store/toastStore";
 
 export default function EditProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const showToast = useToastStore((s) => s.showToast);
 
   const [form, setForm] = useState({
     title: "",
@@ -21,26 +23,23 @@ export default function EditProduct() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Fetch from vendor's own product list then find by id
-    vendorAPI.products()
+    api.get(`/api/vendor/products/${id}`)
       .then((res) => {
-        const raw = res.data?.data;
-        const products = Array.isArray(raw) ? raw : raw?.products || [];
-        const product = products.find((p) => p._id === id || p.id === id);
-        if (product) {
+        const p = res.data?.data?.product || res.data?.data;
+        if (p) {
           setForm({
-            title: product.title || product.name || "",
-            description: product.description || "",
-            price: product.price ?? "",
-            stock: product.stock ?? 0,
-            minDeliveryDays: product.minDeliveryDays ?? 1,
-            maxDeliveryDays: product.maxDeliveryDays ?? 5,
+            title: p.title || "",
+            description: p.description || "",
+            price: p.price ?? "",
+            stock: p.stock ?? 0,
+            minDeliveryDays: p.minDeliveryDays ?? 1,
+            maxDeliveryDays: p.maxDeliveryDays ?? 5,
           });
         } else {
           setError("Product not found.");
         }
       })
-      .catch(() => setError("Failed to load product."))
+      .catch(() => setError("Failed to load product. Please try again."))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -51,8 +50,8 @@ export default function EditProduct() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setError("");
     try {
-      // NOTE: PATCH /api/vendor/products/:id does not exist in the backend yet.
       await vendorAPI.updateProduct(id, {
         title: form.title,
         description: form.description,
@@ -61,9 +60,12 @@ export default function EditProduct() {
         minDeliveryDays: Number(form.minDeliveryDays),
         maxDeliveryDays: Number(form.maxDeliveryDays),
       });
+      showToast({ message: "Product updated!", type: "success" });
       navigate("/vendor/products");
     } catch (err) {
-      setError(err?.message || "Update failed — this feature requires a backend route (PATCH /api/vendor/products/:id) that has not been implemented yet.");
+      const msg = err?.response?.data?.message || err?.message || "Update failed";
+      setError(msg);
+      showToast({ message: msg, type: "error" });
     } finally {
       setSaving(false);
     }

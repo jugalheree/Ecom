@@ -17,7 +17,8 @@ export default function VendorPage() {
   const [sort, setSort] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [catLoading, setCatLoading] = useState(true);
-  const [vendorName, setVendorName] = useState("");
+  const [vendorProfile, setVendorProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [addingToCartId, setAddingToCartId] = useState(null);
 
   const flattenTree = (nodes, depth = 0) => {
@@ -28,6 +29,15 @@ export default function VendorPage() {
     }
     return result;
   };
+
+  useEffect(() => {
+    if (!vendorId) return;
+    setProfileLoading(true);
+    marketplaceAPI.getVendorPublicProfile(vendorId)
+      .then((res) => setVendorProfile(res.data?.data || null))
+      .catch(() => {})
+      .finally(() => setProfileLoading(false));
+  }, [vendorId]);
 
   useEffect(() => {
     setCatLoading(true);
@@ -57,9 +67,6 @@ export default function VendorPage() {
           (p) => p.vendorId?.toString() === vendorId || p.vendorId === vendorId
         );
         setProducts(vendorProducts);
-        if (vendorProducts[0]?.vendorId?.shopName) {
-          setVendorName(vendorProducts[0].vendorId.shopName);
-        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -75,30 +82,94 @@ export default function VendorPage() {
   };
 
   const leafCategories = categories.filter((c) => !c.hasChildren);
+  const vendorAddr = vendorProfile?.address;
+  const vendorName = vendorProfile?.shopName || (profileLoading ? "" : "Unknown Vendor");
 
   return (
     <div className="min-h-screen bg-ink-50 mt-[72px]">
-      {/* Vendor Header */}
+      {/* ── Vendor Header with Address at top ── */}
       <div className="bg-white border-b border-ink-100">
-        <div className="container-app py-10">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
+        <div className="container-app py-8">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+            <div className="flex-1">
               <p className="text-xs font-display font-bold uppercase tracking-widest text-brand-600 mb-2">
                 Vendor Store
               </p>
-              <h1 className="text-4xl md:text-5xl font-display font-bold text-ink-900 leading-tight">
-                {vendorName || "Loading..."}
-              </h1>
+
+              {profileLoading ? (
+                <div className="space-y-3">
+                  <div className="h-10 bg-ink-100 rounded-xl w-64 animate-pulse" />
+                  <div className="h-16 bg-ink-100 rounded-2xl w-96 animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-4xl md:text-5xl font-display font-bold text-ink-900 leading-tight">
+                    {vendorName}
+                  </h1>
+
+                  {/* Address — prominently at top */}
+                  {vendorAddr ? (
+                    <div className="flex items-start gap-3 mt-4 p-4 bg-sand-50 rounded-2xl border border-ink-200 max-w-lg">
+                      <div className="w-9 h-9 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-lg">📍</span>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-ink-400 uppercase tracking-wide mb-1">Store Address</p>
+                        {vendorAddr.line1 && (
+                          <p className="text-sm font-semibold text-ink-800">{vendorAddr.line1}</p>
+                        )}
+                        <p className="text-sm text-ink-700">
+                          {[vendorAddr.area, vendorAddr.city].filter(Boolean).join(", ")}
+                        </p>
+                        <p className="text-sm text-ink-500">
+                          {[vendorAddr.state, vendorAddr.pincode].filter(Boolean).join(" — ")}
+                        </p>
+                        {vendorAddr.landmark && (
+                          <p className="text-xs text-ink-400 mt-1">Near: {vendorAddr.landmark}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-ink-400 mt-3 italic">No address listed</p>
+                  )}
+
+                  {/* Quick stats */}
+                  {(vendorProfile?.productCount > 0 || vendorProfile?.totalOrders > 0 || vendorProfile?.vendorScore != null) && (
+                    <div className="flex items-center gap-6 mt-4 flex-wrap">
+                      {vendorProfile.productCount > 0 && (
+                        <div>
+                          <p className="text-xl font-display font-bold text-ink-900">{vendorProfile.productCount}</p>
+                          <p className="text-xs text-ink-400 font-medium">Products</p>
+                        </div>
+                      )}
+                      {vendorProfile.totalOrders > 0 && (
+                        <div>
+                          <p className="text-xl font-display font-bold text-ink-900">{vendorProfile.totalOrders}</p>
+                          <p className="text-xs text-ink-400 font-medium">Orders Fulfilled</p>
+                        </div>
+                      )}
+                      {vendorProfile.vendorScore != null && (
+                        <div>
+                          <p className="text-xl font-display font-bold text-brand-600">{vendorProfile.vendorScore}/100</p>
+                          <p className="text-xs text-ink-400 font-medium">Vendor Score</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
               {!loading && (
-                <p className="text-ink-500 mt-2 text-sm">
+                <p className="text-ink-400 mt-3 text-sm">
                   {products.length} product{products.length !== 1 ? "s" : ""} in this category
                 </p>
               )}
             </div>
+
             <select
               value={sort}
               onChange={(e) => { setSort(e.target.value); setPage(1); }}
-              className="px-4 py-2.5 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-brand-500 bg-white text-ink-900 font-medium"
+              className="px-4 py-2.5 border-2 border-ink-200 rounded-xl text-sm outline-none focus:border-brand-500 bg-white text-ink-900 font-medium self-start"
             >
               <option value="newest">Newest first</option>
               <option value="price_low_high">Price: Low to High</option>
@@ -109,10 +180,12 @@ export default function VendorPage() {
       </div>
 
       <div className="container-app py-8 flex gap-8">
-        {/* Sidebar */}
+        {/* ── Sidebar: Categories ── */}
         <aside className="w-56 flex-shrink-0 hidden md:block">
           <div className="bg-white rounded-2xl border border-ink-100 p-4 sticky top-24">
-            <p className="text-xs font-display font-bold uppercase tracking-widest text-ink-400 mb-3 px-1">Categories</p>
+            <p className="text-xs font-display font-bold uppercase tracking-widest text-ink-400 mb-3 px-1">
+              Categories
+            </p>
             {catLoading ? (
               <div className="space-y-2">
                 {[...Array(6)].map((_, i) => (
@@ -140,7 +213,7 @@ export default function VendorPage() {
           </div>
         </aside>
 
-        {/* Products Grid */}
+        {/* ── Products Grid ── */}
         <main className="flex-1 min-w-0">
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -160,7 +233,7 @@ export default function VendorPage() {
               <div className="text-5xl mb-4">🏪</div>
               <h2 className="text-xl font-display font-bold text-ink-900 mb-2">No products in this category</h2>
               <p className="text-ink-500 text-sm text-center max-w-xs">
-                This vendor hasn't listed any products in this category yet. Try another category.
+                This vendor hasn't listed any products here yet. Try another category.
               </p>
             </div>
           ) : (

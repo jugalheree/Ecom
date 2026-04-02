@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
-import { getCategoryFilters, getCategoryTree, getMarketplaceProducts, getProductDetails, getProductsByCategory, getSearchSuggestions, getSimilarProducts, searchProducts } from "../controllers/marketplace.controller.js";
+import { getCategoryFilters, getCategoryTree, getMarketplaceProducts, getProductDetails, getProductsByCategory, getSearchSuggestions, getSimilarProducts, searchProducts, getVendorPublicProfile } from "../controllers/marketplace.controller.js";
 
 const router = Router();
 
@@ -14,5 +14,6 @@ router.route("/products/:productId/similar").get(getSimilarProducts);
 router.route("/search/products").get(searchProducts);
 router.route("/search/suggestions").get(getSearchSuggestions);
 router.route("/products").get(getMarketplaceProducts);
+router.route("/vendors/:vendorId").get(getVendorPublicProfile);
 
 export default router;

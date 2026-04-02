@@ -5,14 +5,19 @@ import ProductDetail from "../pages/ProductDetail";
 import SearchResults from "../pages/SearchResults";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
+import Profile from "../pages/Profile";
 import BuyerDashboard from "../pages/buyer/BuyerDashboard";
 import VendorDashboard from "../pages/vendor/VendorDashboard";
 import ProtectedRoute from "./ProtectedRoute";
+import BuyerRoute from "./BuyerRoute";
 import Cart from "../pages/Cart";
 import Checkout from "../pages/Checkout";
 import VendorProducts from "../pages/vendor/VendorProducts";
 import VendorStock from "../pages/vendor/VendorStock";
 import VendorTrade from "../pages/vendor/VendorTrade";
+import VendorPayout from "../pages/vendor/VendorPayout";
 import VendorReports from "../pages/vendor/VendorReports";
 import VendorSetup from "../pages/vendor/VendorSetup";
 import Wishlist from "../pages/Wishlist";
@@ -20,6 +25,7 @@ import BuyerOrders from "../pages/user/BuyerOrders";
 import BuyerOrderDetail from "../pages/user/BuyerOrderDetail";
 import TradeWallet from "../pages/wallet/TradeWallet";
 import WalletClaims from "../pages/wallet/WalletClaims";
+import Referral from "../pages/Referral";
 import RatingCenter from "../pages/ratings/RatingCenter";
 import VendorLayout from "../components/layout/VendorLayout";
 import AdminRoute from "./AdminRoute";
@@ -32,6 +38,8 @@ import AdminClaims from "../pages/admin/AdminClaims";
 import AdminVendors from "../pages/admin/AdminVendors";
 import AdminProducts from "../pages/admin/AdminProducts";
 import AdminCategories from "../pages/admin/AdminCategories";
+import AdminDelivery from "../pages/admin/AdminDelivery";
+import AdminCoupons from "../pages/admin/AdminCoupons";
 import DeliveryLayout from "../components/layout/DeliveryLayout";
 import DeliveryDashboard from "../pages/delivery/DeliveryDashboard";
 import DeliveryOrders from "../pages/delivery/DeliveryOrders";
@@ -39,10 +47,15 @@ import DeliveryTracking from "../pages/delivery/DeliveryTracking";
 import AddProduct from "../pages/vendor/AddProduct";
 import EditProduct from "../pages/vendor/EditProduct";
 import VendorPage from "../pages/public/VendorPage";
+import VendorReturns from "../pages/vendor/VendorReturns";
+import VendorDelivery from "../pages/vendor/VendorDelivery";
 import VendorOrders from "../pages/vendor/VendorOrders";
+import VendorOrderDetail from "../pages/vendor/VendorOrderDetail";
 import VendorMarketplace from "../pages/vendor/VendorMarketplace";
 import VendorRatings from "../pages/vendor/VendorRatings";
+import VendorDeals from "../pages/vendor/VendorDeals";
 import Wallet from "../pages/Wallet";
+import NotFound from "../pages/NotFound";
 
 export default function AppRoutes() {
   return (
@@ -54,21 +67,25 @@ export default function AppRoutes() {
       <Route path="/search" element={<SearchResults />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/profile" element={<Profile />} />
       <Route path="/vendor/:vendorId" element={<VendorPage />} />
 
-      {/* ── Buyer ── */}
-      <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+      {/* ── Buyer (vendors/admins redirected away) ── */}
+      <Route path="/buyer/dashboard" element={<BuyerRoute><BuyerDashboard /></BuyerRoute>} />
       <Route path="/cart" element={<Cart />} />
-      <Route path="/checkout" element={<Checkout />} />
+      <Route path="/checkout" element={<BuyerRoute><Checkout /></BuyerRoute>} />
       <Route path="/wishlist" element={<Wishlist />} />
-      <Route path="/orders" element={<BuyerOrders />} />
-      <Route path="/orders/:id" element={<BuyerOrderDetail />} />
-      <Route path="/wallet" element={<Wallet />} />
-      <Route path="/wallet/trade" element={<TradeWallet />} />
-      <Route path="/wallet/claims" element={<WalletClaims />} />
-      <Route path="/ratings" element={<RatingCenter />} />
+      <Route path="/orders" element={<BuyerRoute><BuyerOrders /></BuyerRoute>} />
+      <Route path="/orders/:id" element={<BuyerRoute><BuyerOrderDetail /></BuyerRoute>} />
+      <Route path="/wallet" element={<BuyerRoute><Wallet /></BuyerRoute>} />
+      <Route path="/wallet/trade" element={<BuyerRoute><TradeWallet /></BuyerRoute>} />
+      <Route path="/wallet/claims" element={<BuyerRoute><WalletClaims /></BuyerRoute>} />
+      <Route path="/referral" element={<BuyerRoute><Referral /></BuyerRoute>} />
+      <Route path="/ratings" element={<BuyerRoute><RatingCenter /></BuyerRoute>} />
 
-      {/* ── Vendor (all under VendorLayout which has its own navbar) ── */}
+      {/* ── Vendor ── */}
       <Route path="/vendor/setup" element={<VendorSetup />} />
       <Route
         path="/vendor"
@@ -85,13 +102,18 @@ export default function AppRoutes() {
         <Route path="products/edit/:id" element={<EditProduct />} />
         <Route path="stock" element={<VendorStock />} />
         <Route path="orders" element={<VendorOrders />} />
+        <Route path="orders/:id" element={<VendorOrderDetail />} />
+        <Route path="returns" element={<VendorReturns />} />
+        <Route path="delivery" element={<VendorDelivery />} />
         <Route path="trade" element={<VendorTrade />} />
         <Route path="reports" element={<VendorReports />} />
         <Route path="marketplace" element={<VendorMarketplace />} />
         <Route path="ratings" element={<VendorRatings />} />
+        <Route path="deals" element={<VendorDeals />} />
+        <Route path="payout" element={<VendorPayout />} />
       </Route>
 
-      {/* ── Admin (all under AdminLayout which has its own navbar) ── */}
+      {/* ── Admin ── */}
       <Route
         path="/admin"
         element={
@@ -108,9 +130,11 @@ export default function AppRoutes() {
         <Route path="vendors" element={<AdminVendors />} />
         <Route path="products" element={<AdminProducts />} />
         <Route path="categories" element={<AdminCategories />} />
+        <Route path="delivery" element={<AdminDelivery />} />
+        <Route path="coupons" element={<AdminCoupons />} />
       </Route>
 
-      {/* ── Delivery (all under DeliveryLayout which has its own navbar) ── */}
+      {/* ── Delivery ── */}
       <Route
         path="/delivery"
         element={
@@ -124,6 +148,9 @@ export default function AppRoutes() {
         <Route path="orders" element={<DeliveryOrders />} />
         <Route path="tracking" element={<DeliveryTracking />} />
       </Route>
+
+      {/* ── 404 ── */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

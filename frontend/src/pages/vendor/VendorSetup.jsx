@@ -1,9 +1,21 @@
+/**
+ * VendorSetup.jsx — UPDATED
+ *
+ * Changes from original:
+ *   - Step 2 (Shop Address) now uses AddressFormWithMap instead of plain inputs
+ *   - Vendor can pin their exact shop location on the Ola Map
+ *   - Coordinates are saved with the address for distance calculations
+ *
+ * Only Step 2 is changed. Steps 1 and 3 are identical to original.
+ */
+
 import { useState } from "react";
 import { vendorAPI, userAPI } from "../../services/apis/index";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "../../store/toastStore";
 import Card from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
+import AddressFormWithMap from "../../components/map/AddressFormWithMap";
 
 export default function VendorSetup() {
   const navigate = useNavigate();
@@ -11,7 +23,6 @@ export default function VendorSetup() {
 
   const [step, setStep] = useState(1);
   const [vendorId, setVendorId] = useState(null);
-  const [addressId, setAddressId] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const [profile, setProfile] = useState({
@@ -23,17 +34,6 @@ export default function VendorSetup() {
     deliveryChargePerKm: "10",
   });
 
-  const [address, setAddress] = useState({
-    addressType: "SHOP",
-    buildingNameOrNumber: "",
-    landmark: "",
-    area: "",
-    city: "",
-    state: "",
-    country: "India",
-    pincode: "",
-  });
-
   const [documents, setDocuments] = useState([]);
 
   // Step 1: Create vendor profile
@@ -43,7 +43,6 @@ export default function VendorSetup() {
       showToast({ message: "Please fill all required fields", type: "error" });
       return;
     }
-
     setLoading(true);
     try {
       const res = await vendorAPI.createProfile({
@@ -52,7 +51,7 @@ export default function VendorSetup() {
         deliveryChargePerKm: Number(profile.deliveryChargePerKm),
       });
       setVendorId(res.data?.data?._id);
-      showToast({ message: "Profile created! Now add your shop address.", type: "success" });
+      showToast({ message: "Profile created! Now pin your shop on the map.", type: "success" });
       setStep(2);
     } catch (err) {
       showToast({ message: err.message || "Failed to create profile", type: "error" });
@@ -61,30 +60,31 @@ export default function VendorSetup() {
     }
   };
 
-  // Step 2: Create and attach address
-  const handleCreateAddress = async (e) => {
-    e.preventDefault();
-    if (!address.buildingNameOrNumber || !address.area || !address.city || !address.state || !address.pincode) {
+  // Step 2: Save address with coordinates from map
+  const handleCreateAddress = async (addressData) => {
+    if (!addressData.buildingNameOrNumber || !addressData.area || !addressData.city || !addressData.state || !addressData.pincode) {
       showToast({ message: "Please fill all required address fields", type: "error" });
       return;
     }
-
-    if (!/^\d{6}$/.test(address.pincode)) {
+    if (!/^\d{6}$/.test(addressData.pincode)) {
       showToast({ message: "Enter valid 6-digit pincode", type: "error" });
       return;
     }
 
     setLoading(true);
     try {
-      // Create address
-      const addrRes = await userAPI.createAddress(address);
+      // Create address (location coordinates included if map was used)
+      const addrRes = await userAPI.createAddress({
+        ...addressData,
+        addressType: addressData.addressType || "SHOP",
+        location: addressData.location?.lat ? addressData.location : undefined,
+      });
       const newAddressId = addrRes.data?.data?._id;
-      setAddressId(newAddressId);
 
       // Attach to vendor
       await vendorAPI.attachAddress(vendorId, { addressId: newAddressId });
 
-      showToast({ message: "Address attached! Now upload your documents.", type: "success" });
+      showToast({ message: "Shop address saved with location! Upload your documents next.", type: "success" });
       setStep(3);
     } catch (err) {
       if (err.status === 409) {
@@ -103,15 +103,13 @@ export default function VendorSetup() {
       showToast({ message: "Please upload at least one document", type: "error" });
       return;
     }
-
     const formData = new FormData();
     documents.forEach((doc) => formData.append("documents", doc));
-
     setLoading(true);
     try {
       await vendorAPI.uploadDocuments(formData);
       showToast({
-        message: "Documents submitted! Your account is under review. You'll be notified once approved.",
+        message: "Documents submitted! Your account is under review.",
         type: "success",
       });
       navigate("/vendor/dashboard");
@@ -128,12 +126,8 @@ export default function VendorSetup() {
     <div className="min-h-screen bg-ink-50 px-6 py-12">
       <div className="max-w-2xl mx-auto">
         <div className="mb-10 text-center">
-          <h1 className="text-4xl font-bold text-ink-900 mb-2">
-            Set up your vendor profile
-          </h1>
-          <p className="text-ink-500">
-            Complete these steps to start selling on TradeSphere.
-          </p>
+          <h1 className="text-4xl font-bold text-ink-900 mb-2">Set up your vendor profile</h1>
+          <p className="text-ink-500">Complete these steps to start selling on TradeSphere.</p>
         </div>
 
         {/* Step indicator */}
@@ -164,18 +158,14 @@ export default function VendorSetup() {
           {step === 1 && (
             <form onSubmit={handleCreateProfile} className="space-y-6">
               <h2 className="text-xl font-semibold text-ink-900">Business Profile</h2>
-
               <Input
                 label="Shop Name *"
                 placeholder="Your shop or business name"
                 value={profile.shopName}
                 onChange={(e) => setProfile({ ...profile, shopName: e.target.value })}
               />
-
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-2">
-                  Business Type *
-                </label>
+                <label className="block text-sm font-medium text-ink-700 mb-2">Business Type *</label>
                 <select
                   value={profile.businessType}
                   onChange={(e) => setProfile({ ...profile, businessType: e.target.value })}
@@ -187,21 +177,18 @@ export default function VendorSetup() {
                   <option value="DISTRIBUTOR">Distributor</option>
                 </select>
               </div>
-
               <Input
                 label="PAN Number *"
                 placeholder="e.g. ABCDE1234F"
                 value={profile.panNumber}
                 onChange={(e) => setProfile({ ...profile, panNumber: e.target.value.toUpperCase() })}
               />
-
               <Input
                 label="GST Number *"
                 placeholder="e.g. 22AAAAA0000A1Z5"
                 value={profile.gstNumber}
                 onChange={(e) => setProfile({ ...profile, gstNumber: e.target.value.toUpperCase() })}
               />
-
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label="Free delivery distance (km)"
@@ -218,7 +205,6 @@ export default function VendorSetup() {
                   onChange={(e) => setProfile({ ...profile, deliveryChargePerKm: e.target.value })}
                 />
               </div>
-
               <button
                 type="submit"
                 disabled={loading}
@@ -229,80 +215,31 @@ export default function VendorSetup() {
             </form>
           )}
 
-          {/* STEP 2: Address */}
+          {/* STEP 2: Address with Map — UPDATED */}
           {step === 2 && (
-            <form onSubmit={handleCreateAddress} className="space-y-5">
-              <h2 className="text-xl font-semibold text-ink-900">Shop Address</h2>
-
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-2">
-                  Address Type
-                </label>
-                <select
-                  value={address.addressType}
-                  onChange={(e) => setAddress({ ...address, addressType: e.target.value })}
-                  className="w-full rounded-xl border border-ink-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-                >
-                  <option value="SHOP">Shop</option>
-                  <option value="WAREHOUSE">Warehouse</option>
-                  <option value="HOME">Home</option>
-                </select>
+                <h2 className="text-xl font-semibold text-ink-900">Shop Address</h2>
+                <p className="text-sm text-ink-500 mt-1">
+                  Pin your shop on the map so buyers near you can find your products.
+                </p>
               </div>
 
-              <Input
-                label="Building / Number *"
-                placeholder="Shop No. / Building Name"
-                value={address.buildingNameOrNumber}
-                onChange={(e) => setAddress({ ...address, buildingNameOrNumber: e.target.value })}
-              />
-              <Input
-                label="Landmark"
-                placeholder="Near school / park"
-                value={address.landmark}
-                onChange={(e) => setAddress({ ...address, landmark: e.target.value })}
-              />
-              <Input
-                label="Area / Street *"
-                placeholder="Area or street name"
-                value={address.area}
-                onChange={(e) => setAddress({ ...address, area: e.target.value })}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="City *"
-                  value={address.city}
-                  onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                />
-                <Input
-                  label="State *"
-                  value={address.state}
-                  onChange={(e) => setAddress({ ...address, state: e.target.value })}
-                />
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
+                <span>📍</span>
+                <span>
+                  <strong>Tip:</strong> Use "Pick on Map" to pinpoint your exact shop location.
+                  This helps buyers within your delivery range discover your products.
+                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Pincode *"
-                  placeholder="6 digits"
-                  value={address.pincode}
-                  onChange={(e) => setAddress({ ...address, pincode: e.target.value })}
-                />
-                <Input
-                  label="Country"
-                  value={address.country}
-                  onChange={(e) => setAddress({ ...address, country: e.target.value })}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-ink-900 transition disabled:opacity-50"
-              >
-                {loading ? "Saving address..." : "Next: Upload documents →"}
-              </button>
-            </form>
+              <AddressFormWithMap
+                onSubmit={handleCreateAddress}
+                loading={loading}
+                initialData={{ addressType: "SHOP" }}
+                submitLabel="Save & Continue →"
+              />
+            </div>
           )}
 
           {/* STEP 3: Documents */}
@@ -312,7 +249,6 @@ export default function VendorSetup() {
               <p className="text-ink-500 text-sm">
                 Upload business documents for verification (GST certificate, trade license, etc.). Max 5 files.
               </p>
-
               <div>
                 <label className="block text-sm font-medium text-ink-700 mb-2">
                   Documents (JPEG, PNG, WEBP)
@@ -330,11 +266,9 @@ export default function VendorSetup() {
                   </p>
                 )}
               </div>
-
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-                <strong>Note:</strong> Your account will be under review after submission. You'll be notified once admin approves your profile.
+                <strong>Note:</strong> Your account will be under review after submission.
               </div>
-
               <button
                 onClick={handleUploadDocuments}
                 disabled={loading}

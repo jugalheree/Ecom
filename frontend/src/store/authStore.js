@@ -1,14 +1,15 @@
 import { create } from "zustand";
 import api from "../services/api";
 
-// Safely parse localStorage
+// FIX: Only store non-sensitive user profile data in localStorage.
+// The JWT access token must NOT be stored in localStorage — it's vulnerable to XSS.
+// Authentication relies on httpOnly cookies set by the backend.
 const getSavedAuth = () => {
   try {
-    const authData = localStorage.getItem("auth");
-    if (!authData) return null;
-    return JSON.parse(authData);
-  } catch (error) {
-    console.error("Error parsing auth data:", error);
+    const raw = localStorage.getItem("auth");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
     localStorage.removeItem("auth");
     return null;
   }
@@ -18,43 +19,44 @@ const savedAuth = getSavedAuth();
 
 export const useAuthStore = create((set) => ({
   user: savedAuth?.user || null,
-  token: savedAuth?.token || null,
-  role: savedAuth?.role || null, // "buyer" | "vendor"
+  // FIX: Token removed from state — auth is handled via httpOnly cookies only
+  role: savedAuth?.role || null,
 
   login: (data) => {
+    // FIX: Never store the JWT token in localStorage — only store non-sensitive profile info
+    const authPayload = {
+      user: data.user,
+      role: data.role,
+      // token deliberately excluded
+    };
     try {
-      localStorage.setItem("auth", JSON.stringify(data));
-      set({
-        user: data.user,
-        token: data.token,
-        role: data.role,
-      });
-    } catch (error) {
-      console.error("Error saving auth data:", error);
-    }
+      localStorage.setItem("auth", JSON.stringify(authPayload));
+    } catch {}
+    set({ user: data.user, role: data.role });
   },
 
   logout: async () => {
     try {
-      // Call backend logout API if token exists
-      const authData = getSavedAuth();
-      if (authData?.token) {
-        try {
-          await api.post("/api/auth/logout");
-        } catch (error) {
-          // Log but don't block logout
-          console.error("Logout API error:", error);
-        }
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
+      // Call backend to clear httpOnly cookies and invalidate refresh token
+      await api.post("/api/auth/logout");
+    } catch {
+      // Even if request fails, clear local state
     } finally {
       localStorage.removeItem("auth");
-      set({
-        user: null,
-        token: null,
-        role: null,
-      });
+      set({ user: null, role: null });
     }
+  },
+
+  setUser: (updatedUser) => {
+    set((state) => {
+      const newUser = { ...state.user, ...updatedUser };
+      try {
+        const saved = getSavedAuth();
+        if (saved) {
+          localStorage.setItem("auth", JSON.stringify({ ...saved, user: newUser }));
+        }
+      } catch {}
+      return { user: newUser };
+    });
   },
 }));

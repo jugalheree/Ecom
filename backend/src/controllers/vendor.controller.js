@@ -13,55 +13,65 @@ import { ProductAttributeValue } from "../models/product/ProductAttributeValue.m
 import { ProductImage } from "../models/product/ProductImage.model.js";
 import mongoose from "mongoose";
 import { Order } from "../models/order/Order.model.js";
+import { VendorBankAccount } from "../models/vendor/VendorBankAccount.model.js";
+import { TradeWallet } from "../models/finance/TradeWallet.model.js";
+import { WalletTransaction } from "../models/finance/WalletTransaction.model.js";
 
-// creating vender profile/ new vender registration
+// creating vendor profile / new vendor registration
 export const createVendorProfile = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const {
+    vendorType,
     shopName,
     businessType,
     panNumber,
-    gstNumber,
+    gstNumber,          // optional for both
+    orgOwnerName,       // required only for ORGANIZATION
+    orgOwnerPhone,      // required only for ORGANIZATION
     freeDeliveryDistanceKm,
     deliveryChargePerKm,
+    deliveryRadiusKm,
+    shopLat,
+    shopLng,
   } = req.body;
 
-  console.log(req.body);
-
-  if (
-    !shopName ||
-    !businessType ||
-    !panNumber ||
-    !gstNumber ||
-    !freeDeliveryDistanceKm ||
-    !deliveryChargePerKm
-  ) {
-    throw new ApiError(400, "All fields are required");
+  if (!shopName || !businessType || !panNumber) {
+    throw new ApiError(400, "Shop name, business type and PAN are required");
   }
 
-  const vendorExists = await Vendor.findOne({
-    userId,
-    shopName,
-  });
+  const type = vendorType || "SOLO";
 
+  if (type === "ORGANIZATION") {
+    if (!orgOwnerName || !orgOwnerPhone) {
+      throw new ApiError(400, "Organization owner name and phone are required");
+    }
+  }
+
+  const vendorExists = await Vendor.findOne({ userId, shopName });
   if (vendorExists) {
     throw new ApiError(409, "Vendor with this shop name already exists");
   }
 
   const vendor = await Vendor.create({
     userId,
+    vendorType: type,
     shopName,
     businessType,
     panNumber,
-    gstNumber,
-    freeDeliveryDistanceKm,
-    deliveryChargePerKm,
+    gstNumber: gstNumber || null,
+    orgOwnerName: type === "ORGANIZATION" ? orgOwnerName : null,
+    orgOwnerPhone: type === "ORGANIZATION" ? orgOwnerPhone : null,
+    freeDeliveryDistanceKm: Number(freeDeliveryDistanceKm) || 0,
+    deliveryChargePerKm: Number(deliveryChargePerKm) || 0,
+    deliveryRadiusKm: Number(deliveryRadiusKm) || 10,
+    shopLocation: {
+      lat: shopLat ? Number(shopLat) : null,
+      lng: shopLng ? Number(shopLng) : null,
+    },
     isActive: false,
   });
 
-  if (!vendor) {
-    throw new ApiError(500, "Vendor creation failed");
-  }
+  if (!vendor) throw new ApiError(500, "Vendor creation failed");
 
   await VendorVerification.create({
     vendorId: vendor._id,
@@ -85,8 +95,6 @@ export const attachAddressToVendor = asyncHandler(async (req, res) => {
   const { addressId } = req.body;
   const userId = req.user._id;
 
-  console.log("vender id: ", vendorId);
-  console.log("userId: ", userId);
 
   if (!addressId) {
     throw new ApiError(400, "Address ID is required");
@@ -198,6 +206,13 @@ export const createProduct = asyncHandler(async (req, res) => {
     saleType,
     minDeliveryDays,
     maxDeliveryDays,
+    // Product standards
+    hasExpiry,
+    manufacturingDate,
+    expiryDate,
+    clothingSizes,
+    productStandards,
+    productCategory,
   } = req.body;
 
   if (
@@ -235,6 +250,23 @@ export const createProduct = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Products can only be added to leaf categories");
   }
 
+  // Validate expiry date
+  if (hasExpiry && expiryDate) {
+    const expDate = new Date(expiryDate);
+    if (expDate <= new Date()) {
+      throw new ApiError(400, "Expiry date must be in the future");
+    }
+  }
+
+  // Validate clothing sizes
+  const validSizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "FREE SIZE",
+    "28", "30", "32", "34", "36", "38", "40", "42", "44", "46"];
+  let parsedClothingSizes = [];
+  if (clothingSizes) {
+    const sizesArr = Array.isArray(clothingSizes) ? clothingSizes : JSON.parse(clothingSizes);
+    parsedClothingSizes = sizesArr.filter(s => validSizes.includes(s));
+  }
+
   const slug = title.toLowerCase().replace(/[\s]+/g, "-") + "-" + Date.now();
 
   const product = await Product.create({
@@ -248,6 +280,12 @@ export const createProduct = asyncHandler(async (req, res) => {
     saleType,
     minDeliveryDays,
     maxDeliveryDays,
+    hasExpiry: !!hasExpiry,
+    manufacturingDate: manufacturingDate ? new Date(manufacturingDate) : null,
+    expiryDate: hasExpiry && expiryDate ? new Date(expiryDate) : null,
+    clothingSizes: parsedClothingSizes,
+    productStandards: productStandards ? (typeof productStandards === "string" ? JSON.parse(productStandards) : productStandards) : {},
+    productCategory: productCategory || "GENERAL",
     isApproved: false,
   });
 
@@ -893,4 +931,215 @@ export const updateProductStock = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, { stock: product.stock }, "Stock updated successfully"));
+});
+
+// GET /api/vendor/me — Returns the current vendor's profile (vendorId, shopName, etc.)
+export const getVendorProfile = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id })
+    .select("_id shopName businessType vendorScore isActive createdAt")
+    .lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  // Also return verification status so frontend can show pending screen
+  const verification = await VendorVerification.findOne({ vendorId: vendor._id })
+    .select("status adminRemark")
+    .lean();
+
+  return res.status(200).json(new ApiResponse(200, {
+    ...vendor,
+    verificationStatus: verification?.status || "PENDING",
+    adminRemark: verification?.adminRemark || null,
+  }, "Vendor profile fetched"));
+});
+
+// ── Bank account & payouts ─────────────────────────────────────────────────
+export const getBankAccount = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+  const bank = await VendorBankAccount.findOne({ vendorId: vendor._id }).lean();
+  return res.status(200).json(new ApiResponse(200, bank || null, "Bank account fetched"));
+});
+
+export const saveBankAccount = asyncHandler(async (req, res) => {
+  const { bankName, accountHolderName, accountNumber, ifscCode } = req.body;
+  if (!bankName || !accountHolderName || !accountNumber || !ifscCode)
+    throw new ApiError(400, "All bank fields are required");
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode.toUpperCase()))
+    throw new ApiError(400, "Invalid IFSC code format");
+
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const bank = await VendorBankAccount.findOneAndUpdate(
+    { vendorId: vendor._id },
+    { bankName, accountHolderName, accountNumber, ifscCode: ifscCode.toUpperCase(), isVerified: false },
+    { upsert: true, new: true }
+  );
+  return res.status(200).json(new ApiResponse(200, bank, "Bank account saved"));
+});
+
+export const requestPayout = asyncHandler(async (req, res) => {
+  const { amount } = req.body;
+  if (!amount || Number(amount) <= 0) throw new ApiError(400, "Valid amount required");
+
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const bank = await VendorBankAccount.findOne({ vendorId: vendor._id });
+  if (!bank) throw new ApiError(400, "Please add a bank account before requesting a payout");
+
+  // Check wallet balance
+  const wallet = await TradeWallet.findOne({ userId: req.user._id });
+  const available = wallet ? (wallet.balance - (wallet.lockedBalance || 0)) : 0;
+  if (Number(amount) > available) throw new ApiError(400, `Insufficient balance. Available: ₹${available}`);
+
+  // Deduct from wallet and log transaction
+  wallet.balance -= Number(amount);
+  await wallet.save();
+
+  await WalletTransaction.create({
+    userId: req.user._id,
+    type: "WITHDRAWAL",
+    amount: Number(amount),
+    description: `Payout requested to ${bank.bankName} ····${bank.accountNumber?.slice(-4) || "****"}`,
+    status: "PENDING",
+  });
+
+  return res.status(200).json(new ApiResponse(200, { amount: Number(amount) }, "Payout request submitted! Processing in 2-3 business days."));
+});
+
+export const getPayoutHistory = asyncHandler(async (req, res) => {
+  const txns = await WalletTransaction.find({
+    userId: req.user._id,
+    type: "WITHDRAWAL",
+  }).sort({ createdAt: -1 }).limit(20).lean();
+  return res.status(200).json(new ApiResponse(200, txns, "Payout history fetched"));
+});
+
+// ── Vendor Delivery Staff Management ──────────────────────────────────────
+
+import { VendorDeliveryStaff } from "../models/vendor/VendorDeliveryStaff.model.js";
+import { DeliveryAssignment } from "../models/order/DeliveryAssignment.model.js";
+
+export const getMyDeliveryStaff = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id });
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const staff = await VendorDeliveryStaff.find({ vendorId: vendor._id })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Attach active delivery counts
+  const activeOrders = await DeliveryAssignment.aggregate([
+    { $match: { vendorId: vendor._id, status: { $in: ["ASSIGNED","ACCEPTED","PICKED_UP","OUT_FOR_DELIVERY"] } } },
+    { $group: { _id: "$deliveryPersonId", count: { $sum: 1 } } },
+  ]);
+  const countMap = {};
+  activeOrders.forEach(a => { if (a._id) countMap[a._id.toString()] = a.count; });
+
+  const result = staff.map(s => ({ ...s, activeDeliveries: countMap[s._id.toString()] || 0 }));
+  return res.status(200).json(new ApiResponse(200, result, "Delivery staff fetched"));
+});
+
+export const addDeliveryStaff = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id });
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const { name, phone } = req.body;
+  if (!name || !phone) throw new ApiError(400, "Name and phone are required");
+
+  const existing = await VendorDeliveryStaff.findOne({ vendorId: vendor._id, phone });
+  if (existing) throw new ApiError(409, "A staff member with this phone already exists");
+
+  const staff = await VendorDeliveryStaff.create({ vendorId: vendor._id, name, phone });
+  return res.status(201).json(new ApiResponse(201, staff, "Delivery staff added"));
+});
+
+export const updateDeliveryStaff = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id });
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const { staffId } = req.params;
+  const staff = await VendorDeliveryStaff.findOne({ _id: staffId, vendorId: vendor._id });
+  if (!staff) throw new ApiError(404, "Staff member not found");
+
+  const { name, phone, isActive } = req.body;
+  if (name !== undefined) staff.name = name;
+  if (phone !== undefined) staff.phone = phone;
+  if (isActive !== undefined) staff.isActive = isActive;
+  await staff.save();
+
+  return res.status(200).json(new ApiResponse(200, staff, "Staff updated"));
+});
+
+export const deleteDeliveryStaff = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id });
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const { staffId } = req.params;
+  const staff = await VendorDeliveryStaff.findOne({ _id: staffId, vendorId: vendor._id });
+  if (!staff) throw new ApiError(404, "Staff member not found");
+
+  await VendorDeliveryStaff.findByIdAndDelete(staffId);
+  return res.status(200).json(new ApiResponse(200, null, "Staff removed"));
+});
+
+export const assignDeliveryByVendor = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id });
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const { orderId, staffId } = req.body;
+  if (!mongoose.Types.ObjectId.isValid(orderId) || !mongoose.Types.ObjectId.isValid(staffId))
+    throw new ApiError(400, "Invalid order or staff ID");
+
+  const [order, staff] = await Promise.all([
+    Order.findById(orderId),
+    VendorDeliveryStaff.findOne({ _id: staffId, vendorId: vendor._id, isActive: true }),
+  ]);
+  if (!order) throw new ApiError(404, "Order not found");
+  if (!staff) throw new ApiError(404, "Delivery staff not found or inactive");
+
+  // Re-assign if there's already a failed/reassigned entry; block if active
+  const existing = await DeliveryAssignment.findOne({ orderId, status: { $nin: ["FAILED","REASSIGNED"] } });
+  if (existing) {
+    // Allow reassignment by marking old one as REASSIGNED
+    existing.status = "REASSIGNED";
+    await existing.save();
+  }
+
+  const assignment = await DeliveryAssignment.create({
+    orderId,
+    // Store VendorDeliveryStaff id — we also embed name/phone as snapshot so populate isn't needed
+    deliveryPersonId: staff._id,
+    vendorStaffSnapshot: { name: staff.name, phone: staff.phone },
+    vendorId: vendor._id,
+    status: "ASSIGNED",
+    assignedBy: req.user._id,
+  });
+
+  // Increment active deliveries counter on staff
+  await VendorDeliveryStaff.findByIdAndUpdate(staffId, { $inc: { activeDeliveries: 1 } });
+
+  return res.status(201).json(new ApiResponse(201, assignment, "Order assigned to delivery staff"));
+});
+
+export const getVendorDeliveryAssignments = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id });
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const assignments = await DeliveryAssignment.find({ vendorId: vendor._id })
+    .populate("orderId", "orderNumber totalAmount orderStatus deliveryAddress")
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .lean();
+
+  // Hydrate deliveryPersonId with the embedded snapshot so the frontend always gets name/phone
+  const hydrated = assignments.map((a) => ({
+    ...a,
+    deliveryPersonId: a.vendorStaffSnapshot
+      ? { _id: a.deliveryPersonId, ...a.vendorStaffSnapshot }
+      : a.deliveryPersonId,
+  }));
+
+  return res.status(200).json(new ApiResponse(200, hydrated, "Assignments fetched"));
 });

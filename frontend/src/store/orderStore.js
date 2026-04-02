@@ -157,9 +157,9 @@ export const useOrderStore = create((set, get) => ({
     }
   },
 
-  shipOrderItem: async (orderId, productId) => {
+  shipOrderItem: async (orderId, productId, action) => {
     try {
-      await vendorAPI.shipOrder(orderId, { productId });
+      await vendorAPI.shipOrder(orderId, { productId, action });
       await get().fetchVendorOrders();
       return { success: true };
     } catch (err) {

@@ -1,41 +1,75 @@
+import { Order } from "../models/order/Order.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import * as deliveryService from "../services/delivery.service.js";
+import { ApiError } from "../utils/ApiError.js";
+import mongoose from "mongoose";
 
-export const getAssignedDeliveries = asyncHandler(async (req, res) => {
-  const deliveryUserId = req.user._id;
-  const assignments = await deliveryService.getAssignedDeliveries(deliveryUserId);
-  return res.status(200).json(new ApiResponse(200, { deliveries: assignments }, "Deliveries fetched"));
+// Delivery staff sees all active (non-cancelled, non-delivered) orders
+export const getDeliveryOrders = asyncHandler(async (req, res) => {
+  const { status, page = 1, limit = 20 } = req.query;
+
+  const filter = {
+    orderStatus: {
+      $nin: ["PENDING_PAYMENT", "CANCELLED", "REFUNDED"],
+    },
+  };
+  if (status) filter.orderStatus = status;
+
+  const orders = await Order.find(filter)
+    .sort({ createdAt: -1 })
+    .skip((parseInt(page) - 1) * parseInt(limit))
+    .limit(parseInt(limit))
+    .populate({ path: "buyerId", select: "name phone" })
+    .populate({ path: "items.productId", select: "title" })
+    .lean();
+
+  const total = await Order.countDocuments(filter);
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      orders,
+      pagination: { total, currentPage: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) },
+    }, "Delivery orders fetched")
+  );
 });
 
-export const updateStatus = asyncHandler(async (req, res) => {
-  const deliveryUserId = req.user._id;
-  const { assignmentId } = req.params;
-  const { status } = req.body;
-  const updated = await deliveryService.updateDeliveryStatus(deliveryUserId, assignmentId, status);
-  if (!updated) {
-    return res.status(404).json({ success: false, message: "Assignment not found" });
-  }
-  return res.status(200).json(new ApiResponse(200, updated, "Status updated"));
-});
+// Update order delivery status
+export const updateDeliveryStatus = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const { status, note } = req.body;
 
-export const markDelivered = asyncHandler(async (req, res) => {
-  const deliveryUserId = req.user._id;
-  const { assignmentId } = req.params;
-  const updated = await deliveryService.markDelivered(deliveryUserId, assignmentId);
-  if (!updated) {
-    return res.status(404).json({ success: false, message: "Assignment not found" });
-  }
-  return res.status(200).json(new ApiResponse(200, updated, "Marked as delivered"));
-});
+  const ALLOWED = ["PICKED_UP", "OUT_FOR_DELIVERY", "DELIVERED", "FAILED_DELIVERY"];
+  if (!ALLOWED.includes(status)) throw new ApiError(400, "Invalid delivery status");
 
-export const uploadProof = asyncHandler(async (req, res) => {
-  const deliveryUserId = req.user._id;
-  const { assignmentId } = req.params;
-  const fileRef = req.file ? { url: req.file.path } : req.body;
-  const updated = await deliveryService.uploadProofOfDelivery(deliveryUserId, assignmentId, fileRef);
-  if (!updated) {
-    return res.status(404).json({ success: false, message: "Assignment not found" });
+  if (!mongoose.Types.ObjectId.isValid(orderId)) throw new ApiError(400, "Invalid order ID");
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new ApiError(404, "Order not found");
+
+  const statusToOrderStatus = {
+    PICKED_UP: "PICKED_UP",
+    OUT_FOR_DELIVERY: "OUT_FOR_DELIVERY",
+    DELIVERED: "DELIVERED",
+  };
+
+  if (statusToOrderStatus[status]) {
+    order.orderStatus = statusToOrderStatus[status];
   }
-  return res.status(200).json(new ApiResponse(200, updated, "Proof of delivery uploaded"));
+
+  order.deliveryTracking.push({
+    status,
+    message: note || `Order ${status.replace(/_/g, " ").toLowerCase()}`,
+    timestamp: new Date(),
+  });
+
+  if (status === "DELIVERED") {
+    order.items.forEach((item) => {
+      if (item.status !== "CANCELLED") item.status = "DELIVERED";
+      item.deliveredAt = new Date();
+    });
+  }
+
+  await order.save();
+
+  return res.status(200).json(new ApiResponse(200, { orderStatus: order.orderStatus }, "Status updated"));
 });
