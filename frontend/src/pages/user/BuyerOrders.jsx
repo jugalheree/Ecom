@@ -126,7 +126,7 @@ export default function BuyerOrders() {
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-          {["ALL","PENDING_PAYMENT","SHIPPED","OUT_FOR_DELIVERY","DELIVERED","RETURNED","REFUNDED","CANCELLED"].map((tab) => (
+          {["ALL","PENDING_PAYMENT","SHIPPED","OUT_FOR_DELIVERY","DELIVERED","CANCELLED"].map((tab) => (
             <button key={tab} onClick={() => setFilter(tab)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
                 filter === tab ? "bg-ink-900 text-white" : "bg-white border border-ink-200 text-ink-600 hover:border-ink-400"

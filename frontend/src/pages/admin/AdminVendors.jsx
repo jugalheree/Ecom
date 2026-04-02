@@ -342,11 +342,16 @@ export default function AdminVendors() {
                     <th className="text-left px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Shop</th>
                     <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden sm:table-cell">Owner</th>
                     <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">Status</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden lg:table-cell">Vendor Score</th>
                     <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden lg:table-cell">Joined</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-100">
-                  {allVendors.map((v) => (
+                  {allVendors.map((v) => {
+                    const vendorScore = v.vendorScore ?? 100;
+                    const vColor = vendorScore >= 80 ? "#10b981" : vendorScore >= 60 ? "#f59e0b" : "#ef4444";
+                    const vLabel = vendorScore >= 80 ? "Good" : vendorScore >= 60 ? "Fair" : "⚠ Poor";
+                    return (
                     <tr key={v._id} onClick={() => setSelectedVendorId(v._id?.toString())}
                       className="hover:bg-brand-50 transition-colors cursor-pointer group">
                       <td className="px-5 py-4">
@@ -369,11 +374,23 @@ export default function AdminVendors() {
                           {v.userId?.isBlocked ? "Blocked" : "Active"}
                         </span>
                       </td>
+                      <td className="px-4 py-4 hidden lg:table-cell">
+                        <div className="space-y-1 min-w-[100px]">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold" style={{ color: vColor }}>{vendorScore}</span>
+                            <span className="text-[10px] font-semibold" style={{ color: vColor }}>{vLabel}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${vendorScore}%`, background: vColor }} />
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-4 py-4 text-ink-400 hidden lg:table-cell">
                         {v.createdAt ? new Date(v.createdAt).toLocaleDateString("en-IN") : "—"}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { CategoryAttribute } from "../models/product/CategoryAttribute.js";
+import { suggestCategoryFromDB, autoDetectCategoryHint } from "../utils/categoryMatcher.js";
 
 export const createCategory = asyncHandler(async (req, res) => {
   const { name, parentCategory = null, isLeaf = false } = req.body;
@@ -148,4 +149,37 @@ export const getCategoryAttributes = asyncHandler(async (req, res) => {
         "Category attributes fetched successfully"
       )
     );
+});
+// ─── Category Suggestion (spell-correct + auto-detect) ────────────────────
+// GET /api/categories/suggest?q=electrnics
+export const suggestCategory = asyncHandler(async (req, res) => {
+  const { q, title, description } = req.query;
+
+  if (!q && !title) {
+    throw new ApiError(400, "Query parameter 'q' or 'title' required");
+  }
+
+  const results = {};
+
+  // 1. Spell-correct + fuzzy match from DB
+  if (q) {
+    const match = await suggestCategoryFromDB(q);
+    if (match) {
+      results.dbMatch = {
+        categoryId:   match.category?._id,
+        categoryName: match.category?.name,
+        confidence:   match.confidence,
+        correction:   match.correction,   // non-null means spelling was wrong
+        isLeaf:       match.category?.isLeaf,
+      };
+    }
+  }
+
+  // 2. Keyword-based auto-detection
+  if (title) {
+    const hint = autoDetectCategoryHint(title, description || "");
+    results.autoHint = hint;   // e.g. "Electronics" or null
+  }
+
+  return res.status(200).json(new ApiResponse(200, results, "Category suggestion"));
 });

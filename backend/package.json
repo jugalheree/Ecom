@@ -1,20 +1,18 @@
 {
-  "name": "swasthyachetna",
+  "name": "tradesphere-backend",
   "version": "1.0.0",
-  "description": "A E-Commerce Website",
+  "description": "TradeSphere B2B E-Commerce Backend API",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
     "seed": "node seed.js",
-    "seed:test": "node seed-test.js",
-    "seed:fresh": "node seed-test.js --fresh",
     "start": "node src/index.js"
   },
   "keywords": [
     "node"
   ],
-  "author": "Swasthya Chetna",
+  "author": "TradeSphere",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^6.0.0",

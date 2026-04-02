@@ -73,6 +73,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
     },
 
+    // Buyer trust score (0-100) — computed from return behaviour
+    buyerScore: {
+      type: Number,
+      default: 100,
+      min: 0,
+      max: 100,
+    },
+
   },
   { timestamps: true }
 );

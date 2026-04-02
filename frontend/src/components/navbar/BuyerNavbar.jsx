@@ -305,6 +305,12 @@ export default function BuyerNavbar() {
                 </div>
                 <div className="p-1.5">
                   {[
+                    { label: "Dashboard", path: "/buyer/dashboard" },
+                    { label: "My Orders", path: "/orders" },
+                    { label: "Wishlist", path: "/wishlist" },
+                    { label: "Wallet", path: "/wallet" },
+                    { label: "Refer & Earn", path: "/referral" },
+                    { label: "Ratings", path: "/ratings" },
                     { label: "Account Settings", path: "/profile" },
                   ].map((item) => (
                     <button

@@ -36,12 +36,21 @@ function OrderCard({ order, onAction, actionLoading }) {
 
   const totalItems = order.items?.length || 0;
   const vendorItems = order.items || [];
+  const isDeal = order.isDealOrder;
 
   return (
-    <div className="card overflow-hidden">
+    <div className={`card overflow-hidden ${isDeal ? "border-2 border-orange-300 shadow-orange-100 shadow-md" : ""}`}>
+      {/* Deal banner */}
+      {isDeal && (
+        <div className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200">
+          <span className="text-sm">🤝</span>
+          <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Vendor–Vendor Deal Order</span>
+          <span className="ml-auto text-[10px] text-orange-500 font-semibold bg-orange-100 px-2 py-0.5 rounded-full">B2B</span>
+        </div>
+      )}
       {/* Order header */}
       <div
-        className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-sand-50 transition-colors"
+        className={`flex items-center justify-between px-5 py-4 cursor-pointer transition-colors ${isDeal ? "hover:bg-orange-50" : "hover:bg-sand-50"}`}
         onClick={() => setExpanded((e) => !e)}
       >
         <div className="flex items-center gap-4 min-w-0">
@@ -74,42 +83,15 @@ function OrderCard({ order, onAction, actionLoading }) {
       {/* Expanded items */}
       {expanded && (
         <div className="border-t border-ink-100">
-          {/* Order meta: buyer, payment, address */}
-          <div className="px-5 py-3 bg-sand-50 border-b border-ink-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="flex items-start gap-2">
-              <span className="text-sm flex-shrink-0 mt-0.5">👤</span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Buyer</p>
-                <p className="text-xs font-semibold text-ink-800">{order.buyerName || "Customer"}</p>
-                {order.buyerPhone && <p className="text-xs text-ink-500">{order.buyerPhone}</p>}
-                {order.buyerEmail && <p className="text-xs text-ink-400 truncate">{order.buyerEmail}</p>}
-              </div>
+          {/* Delivery address */}
+          {order.deliveryAddress?.city && (
+            <div className="px-5 py-3 bg-sand-50 border-b border-ink-100 flex items-start gap-2">
+              <span className="text-sm flex-shrink-0">📍</span>
+              <p className="text-xs text-ink-600">
+                {[order.deliveryAddress.street, order.deliveryAddress.area, order.deliveryAddress.city, order.deliveryAddress.state, order.deliveryAddress.pincode].filter(Boolean).join(", ")}
+              </p>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="text-sm flex-shrink-0 mt-0.5">💳</span>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Payment</p>
-                <p className="text-xs font-semibold text-ink-800">{order.paymentMethod?.replace(/_/g," ") || "—"}</p>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  order.paymentStatus === "PAID" ? "bg-green-50 text-green-700" :
-                  order.paymentStatus === "PENDING" ? "bg-amber-50 text-amber-700" :
-                  "bg-ink-100 text-ink-600"
-                }`}>{order.paymentStatus || "—"}</span>
-              </div>
-            </div>
-            {order.deliveryAddress?.city && (
-              <div className="flex items-start gap-2">
-                <span className="text-sm flex-shrink-0 mt-0.5">📍</span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Delivery Address</p>
-                  <p className="text-xs text-ink-600 leading-snug">
-                    {[order.deliveryAddress.name, order.deliveryAddress.street, order.deliveryAddress.area, order.deliveryAddress.city, order.deliveryAddress.state, order.deliveryAddress.pincode].filter(Boolean).join(", ")}
-                  </p>
-                  {order.deliveryAddress.phone && <p className="text-xs text-ink-400">📞 {order.deliveryAddress.phone}</p>}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
           {vendorItems.map((item, i) => {
             const nextAction = getNextAction(item.status);

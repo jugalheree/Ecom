@@ -175,6 +175,7 @@ export default function AdminProducts() {
                 <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden sm:table-cell">Vendor</th>
                 <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">Category</th>
                 <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Price</th>
+                <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden lg:table-cell">AI Score</th>
                 <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">Stock</th>
                 <th className="px-4 py-3.5"></th>
               </tr>
@@ -182,6 +183,10 @@ export default function AdminProducts() {
             <tbody className="divide-y divide-ink-100">
               {products.map((p) => {
                 const isActing = acting[p._id];
+                const aiScore = p.aiScore || 0;
+                const ratingScore = p.ratingScore || 0;
+                const totalScore = aiScore + ratingScore;
+                const scoreColor = totalScore >= 4 ? "#10b981" : totalScore >= 2.5 ? "#f59e0b" : "#ef4444";
                 return (
                   <tr key={p._id} onClick={() => setSelectedProductId(p._id)}
                     className="hover:bg-sand-50 transition-colors cursor-pointer">
@@ -197,6 +202,22 @@ export default function AdminProducts() {
                     <td className="px-4 py-4 text-ink-500 hidden sm:table-cell">{p.vendorId?.shopName || "—"}</td>
                     <td className="px-4 py-4 text-ink-500 hidden md:table-cell">{p.categoryId?.name || "—"}</td>
                     <td className="px-4 py-4 font-bold text-ink-900">₹{p.price?.toLocaleString()}</td>
+                    <td className="px-4 py-4 hidden lg:table-cell">
+                      <div className="space-y-1 min-w-[120px]">
+                        <div className="flex justify-between text-[10px] text-ink-400">
+                          <span>Total</span>
+                          <span className="font-bold" style={{ color: scoreColor }}>{totalScore.toFixed(1)}/5</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${(totalScore / 5) * 100}%`, background: scoreColor }} />
+                        </div>
+                        <div className="flex gap-1 text-[9px]">
+                          <span className="text-purple-600">🤖 {aiScore.toFixed(1)}</span>
+                          <span className="text-ink-300">+</span>
+                          <span className="text-amber-600">⭐ {ratingScore.toFixed(1)}</span>
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-4 py-4 text-ink-500 hidden md:table-cell">{p.stock ?? "—"}</td>
                     <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-2 justify-end">

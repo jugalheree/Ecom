@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "../services/api";
+import { wishlistAPI } from "../services/apis/index";
 
 // FIX: Only store non-sensitive user profile data in localStorage.
 // The JWT access token must NOT be stored in localStorage — it's vulnerable to XSS.
@@ -22,26 +23,23 @@ export const useAuthStore = create((set) => ({
   // FIX: Token removed from state — auth is handled via httpOnly cookies only
   role: savedAuth?.role || null,
 
-  login: (data) => {
-    // FIX: Never store the JWT token in localStorage — only store non-sensitive profile info
-    const authPayload = {
-      user: data.user,
-      role: data.role,
-      // token deliberately excluded
-    };
-    try {
-      localStorage.setItem("auth", JSON.stringify(authPayload));
-    } catch {}
+  login: async (data) => {
+    const authPayload = { user: data.user, role: data.role };
+    try { localStorage.setItem("auth", JSON.stringify(authPayload)); } catch {}
     set({ user: data.user, role: data.role });
+
+    // Sync wishlist from backend after login (non-blocking)
+    try {
+      const { useWishlistStore } = await import("./wishlistStore");
+      useWishlistStore.getState().fetchWishlist();
+    } catch {}
   },
 
   logout: async () => {
     try {
-      // Call backend to clear httpOnly cookies and invalidate refresh token
       await api.post("/api/auth/logout");
-    } catch {
-      // Even if request fails, clear local state
-    } finally {
+    } catch {}
+    finally {
       localStorage.removeItem("auth");
       set({ user: null, role: null });
     }

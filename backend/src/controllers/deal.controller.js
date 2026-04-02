@@ -1,8 +1,10 @@
+import logger from "../utils/logger.js";
 import { Deal } from "../models/marketplace/Deal.model.js";
 import { VendorMarketplaceListing } from "../models/vendor/VendorMarketplaceListing.model.js";
 import { Vendor } from "../models/vendor/Vendor.model.js";
 import { Rating } from "../models/product/Rating.model.js";
 import { Address } from "../models/user/Address.model.js";
+import { Order } from "../models/order/Order.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -17,7 +19,7 @@ const getVendor = async (userId) => {
 
 // ── POST /api/deals — Propose a deal ─────────────────────────────────────
 export const proposeDeal = asyncHandler(async (req, res) => {
-  const { listingId, proposedPrice, proposedQty, terms, deliveryDays } = req.body;
+  const { listingId, proposedPrice, proposedQty, terms, deliveryDays, deliveryAddress } = req.body;
 
   if (!listingId || !proposedPrice || !proposedQty) {
     throw new ApiError(400, "listingId, proposedPrice and proposedQty are required");
@@ -47,6 +49,7 @@ export const proposeDeal = asyncHandler(async (req, res) => {
     totalAmount:    Number(proposedPrice) * Number(proposedQty),
     terms:          terms || "",
     deliveryDays:   deliveryDays || 7,
+    deliveryAddress: deliveryAddress || null,
     messages: [{
       senderId:   req.user._id,
       senderName: req.user.name,
@@ -223,6 +226,58 @@ export const signDeal = asyncHandler(async (req, res) => {
       senderName: "System",
       message:    `🎉 Deal is now ACTIVE! Both parties have signed.\n📍 Delivery to (Buyer): ${buyerVendorFull?.shopName} — ${buyerAddressStr}\n📦 Stock reduced by ${finalQty} units.`,
     });
+
+    // ── Create an Order so the seller vendor can manage delivery ────────────
+    try {
+      // Build deliveryAddress from buyer's first business address
+      let deliveryAddressObj = {};
+      if (buyerVendorFull?.businessAddresses?.length) {
+        const rawAddr = await Address.findById(buyerVendorFull.businessAddresses[0]).lean();
+        if (rawAddr) {
+          deliveryAddressObj = {
+            name:    buyerVendorFull.shopName,
+            phone:   "",
+            street:  rawAddr.buildingNameOrNumber || "",
+            area:    rawAddr.area || "",
+            city:    rawAddr.city || "",
+            state:   rawAddr.state || "",
+            pincode: rawAddr.pincode || "",
+            lat:     rawAddr.location?.lat || null,
+            lng:     rawAddr.location?.lng || null,
+          };
+          // If the deal carried a custom delivery address use it instead
+          if (deal.deliveryAddress?.city) {
+            deliveryAddressObj = { ...deliveryAddressObj, ...deal.deliveryAddress };
+          }
+        }
+      }
+
+      const sellerVendorFull = await Vendor.findById(deal.sellerVendorId).lean();
+      const finalPrice = deal.counterPrice || deal.proposedPrice;
+
+      const newOrder = await Order.create({
+        buyerId:         deal.buyerUserId,
+        items: [{
+          productId:       listing.productId,
+          vendorId:        deal.sellerVendorId,
+          quantity:        finalQty,
+          priceAtPurchase: finalPrice,
+          status:          "CONFIRMED",
+        }],
+        totalAmount:     finalPrice * finalQty,
+        deliveryAddress: deliveryAddressObj,
+        orderStatus:     "CONFIRMED",
+        paymentStatus:   "PAID",
+        paymentMethod:   "TRADE_WALLET",
+        dealId:          deal._id,
+        isDealOrder:     true,
+      });
+
+      deal.orderId = newOrder._id;
+    } catch (orderErr) {
+      // Non-fatal — log but don't block deal activation
+      logger.error("Deal order creation failed", orderErr);
+    }
   }
 
   await deal.save();

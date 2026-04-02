@@ -132,6 +132,8 @@ export const categoryAPI = {
     api.get(`/api/categories/${categoryId}/attributes`),
   createAttribute: (categoryId, data) =>
     api.post(`/api/categories/${categoryId}/attributes`, data),
+  suggest: (q, title, description) =>
+    api.get("/api/categories/suggest", { params: { q, title, description } }),
 };
 
 // ─────────────── WALLET ───────────────
@@ -264,4 +266,36 @@ export const referralAPI = {
   getMyCode:    ()     => api.get("/api/referral/my-code"),
   applyCode:    (code) => api.post("/api/referral/apply", { code }),
   getHistory:   ()     => api.get("/api/referral/history"),
+};
+
+// ─────────────── WISHLIST ───────────────
+export const wishlistAPI = {
+  getWishlist:    ()           => api.get("/api/wishlist"),
+  toggle:         (productId)  => api.post("/api/wishlist/toggle", { productId }),
+  check:          (productId)  => api.get(`/api/wishlist/check/${productId}`),
+  clear:          ()           => api.delete("/api/wishlist/clear"),
+};
+
+// ─────────────── PLATFORM CONFIG ───────────────
+export const platformAPI = {
+  getConfig:            ()     => api.get("/api/platform/config"),
+  updateCommission:     (data) => api.patch("/api/platform/config/commission", data),
+  updateFestival:       (data) => api.patch("/api/platform/config/festival", data),
+};
+
+// ─────────────── VENDOR EXTRAS ───────────────
+// (augment existing vendorAPI — these are additional endpoints)
+export const vendorExtrasAPI = {
+  getLowStock:        ()                  => api.get("/api/vendor/products/low-stock"),
+  setMinStockAlert:   (productId, val)    => api.patch(`/api/vendor/products/${productId}/min-stock`, { minStockAlert: val }),
+  updateDiscount:     (productId, data)   => api.patch(`/api/vendor/products/${productId}/discount`, data),
+};
+
+// ─────────────── SCORES ───────────────
+export const scoresAPI = {
+  recomputeProduct: (productId) => api.post(`/api/scores/product/${productId}`),
+  recomputeBuyer:   (buyerId)   => api.post(`/api/scores/buyer/${buyerId}`),
+  recomputeVendor:  (vendorId)  => api.post(`/api/scores/vendor/${vendorId}`),
+  preview:          (data)      => api.post("/api/scores/preview", data),
+  breakdown:        (productId) => api.get(`/api/scores/product/${productId}/breakdown`),
 };

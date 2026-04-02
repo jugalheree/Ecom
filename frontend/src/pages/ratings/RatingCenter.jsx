@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ratingAPI, orderAPI } from "../../services/apis/index";
+import { ratingAPI } from "../../services/apis/index";
 import { useToastStore } from "../../store/toastStore";
 
 function Stars({ value, onChange, size = "md" }) {
@@ -33,10 +33,6 @@ export default function RatingCenter() {
   const [form, setForm] = useState({ targetType: "PRODUCT", productId: "", vendorId: "", stars: 0, review: "" });
   const [submitting, setSubmitting] = useState(false);
 
-  // For dropdown — list of delivered orders
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-
   useEffect(() => {
     ratingAPI.getMyRatings()
       .then(r => {
@@ -47,42 +43,16 @@ export default function RatingCenter() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Load delivered orders when form opens
-  useEffect(() => {
-    if (!showForm) return;
-    setOrdersLoading(true);
-    orderAPI.getMyOrders({ limit: 50 })
-      .then(r => {
-        const all = r.data?.data?.orders || [];
-        setOrders(all.filter(o => ["DELIVERED", "COMPLETED"].includes(o.orderStatus)));
-      })
-      .catch(() => {})
-      .finally(() => setOrdersLoading(false));
-  }, [showForm]);
-
-  // When order is selected, auto-fill product or vendor id
-  const handleOrderSelect = (e) => {
-    const orderId = e.target.value;
-    if (!orderId) { setForm(f => ({ ...f, productId: "", vendorId: "" })); return; }
-    const order = orders.find(o => o._id === orderId);
-    if (!order) return;
-    if (form.targetType === "PRODUCT") {
-      // pre-fill first product id
-      const firstItem = order.items?.[0];
-      const pid = firstItem?.productId?._id || firstItem?.productId || "";
-      setForm(f => ({ ...f, productId: String(pid) }));
-    } else if (form.targetType === "VENDOR") {
-      const vid = order.items?.[0]?.vendorId || "";
-      setForm(f => ({ ...f, vendorId: String(vid) }));
-    }
-  };
-
   const handleSubmit = async () => {
     if (!form.stars) { showToast({ message: "Please select a star rating", type: "error" }); return; }
     if (!form.review.trim()) { showToast({ message: "Please write a review", type: "error" }); return; }
     setSubmitting(true);
     try {
-      const payload = { targetType: form.targetType, stars: form.stars, review: form.review };
+      const payload = {
+        targetType: form.targetType,
+        stars: form.stars,
+        review: form.review,
+      };
       if (form.targetType === "PRODUCT" && form.productId) payload.productId = form.productId;
       if (form.targetType === "VENDOR" && form.vendorId) payload.vendorId = form.vendorId;
       const res = await ratingAPI.submit(payload);
@@ -149,55 +119,27 @@ export default function RatingCenter() {
           <div className="card p-6 mb-6 border-2 border-brand-200 bg-brand-50">
             <h2 className="font-display font-bold text-ink-900 text-lg mb-5">Leave a Review</h2>
             <div className="space-y-4">
-              {/* What to rate */}
               <div>
                 <label className="block text-sm font-semibold text-ink-700 mb-1.5">What are you rating?</label>
-                <select value={form.targetType} onChange={e => setForm(f => ({...f, targetType: e.target.value, productId: "", vendorId: ""}))} className="input-base">
+                <select value={form.targetType} onChange={e => setForm(f => ({...f, targetType: e.target.value}))} className="input-base">
                   <option value="PRODUCT">Product</option>
                   <option value="VENDOR">Vendor</option>
                 </select>
               </div>
-
-              {/* Order dropdown */}
-              <div>
-                <label className="block text-sm font-semibold text-ink-700 mb-1.5">
-                  Select Delivered Order
-                  <span className="text-ink-400 font-normal ml-1">(auto-fills ID below)</span>
-                </label>
-                {ordersLoading ? (
-                  <div className="skeleton h-10 rounded-xl w-full" />
-                ) : orders.length === 0 ? (
-                  <p className="text-sm text-ink-400 italic p-3 bg-white rounded-xl border border-ink-200">
-                    No delivered orders found. You can only review products/vendors from delivered orders.
-                  </p>
-                ) : (
-                  <select onChange={handleOrderSelect} defaultValue="" className="input-base">
-                    <option value="">— Pick an order —</option>
-                    {orders.map(o => (
-                      <option key={o._id} value={o._id}>
-                        #{o.orderNumber || o._id?.slice(-8).toUpperCase()} · ₹{o.totalAmount?.toLocaleString()} · {new Date(o.createdAt).toLocaleDateString("en-IN", {day:"numeric", month:"short"})}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Product items dropdown if targetType is PRODUCT */}
               {form.targetType === "PRODUCT" && (
                 <div>
-                  <label className="block text-sm font-semibold text-ink-700 mb-1.5">Product ID</label>
+                  <label className="block text-sm font-semibold text-ink-700 mb-1.5">Product ID <span className="text-ink-400 font-normal">(from your order)</span></label>
                   <input value={form.productId} onChange={e => setForm(f => ({...f, productId: e.target.value}))}
-                    placeholder="Auto-filled from order, or paste manually" className="input-base font-mono text-sm" />
+                    placeholder="Paste product ID from your order" className="input-base" />
                 </div>
               )}
               {form.targetType === "VENDOR" && (
                 <div>
-                  <label className="block text-sm font-semibold text-ink-700 mb-1.5">Vendor ID</label>
+                  <label className="block text-sm font-semibold text-ink-700 mb-1.5">Vendor ID <span className="text-ink-400 font-normal">(from your order)</span></label>
                   <input value={form.vendorId} onChange={e => setForm(f => ({...f, vendorId: e.target.value}))}
-                    placeholder="Auto-filled from order, or paste manually" className="input-base font-mono text-sm" />
+                    placeholder="Paste vendor ID from your order" className="input-base" />
                 </div>
               )}
-
               <div>
                 <label className="block text-sm font-semibold text-ink-700 mb-2">Your Rating</label>
                 <Stars value={form.stars} onChange={v => setForm(f => ({...f, stars: v}))} size="lg" />

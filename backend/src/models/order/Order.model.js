@@ -136,6 +136,14 @@ const orderSchema = new mongoose.Schema(
     cancelledAt: Date,
 
     returnWindowEndsAt: Date,
+
+    // Vendor-to-vendor deal order
+    dealId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Deal",
+      default: null,
+    },
+    isDealOrder: { type: Boolean, default: false },
   },
 
   { timestamps: true }

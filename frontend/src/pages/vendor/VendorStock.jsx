@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { vendorAPI } from "../../services/apis/index";
+import { vendorExtrasAPI } from "../../services/apis/index";
 import { useToastStore } from "../../store/toastStore";
 
 export default function VendorStock() {
@@ -8,6 +9,7 @@ export default function VendorStock() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
   const [directInput, setDirectInput] = useState({});
+  const [alertInput, setAlertInput] = useState({});   // minStockAlert edits
   const [search, setSearch] = useState("");
   const showToast = useToastStore((s) => s.showToast);
   const [searchParams] = useSearchParams();
@@ -55,11 +57,27 @@ export default function VendorStock() {
     setDirectInput((d) => ({ ...d, [id]: "" }));
   };
 
+  const saveAlertThreshold = async (id) => {
+    const val = Number(alertInput[id]);
+    if (isNaN(val) || val < 0) { showToast({ message: "Enter a valid threshold", type: "error" }); return; }
+    setUpdating((s) => ({ ...s, [`alert_${id}`]: true }));
+    try {
+      await vendorExtrasAPI.setMinStockAlert(id, val);
+      setProducts((prev) => prev.map((p) => p._id === id ? { ...p, minStockAlert: val } : p));
+      setAlertInput((a) => ({ ...a, [id]: "" }));
+      showToast({ message: `Alert threshold set to ${val}`, type: "success" });
+    } catch (err) {
+      showToast({ message: err?.response?.data?.message || "Failed to set alert", type: "error" });
+    } finally {
+      setUpdating((s) => ({ ...s, [`alert_${id}`]: false }));
+    }
+  };
+
   const filtered = products.filter((p) =>
     !search || (p.title || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const lowStock = filtered.filter((p) => p.stock < 5);
+  const lowStock = filtered.filter((p) => p.stock <= (p.minStockAlert ?? 5) && p.stock > 0);
   const outOfStock = filtered.filter((p) => p.stock === 0);
 
   return (
@@ -134,12 +152,14 @@ export default function VendorStock() {
                 <th className="text-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Current Stock</th>
                 <th className="text-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden sm:table-cell">Quick Adjust</th>
                 <th className="text-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400">Set Exact</th>
+                <th className="text-center px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-ink-400 hidden md:table-cell">Alert At</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
               {filtered.map((p) => {
                 const isHighlight = p._id === highlightId;
-                const isLow = p.stock < 5;
+                const alertThreshold = p.minStockAlert ?? 5;
+                const isLow = p.stock <= alertThreshold && p.stock > 0;
                 const isOut = p.stock === 0;
                 return (
                   <tr key={p._id}
@@ -215,6 +235,26 @@ export default function VendorStock() {
                           {updating[p._id] ? "..." : "Set"}
                         </button>
                       </div>
+                    </td>
+
+                    {/* Alert threshold */}
+                    <td className="px-4 py-4 hidden md:table-cell">
+                      <div className="flex items-center justify-center gap-2">
+                        <input
+                          type="number" min="0" placeholder={String(alertThreshold)}
+                          value={alertInput[p._id] ?? ""}
+                          onChange={(e) => setAlertInput((a) => ({ ...a, [p._id]: e.target.value }))}
+                          onKeyDown={(e) => e.key === "Enter" && saveAlertThreshold(p._id)}
+                          className="w-16 text-center px-2 py-1.5 rounded-lg border-2 border-amber-200 bg-amber-50 text-sm focus:outline-none focus:border-amber-400"
+                        />
+                        <button onClick={() => saveAlertThreshold(p._id)}
+                          disabled={alertInput[p._id] === "" || alertInput[p._id] === undefined || updating[`alert_${p._id}`]}
+                          className="px-2 py-1.5 rounded-lg bg-amber-100 text-amber-700 border border-amber-300 text-xs font-bold hover:bg-amber-200 transition-all disabled:opacity-40"
+                          title="Set low-stock alert threshold">
+                          {updating[`alert_${p._id}`] ? "..." : "🔔"}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-ink-400 text-center mt-1">Alert at ≤ {alertThreshold}</p>
                     </td>
                   </tr>
                 );

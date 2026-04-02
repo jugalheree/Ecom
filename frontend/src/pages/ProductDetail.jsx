@@ -5,6 +5,7 @@ import { useCartStore } from "../store/cartStore";
 import { useToastStore } from "../store/toastStore";
 import { useWishlistStore } from "../store/wishlistStore";
 import ProductCard from "../components/product/ProductCard";
+import ProductScoreBadge from "../components/product/ProductScoreBadge";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -51,9 +52,11 @@ export default function ProductDetail() {
   const handleAddToCart = async () => {
     setAdding(true);
     const imageUrl = images[activeImage]?.imageUrl || null;
+    // Use effective price (after discounts) when adding to cart
+    const effectivePrice = product.effectivePrice ?? product.price;
     const productData = {
       title: product.title,
-      price: product.price,
+      price: effectivePrice,
       imageUrl,
       vendor: vendor?.shopName || "",
     };
@@ -63,9 +66,11 @@ export default function ProductDetail() {
     else showToast({ message: result?.message || "Failed to add to cart", type: "error" });
   };
 
-  const discount = product?.originalPrice && product?.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : null;
+  // Compute discount from new fields (vendor + festival combined)
+  const effectivePrice = product?.effectivePrice ?? product?.price;
+  const totalDiscountPercent = product?.totalDiscountPercent || 0;
+  const hasDiscount = totalDiscountPercent > 0 && effectivePrice < product?.price;
+  const festivalActive = (product?.festivalDiscountPercent || 0) > 0;
 
   if (loading) {
     return (
@@ -122,8 +127,10 @@ export default function ProductDetail() {
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-7xl text-ink-200">🛍️</div>
               )}
-              {discount > 0 && (
-                <span className="absolute top-3 left-3 bg-brand-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">-{discount}%</span>
+              {hasDiscount && (
+                <span className={`absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full shadow ${festivalActive ? "bg-amber-500" : "bg-brand-600"}`}>
+                  {festivalActive ? "🎉 " : ""}-{totalDiscountPercent}%
+                </span>
               )}
               <button
                 onClick={() => { toggleWishlist(product); showToast({ message: isWishlisted ? "Removed from wishlist" : "Added to wishlist!", type: "success" }); }}
@@ -155,27 +162,25 @@ export default function ProductDetail() {
             )}
             <h1 className="text-2xl font-display font-bold text-ink-900 leading-snug">{product.name}</h1>
 
-            {/* Rating */}
-            {product.avgRating > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="flex">
-                  {[1,2,3,4,5].map((s) => (
-                    <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill={s <= Math.round(product.avgRating) ? "#ff7d07" : "#d9d9de"} stroke="none">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  ))}
-                </div>
-                <span className="text-sm text-ink-500">{product.avgRating?.toFixed(1)} ({product.reviewCount || 0} reviews)</span>
-              </div>
+            {/* Rating — AI + Community combined score */}
+            {(product.aiScore > 0 || product.ratingScore > 0 || product.avgRating > 0) && (
+              <ProductScoreBadge
+                aiScore={product.aiScore || 0}
+                ratingScore={product.ratingScore || (product.avgRating ? (product.avgRating / 5) * 2.5 : 0)}
+                reviewCount={product.reviewCount || 0}
+                size="md"
+              />
             )}
 
             {/* Price */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-ink-900">₹{product.price?.toLocaleString()}</span>
-              {product.originalPrice > product.price && (
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-3xl font-bold text-ink-900">₹{effectivePrice?.toLocaleString()}</span>
+              {hasDiscount && (
                 <>
-                  <span className="text-base text-ink-400 line-through">₹{product.originalPrice?.toLocaleString()}</span>
-                  <span className="badge-brand text-xs">{discount}% off</span>
+                  <span className="text-base text-ink-400 line-through">₹{product.price?.toLocaleString()}</span>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${festivalActive ? "bg-amber-100 text-amber-700 border border-amber-300" : "badge-brand"}`}>
+                    {festivalActive ? "🎉 " : ""}{totalDiscountPercent}% off
+                  </span>
                 </>
               )}
             </div>
@@ -261,12 +266,12 @@ export default function ProductDetail() {
         {/* Tabs */}
         <div className="mt-12 card overflow-hidden">
           <div className="border-b border-ink-100 flex">
-            {["desc", "specs", "reviews"].map((t) => (
+            {["desc", "specs", "score", "reviews"].map((t) => (
               <button key={t} onClick={() => setTab(t)}
                 className={`px-6 py-4 text-sm font-semibold capitalize transition-all border-b-2 ${
                   tab === t ? "border-brand-600 text-brand-700" : "border-transparent text-ink-500 hover:text-ink-900"
                 }`}>
-                {t === "desc" ? "Description" : t === "specs" ? "Specifications" : "Reviews"}
+                {t === "desc" ? "Description" : t === "specs" ? "Specifications" : t === "score" ? "🤖 Score" : "Reviews"}
               </button>
             ))}
           </div>
@@ -284,6 +289,30 @@ export default function ProductDetail() {
                     <span className="text-sm text-ink-900">{String(a.value)}{a.unit ? ` ${a.unit}` : ""}</span>
                   </div>
                 ))}
+              </div>
+            )}
+            {tab === "score" && (
+              <div className="space-y-4">
+                <ProductScoreBadge
+                  aiScore={product.aiScore || 0}
+                  ratingScore={product.ratingScore || (product.avgRating ? (product.avgRating / 5) * 2.5 : 0)}
+                  reviewCount={product.reviewCount || 0}
+                  size="lg"
+                  showBreakdown={true}
+                />
+                <div className="rounded-xl p-4 bg-ink-50 border border-ink-200">
+                  <p className="text-xs font-bold text-ink-600 uppercase tracking-wider mb-2">How is this score calculated?</p>
+                  <div className="space-y-2 text-sm text-ink-600">
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 rounded-full bg-purple-500 mt-1.5 shrink-0"/>
+                      <p><strong>AI Quality Score (2.5)</strong> — Evaluated automatically from product title, description length, keyword richness, and category-specific terms.</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0"/>
+                      <p><strong>Community Rating (2.5)</strong> — Based on buyer reviews, return frequency, and return reason quality.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             {tab === "reviews" && (

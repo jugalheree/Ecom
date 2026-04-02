@@ -126,6 +126,9 @@ import dealRoutes from "./routes/deal.routes.js";
 import couponRoutes from "./routes/coupon.routes.js";
 import locationRoutes from "./routes/location.routes.js";
 import referralRoutes from "./routes/referral.routes.js";
+import wishlistRoutes from "./routes/wishlist.routes.js";
+import platformConfigRoutes from "./routes/platformConfig.routes.js";
+import scoresRoutes from "./routes/scores.routes.js";
 
 // Auth routes get the strict rate limiter
 app.use("/api/auth", authLimiter, authRoutes);
@@ -146,6 +149,9 @@ app.use("/api/deals", dealRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/referral", referralRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/platform", platformConfigRoutes);
+app.use("/api/scores", scoresRoutes);
 
 // ── Health Check ──────────────────────────────────────────────────────────
 // Required by hosting platforms (Railway, Render, etc.) to know the server is alive
@@ -169,6 +175,7 @@ app.use("*", (req, res) => {
 
 // ── Global Error Handler ──────────────────────────────────────────────────
 import { ApiError } from "./utils/ApiError.js";
+import logger from "./utils/logger.js";
 
 app.use((err, req, res, next) => {
   // Known operational errors (ApiError) — return clean JSON
@@ -185,10 +192,8 @@ app.use((err, req, res, next) => {
     return res.status(403).json({ success: false, message: err.message });
   }
 
-  // Unknown errors — log to server (not to client)
-  if (process.env.NODE_ENV !== "production") {
-    console.error("[Server Error]", err); // only log in dev
-  }
+  // Unknown errors — log server-side only
+  logger.error("[Server Error]", err);
 
   res.status(500).json({
     success: false,

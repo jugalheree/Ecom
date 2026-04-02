@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import { Rating } from "../models/product/Rating.model.js";
 import { Order } from "../models/order/Order.model.js";
 import { Vendor } from "../models/vendor/Vendor.model.js";
@@ -5,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
+import { computeProductRatingScore, computeVendorScore } from "./scoreComputation.controller.js";
 
 // POST /api/ratings — submit a rating
 export const submitRating = asyncHandler(async (req, res) => {
@@ -53,6 +55,14 @@ export const submitRating = asyncHandler(async (req, res) => {
         $set: { "vendorScore": Math.round(avgResult[0].avgStars * 20) }, // 0-100 scale
       });
     }
+  }
+
+  // Recompute full non-AI scores asynchronously (non-blocking)
+  if (targetType === "PRODUCT" && productId) {
+    computeProductRatingScore(productId).catch((e) => logger.error("[Score] productRating recompute failed", e));
+  }
+  if (targetType === "VENDOR" && vendorId) {
+    computeVendorScore(vendorId).catch((e) => logger.error("[Score] vendorScore recompute failed", e));
   }
 
   return res.status(201).json(new ApiResponse(201, rating, "Rating submitted successfully"));

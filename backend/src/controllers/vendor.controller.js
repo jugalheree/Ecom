@@ -8,6 +8,7 @@ import { Address } from "../models/user/Address.model.js";
 import  uploadOnCloudinary  from "../utils/cloudinary.js";
 import { Category } from "../models/product/Category.model.js";
 import { Product } from "../models/product/Product.model.js";
+import { computeProductAIScore } from "../utils/aiScoring.js";
 import { CategoryAttribute } from "../models/product/CategoryAttribute.js";
 import { ProductAttributeValue } from "../models/product/ProductAttributeValue.model.js";
 import { ProductImage } from "../models/product/ProductImage.model.js";
@@ -213,6 +214,9 @@ export const createProduct = asyncHandler(async (req, res) => {
     clothingSizes,
     productStandards,
     productCategory,
+    // Discount & alert
+    vendorDiscountPercent = 0,
+    minStockAlert = 5,
   } = req.body;
 
   if (
@@ -269,6 +273,13 @@ export const createProduct = asyncHandler(async (req, res) => {
 
   const slug = title.toLowerCase().replace(/[\s]+/g, "-") + "-" + Date.now();
 
+  // ── Compute AI quality score (pure math, no API key) ──────────────────
+  const aiScore = computeProductAIScore({
+    title,
+    description: description || "",
+    productCategory: productCategory || "GENERAL",
+  });
+
   const product = await Product.create({
     vendorId: vendor._id,
     categoryId,
@@ -286,6 +297,9 @@ export const createProduct = asyncHandler(async (req, res) => {
     clothingSizes: parsedClothingSizes,
     productStandards: productStandards ? (typeof productStandards === "string" ? JSON.parse(productStandards) : productStandards) : {},
     productCategory: productCategory || "GENERAL",
+    vendorDiscountPercent: Math.min(100, Math.max(0, Number(vendorDiscountPercent) || 0)),
+    minStockAlert: Math.max(0, Number(minStockAlert) || 5),
+    aiScore,
     isApproved: false,
   });
 
@@ -685,6 +699,19 @@ export const updateProduct = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Stock cannot be negative");
   }
 
+  // Recompute AI score if title or description changed
+  if (updateData.title || updateData.description) {
+    const existing = await Product.findOne({ _id: productId, vendorId }).lean();
+    if (existing) {
+      const newAiScore = computeProductAIScore({
+        title: updateData.title || existing.title,
+        description: updateData.description || existing.description || "",
+        productCategory: existing.productCategory || "GENERAL",
+      });
+      updateData.aiScore = newAiScore;
+    }
+  }
+
   const product = await Product.findOneAndUpdate(
     { _id: productId, vendorId },
     {
@@ -729,13 +756,7 @@ export const updateProductPrice = asyncHandler(async (req, res) => {
 
   const product = await Product.findOneAndUpdate(
     { _id: productId, vendorId },
-    {
-      $set: {
-        price,
-        approvalStatus: "PENDING",
-        isApproved: false
-      }
-    },
+    { $set: { price, approvalStatus: "PENDING", isApproved: false } },
     { new: true }
   );
 
@@ -746,7 +767,41 @@ export const updateProductPrice = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, product, "Price updated, pending approval")
   );
+});
 
+// PATCH /api/vendor/products/:productId/discount — set vendor discount %
+export const updateVendorDiscount = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  const { vendorDiscountPercent, bulkPricingTiers } = req.body;
+
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const updates = {};
+
+  if (vendorDiscountPercent !== undefined) {
+    const val = Number(vendorDiscountPercent);
+    if (isNaN(val) || val < 0 || val > 100) throw new ApiError(400, "Discount must be 0–100%");
+    updates.vendorDiscountPercent = val;
+  }
+
+  if (bulkPricingTiers !== undefined) {
+    if (!Array.isArray(bulkPricingTiers)) throw new ApiError(400, "bulkPricingTiers must be an array");
+    for (const tier of bulkPricingTiers) {
+      if (!tier.minQty || !tier.discountPercent) throw new ApiError(400, "Each tier needs minQty and discountPercent");
+    }
+    updates.bulkDiscountEnabled = bulkPricingTiers.length > 0;
+    updates.bulkPricingTiers = bulkPricingTiers;
+  }
+
+  const product = await Product.findOneAndUpdate(
+    { _id: productId, vendorId: vendor._id },
+    { $set: updates },
+    { new: true }
+  );
+  if (!product) throw new ApiError(404, "Product not found or unauthorized");
+
+  return res.status(200).json(new ApiResponse(200, product, "Discount updated"));
 });
 
 
@@ -915,7 +970,6 @@ export const updateProductStock = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid product ID");
   }
 
-  // Verify vendor owns this product
   const vendor = await Vendor.findOne({ userId }).lean();
   if (!vendor) throw new ApiError(403, "Vendor profile not found");
 
@@ -931,6 +985,57 @@ export const updateProductStock = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, { stock: product.stock }, "Stock updated successfully"));
+});
+
+// GET /api/vendor/products/low-stock  — returns products at or below their minStockAlert
+export const getLowStockProducts = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  // Find all products where stock <= minStockAlert
+  const lowStock = await Product.find({
+    vendorId: vendor._id,
+    isActive: true,
+    $expr: { $lte: ["$stock", "$minStockAlert"] },
+  })
+    .select("_id title stock minStockAlert price")
+    .lean();
+
+  // Attach primary image for each low-stock product
+  const ProductImage = mongoose.model("ProductImage");
+  const ids = lowStock.map((p) => p._id);
+  const images = await ProductImage.find({ productId: { $in: ids }, isPrimary: true, isActive: true })
+    .select("productId imageUrl").lean();
+  const imgMap = {};
+  images.forEach((i) => { imgMap[i.productId.toString()] = i.imageUrl; });
+
+  const enriched = lowStock.map((p) => ({
+    ...p,
+    imageUrl: imgMap[p._id.toString()] || null,
+  }));
+
+  return res.status(200).json(new ApiResponse(200, enriched, `${enriched.length} product(s) with low stock`));
+});
+
+// PATCH /api/vendor/products/:productId/min-stock  — set the alert threshold
+export const updateMinStockAlert = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  const { minStockAlert } = req.body;
+
+  const val = Number(minStockAlert);
+  if (isNaN(val) || val < 0) throw new ApiError(400, "minStockAlert must be a non-negative number");
+
+  const vendor = await Vendor.findOne({ userId: req.user._id }).lean();
+  if (!vendor) throw new ApiError(404, "Vendor profile not found");
+
+  const product = await Product.findOneAndUpdate(
+    { _id: productId, vendorId: vendor._id },
+    { $set: { minStockAlert: val } },
+    { new: true }
+  );
+  if (!product) throw new ApiError(404, "Product not found");
+
+  return res.status(200).json(new ApiResponse(200, { minStockAlert: product.minStockAlert }, "Stock alert threshold updated"));
 });
 
 // GET /api/vendor/me — Returns the current vendor's profile (vendorId, shopName, etc.)

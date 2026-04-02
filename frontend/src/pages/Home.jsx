@@ -103,8 +103,8 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-sand-50">
         {/* Personalised hero banner */}
-        <div className="bg-gradient-to-br from-ink-950 via-navy-950 to-ink-900">
-          <div className="container-app py-6">
+        <div className="bg-gradient-to-br from-ink-950 via-navy-950 to-ink-900 pt-[68px]">
+          <div className="container-app py-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
                 <p className="text-brand-400 text-sm font-semibold uppercase tracking-widest mb-2">

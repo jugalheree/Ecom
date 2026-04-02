@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { vendorAPI } from "../../services/apis/index";
 import { useToastStore } from "../../store/toastStore";
+import ProductScoreBadge from "../../components/product/ProductScoreBadge";
+import { SimpleConfirmModal } from "../../components/ui/ConfirmModal";
 
 const STATUS_STYLE = {
   APPROVED: "text-green-700 bg-green-50 border-green-200",
@@ -14,6 +16,7 @@ const STATUS_ICON = { APPROVED: "✓", PENDING: "⏳", REJECTED: "✕" };
 export default function VendorProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // productId
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState("newest");
@@ -38,7 +41,8 @@ export default function VendorProducts() {
   const handleSearch = () => { setPage(1); load({ search, status, sort, page: 1 }); };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this product? This cannot be undone.")) return;
+    setDeleteConfirm(productId);
+    return;
     try {
       await vendorAPI.deleteProduct(id);
       showToast({ message: "Product deleted", type: "success" });
@@ -181,6 +185,45 @@ export default function VendorProducts() {
                     </div>
                   </div>
 
+                  {/* AI Score row */}
+                  <div className="mb-3 px-2 py-2 rounded-xl bg-gradient-to-r from-purple-50 to-amber-50 border border-ink-100">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-ink-500 uppercase tracking-wider">Product Score</span>
+                      <span className="text-[10px] text-ink-400">
+                        {((p.aiScore || 0) + (p.ratingScore || 0)).toFixed(1)}/5.0
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {/* AI bar */}
+                      <div className="flex-1">
+                        <div className="flex justify-between text-[9px] text-ink-400 mb-0.5">
+                          <span>🤖 AI</span>
+                          <span>{(p.aiScore || 0).toFixed(1)}/2.5</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                          <div className="h-full rounded-full bg-purple-500 transition-all"
+                            style={{ width: `${((p.aiScore || 0) / 2.5) * 100}%` }} />
+                        </div>
+                      </div>
+                      {/* Community bar */}
+                      <div className="flex-1">
+                        <div className="flex justify-between text-[9px] text-ink-400 mb-0.5">
+                          <span>⭐ Rating</span>
+                          <span>{(p.ratingScore || 0).toFixed(1)}/2.5</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
+                          <div className="h-full rounded-full bg-amber-500 transition-all"
+                            style={{ width: `${((p.ratingScore || 0) / 2.5) * 100}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                    {p.aiScore < 1 && (
+                      <p className="text-[10px] text-orange-600 mt-1 font-medium">
+                        ⚠ Low AI score — improve your description
+                      </p>
+                    )}
+                  </div>
+
                   {p.revenue > 0 && (
                     <p className="text-xs text-green-600 font-semibold mb-3">
                       💰 Revenue: ₹{p.revenue?.toLocaleString()}
@@ -223,6 +266,24 @@ export default function VendorProducts() {
           )}
         </>
       )}
+
+      <SimpleConfirmModal
+        open={!!deleteConfirm}
+        title="Delete Product"
+        message="This product will be permanently deleted. This cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          const id = deleteConfirm;
+          setDeleteConfirm(null);
+          try {
+            await vendorAPI.deleteProduct(id);
+            showToast({ message: "Product deleted", type: "success" });
+            setProducts(prev => prev.filter(p => p._id !== id));
+          } catch { showToast({ message: "Failed to delete product", type: "error" }); }
+        }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

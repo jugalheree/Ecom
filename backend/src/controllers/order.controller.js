@@ -1,3 +1,4 @@
+import logger from "../utils/logger.js";
 import mongoose from "mongoose";
 import { Cart } from "../models/order/Cart.model.js";
 import { Order } from "../models/order/Order.model.js";
@@ -14,6 +15,8 @@ import { WalletTransaction } from "../models/finance/WalletTransaction.model.js"
 import { Coupon } from "../models/finance/Coupon.model.js";
 import { User } from "../models/auth/User.model.js";
 import { sendOrderConfirmationEmail } from "../utils/email.js";
+import { computeBuyerScore, computeVendorScore, computeProductRatingScore } from "./scoreComputation.controller.js";
+import { PlatformConfig } from "../models/finance/PlatformConfig.model.js";
 
 const RETURN_WINDOW_DAYS = 7;
 const PAYMENT_EXPIRY_MINUTES = 15;
@@ -338,7 +341,7 @@ export const placeOrder = asyncHandler(async (req, res) => {
           const p = productMap.get(oi.productId.toString());
           return { title: p?.title, quantity: oi.quantity, priceAtPurchase: oi.priceAtPurchase };
         });
-        sendOrderConfirmationEmail(buyer.email, buyer.name, { ...order.toObject(), items: itemsForEmail }).catch(() => {});
+        sendOrderConfirmationEmail(buyer.email, buyer.name, { ...order.toObject(), items: itemsForEmail }).catch((e) => logger.error("[Email] Order confirmation failed", e));
       }
     } catch {}
 
@@ -618,6 +621,8 @@ export const getVendorOrders = asyncHandler(async (req, res) => {
         productDetails: 1,
         buyerName: "$buyerInfo.name",
         buyerPhone: "$buyerInfo.phone",
+        isDealOrder: 1,
+        dealId: 1,
       },
     },
 
@@ -1211,6 +1216,14 @@ export const refundReturnRequest = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Return request not found");
   }
 
+  // If caller is a VENDOR, ensure they own this return
+  if (req.user.role === "VENDOR") {
+    const vendor = await Vendor.findOne({ userId });
+    if (!vendor || returnRequest.vendorId.toString() !== vendor._id.toString()) {
+      throw new ApiError(403, "Not authorised to process this refund");
+    }
+  }
+
   if (returnRequest.status === "REFUNDED") {
     throw new ApiError(400, "Refund already processed");
   }
@@ -1222,70 +1235,60 @@ export const refundReturnRequest = asyncHandler(async (req, res) => {
   // update return request
   returnRequest.status = "REFUNDED";
   returnRequest.refundedAt = new Date();
-  returnRequest.refundAmount = refundAmount;
   returnRequest.refundMethod = refundMethod;
   returnRequest.adminRemark = adminRemark;
 
+  // ── Buyer score refund deduction ────────────────────────────────────────
+  // If buyer score < 60, they receive 5% less refund
+  const buyer = await User.findById(returnRequest.buyerId).select("buyerScore").lean();
+  const buyerScore = buyer?.buyerScore ?? 100;
+  const baseRefund = Number(refundAmount) || 0;
+  const adjustedRefund = buyerScore < 60
+    ? Math.round(baseRefund * 0.95 * 100) / 100   // 5% deduction
+    : baseRefund;
+
+  returnRequest.refundAmount = adjustedRefund;
+
   await returnRequest.save();
 
-  // update order item + optionally credit wallet
-  const order = await Order.findById(returnRequest.orderId);
+  // Wallet refund
+  let buyerWallet = await TradeWallet.findOne({ userId: returnRequest.buyerId });
+  if (!buyerWallet) buyerWallet = await TradeWallet.create({ userId: returnRequest.buyerId });
+  buyerWallet.balance = Math.round((buyerWallet.balance + adjustedRefund) * 100) / 100;
+  await buyerWallet.save();
 
+  await WalletTransaction.create({
+    userId: returnRequest.buyerId,
+    type: "REFUND",
+    amount: adjustedRefund,
+    description: `Refund for return #${returnRequest._id}${buyerScore < 60 ? " (5% deduction applied — low trust score)" : ""}`,
+    status: "COMPLETED",
+    orderId: returnRequest.orderId,
+  });
+
+  // update order item
+  const order = await Order.findById(returnRequest.orderId);
   if (order) {
     const item = order.items.find(
-      (i) =>
-        i.productId.toString() ===
-        returnRequest.productId.toString()
+      (i) => i.productId.toString() === returnRequest.productId.toString()
     );
+    if (item) item.status = "REFUNDED";
 
-    if (item) {
-      item.status = "REFUNDED";
-    }
-
-    // check if all items refunded
-    const allRefunded = order.items.every(
-      (i) => i.status === "REFUNDED"
-    );
-
+    const allRefunded = order.items.every((i) => i.status === "REFUNDED");
     if (allRefunded) {
       order.orderStatus = "REFUNDED";
       order.paymentStatus = "REFUNDED";
     }
-
     await order.save();
-
-    // ── Credit refund to buyer's wallet ─────────────────────────────
-    // Refund goes to wallet if: method is TRADE_WALLET, or original payment was wallet
-    const shouldCreditWallet =
-      refundMethod === "TRADE_WALLET" ||
-      refundMethod === "WALLET" ||
-      order.paymentMethod === "TRADE_WALLET";
-
-    if (shouldCreditWallet && refundAmount > 0) {
-      const buyerWallet = await TradeWallet.findOneAndUpdate(
-        { userId: order.buyerId },
-        { $inc: { balance: refundAmount } },
-        { upsert: true, new: true }
-      );
-
-      await WalletTransaction.create({
-        userId: order.buyerId,
-        type: "CREDIT",
-        amount: refundAmount,
-        description: `Refund for order #${order.orderNumber || order._id.toString().slice(-8).toUpperCase()}`,
-        status: "COMPLETED",
-        reference: order._id,
-        referenceModel: "Order",
-      });
-    }
   }
 
+  // Recompute buyer + vendor + product scores asynchronously
+  computeBuyerScore(returnRequest.buyerId).catch((e) => logger.error("[Score] buyerScore recompute failed", e));
+  computeVendorScore(returnRequest.vendorId).catch((e) => logger.error("[Score] vendorScore recompute failed", e));
+  computeProductRatingScore(returnRequest.productId).catch((e) => logger.error("[Score] productRating recompute failed", e));
+
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      { ...returnRequest.toObject(), walletCredited: refundMethod === "TRADE_WALLET" || order?.paymentMethod === "TRADE_WALLET" },
-      "Refund processed successfully"
-    )
+    new ApiResponse(200, { ...returnRequest.toObject(), adjustedRefund }, "Refund processed successfully")
   );
 });
 

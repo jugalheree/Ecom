@@ -40,6 +40,22 @@ const dealSchema = new mongoose.Schema(
       },
     ],
     completedAt: Date,
+
+    // Order created when both sign
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", default: null },
+
+    // Custom delivery address chosen by buyer during deal proposal
+    deliveryAddress: {
+      name:    String,
+      phone:   String,
+      street:  String,
+      area:    String,
+      city:    String,
+      state:   String,
+      pincode: String,
+      lat:     Number,
+      lng:     Number,
+    },
   },
   { timestamps: true }
 );

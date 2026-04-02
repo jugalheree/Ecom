@@ -14,17 +14,20 @@ const STATUS_STYLE = {
 const STATUS_STEPS = ["REQUESTED","APPROVED","PICKED_UP","RECEIVED","REFUNDED"];
 
 // ── Return Detail / Action Modal ───────────────────────────────────────────
-function ReturnModal({ ret, onClose, onRefresh }) {
+function ReturnModal({ ret: initialRet, onClose, onRefresh }) {
+  const [ret, setRet] = useState(initialRet);
   const [acting, setActing] = useState(false);
   const [rejectRemark, setRejectRemark] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
-  const [refundAmount, setRefundAmount] = useState(ret.refundAmount || "");
+  const [refundAmount, setRefundAmount] = useState(initialRet.refundAmount || "");
   const showToast = useToastStore(s => s.showToast);
 
   const act = async (fn, successMsg) => {
     setActing(true);
     try {
-      await fn();
+      const res = await fn();
+      // Update local ret with fresh data from server response
+      if (res?.data?.data) setRet(prev => ({ ...prev, ...res.data.data }));
       showToast({ message: successMsg, type: "success" });
       onRefresh();
       onClose();
@@ -239,9 +242,12 @@ function ReturnModal({ ret, onClose, onRefresh }) {
               <div>
                 <p className="text-sm font-bold text-green-800">Refund Completed</p>
                 <p className="text-xs text-green-700 mt-0.5">
-                  ₹{ret.refundAmount?.toLocaleString()} refunded to buyer's wallet on{" "}
+                  ₹{(ret.refundAmount ?? ret.adjustedRefund ?? "—").toLocaleString()} refunded to buyer's wallet on{" "}
                   {ret.refundedAt ? new Date(ret.refundedAt).toLocaleDateString("en-IN") : "—"}
                 </p>
+                {ret.buyerScore < 60 && (
+                  <p className="text-[10px] text-amber-600 mt-0.5">⚠ 5% deduction applied (low buyer trust score)</p>
+                )}
               </div>
             </div>
           )}

@@ -41,29 +41,9 @@ function AttributeForm({ categoryId, onCreated, onClose }) {
     } finally { setSaving(false); }
   };
 
-  const ATTR_PRESETS = [
-    { code: "brand", label: "Brand", dataType: "string" },
-    { code: "color", label: "Color", dataType: "enum", options: "Red,Blue,Green,Black,White,Yellow,Orange,Pink,Purple,Brown" },
-    { code: "size", label: "Size", dataType: "enum", options: "XS,S,M,L,XL,XXL,XXXL" },
-    { code: "material", label: "Material", dataType: "string" },
-    { code: "weight", label: "Weight", dataType: "number", unit: "kg" },
-    { code: "warranty", label: "Warranty", dataType: "string" },
-  ];
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4 p-4 bg-sand-50 rounded-xl border border-ink-200">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wider text-ink-500">New Attribute</p>
-        <div className="flex flex-wrap gap-1.5">
-          {ATTR_PRESETS.map(p => (
-            <button key={p.code} type="button"
-              onClick={() => setForm(f => ({ ...f, code: p.code, label: p.label, dataType: p.dataType, unit: p.unit || "", options: p.options || "" }))}
-              className="text-[10px] bg-white border border-brand-200 text-brand-700 rounded-lg px-2 py-1 hover:bg-brand-50 font-semibold">
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <p className="text-xs font-bold uppercase tracking-wider text-ink-500">New Attribute</p>
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-semibold text-ink-700 mb-1">Attribute Code *</label>
@@ -120,7 +100,7 @@ function AttributeForm({ categoryId, onCreated, onClose }) {
 }
 
 // ── Category Row ────────────────────────────────────────────────────────────
-function CategoryRow({ cat, subCategories, allCategories, onRefresh }) {
+function CategoryRow({ cat, subCategories, allCategories, onRefresh, isNested = false }) {
   const [expanded, setExpanded] = useState(false);
   const [showAttrForm, setShowAttrForm] = useState(false);
   const [attributes, setAttributes] = useState([]);
@@ -144,7 +124,7 @@ function CategoryRow({ cat, subCategories, allCategories, onRefresh }) {
   }, [expanded, loadAttrs]);
 
   return (
-    <div className="card overflow-hidden">
+    <div className={`card overflow-hidden ${isNested ? "ml-8 border-l-4 border-brand-200 rounded-l-none" : ""}`}>
       {/* Category header */}
       <div
         className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-sand-50 transition-colors"
@@ -177,16 +157,14 @@ function CategoryRow({ cat, subCategories, allCategories, onRefresh }) {
           {subs.length > 0 && (
             <div className="divide-y divide-ink-50">
               {subs.map((sub) => (
-                <div key={sub._id} className="flex items-center gap-3 px-5 py-3 pl-14">
-                  <span className="text-ink-300 text-sm flex-shrink-0">└</span>
-                  <div className="flex items-center gap-2 flex-1">
-                    <p className="text-sm text-ink-700 font-medium">{sub.name}</p>
-                    {sub.isLeaf && (
-                      <span className="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full">LEAF</span>
-                    )}
-                  </div>
-                  {sub.description && <p className="text-xs text-ink-400 hidden sm:block truncate max-w-xs">{sub.description}</p>}
-                </div>
+                <CategoryRow
+                  key={sub._id}
+                  cat={sub}
+                  subCategories={subCategories}
+                  allCategories={allCategories}
+                  onRefresh={onRefresh}
+                  isNested
+                />
               ))}
             </div>
           )}
@@ -306,59 +284,6 @@ export default function AdminCategories() {
           {showForm ? "✕ Cancel" : "+ New Category"}
         </button>
       </div>
-
-      {/* Quick-add preset categories */}
-      {showForm && (
-        <div className="mb-4 p-4 bg-white rounded-2xl border border-ink-200">
-          <p className="text-xs font-bold uppercase tracking-widest text-ink-400 mb-3">Quick Add Common Categories</p>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { name: "Electronics", isLeaf: false },
-              { name: "Mobiles", isLeaf: true, parent: "Electronics" },
-              { name: "Laptops", isLeaf: true, parent: "Electronics" },
-              { name: "Fashion", isLeaf: false },
-              { name: "Groceries", isLeaf: true },
-              { name: "Home & Living", isLeaf: false },
-              { name: "Beauty", isLeaf: true },
-              { name: "Sports", isLeaf: true },
-              { name: "Books", isLeaf: true },
-              { name: "Automotive", isLeaf: true },
-            ].map((preset) => {
-              const exists = categories.some(c => c.name.toLowerCase() === preset.name.toLowerCase());
-              return (
-                <button
-                  key={preset.name}
-                  disabled={exists || creating}
-                  onClick={async () => {
-                    if (exists) return;
-                    setCreating(true);
-                    try {
-                      const parentCat = preset.parent ? categories.find(c => c.name === preset.parent) : null;
-                      await categoryAPI.create({
-                        name: preset.name,
-                        isLeaf: preset.isLeaf,
-                        parentCategory: parentCat?._id || undefined,
-                      });
-                      showToast({ message: `"${preset.name}" created!`, type: "success" });
-                      load();
-                    } catch (err) {
-                      showToast({ message: err?.response?.data?.message || "Failed", type: "error" });
-                    } finally { setCreating(false); }
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
-                    exists
-                      ? "bg-green-50 text-green-600 border-green-200 cursor-default"
-                      : "bg-white text-ink-600 border-ink-200 hover:border-brand-400 hover:text-brand-700 hover:bg-brand-50"
-                  }`}
-                >
-                  {exists ? "✓" : "+"} {preset.name}
-                  {preset.isLeaf && <span className="text-[9px] opacity-60">LEAF</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Create form — uses uncontrolled inputs via refs to prevent focus loss */}
       {showForm && (

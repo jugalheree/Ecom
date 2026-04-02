@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { couponAPI } from "../../services/apis/index";
 import { useToastStore } from "../../store/toastStore";
+import { SimpleConfirmModal } from "../../components/ui/ConfirmModal";
 
 const EMPTY = { code: "", description: "", discountType: "PERCENT", discountValue: "", minOrderValue: "", maxDiscount: "", usageLimit: "", expiresAt: "" };
 
@@ -11,6 +12,7 @@ export default function AdminCoupons() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [creating, setCreating] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -58,7 +60,8 @@ export default function AdminCoupons() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this coupon? This cannot be undone.")) return;
+    setDeleteConfirm(coupon._id);
+    return;
     try {
       await couponAPI.remove(id);
       setCoupons((prev) => prev.filter((c) => c._id !== id));
@@ -209,6 +212,24 @@ export default function AdminCoupons() {
           </div>
         </div>
       )}
+
+      <SimpleConfirmModal
+        open={!!deleteConfirm}
+        title="Delete Coupon"
+        message="Are you sure? This coupon will be permanently deleted."
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          const id = deleteConfirm;
+          setDeleteConfirm(null);
+          try {
+            await api.delete(`/api/coupons/${id}`);
+            showToast({ message: "Coupon deleted", type: "success" });
+            load();
+          } catch { showToast({ message: "Failed to delete coupon", type: "error" }); }
+        }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

@@ -512,6 +512,11 @@ export const getUserDetails = asyncHandler(async (req, res) => {
 
   const isVendor = user.role === "VENDOR";
 
+  // FIX: fetch vendor doc first so we can query products by vendor._id not userId
+  const vendorDoc = isVendor
+    ? await mongoose.model("Vendor").findOne({ userId }).select("_id shopName").lean()
+    : null;
+
   const [
     recentOrders,
     addresses,
@@ -529,42 +534,24 @@ export const getUserDetails = asyncHandler(async (req, res) => {
 
     Order.aggregate([
       { $match: { buyerId: new mongoose.Types.ObjectId(userId) } },
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          totalSpent: { $sum: "$totalAmount" }
-        }
-      }
+      { $group: { _id: null, totalOrders: { $sum: 1 }, totalSpent: { $sum: "$totalAmount" } } },
     ]),
 
-    // Vendor Products
-    isVendor
-      ? Product.find({ vendorId: userId })
+    // FIX: use vendorDoc._id not userId
+    vendorDoc
+      ? Product.find({ vendorId: vendorDoc._id })
           .select("title price stock approvalStatus")
           .limit(10)
           .lean()
       : [],
 
-    // Vendor Orders
-    isVendor
+    vendorDoc
       ? Order.aggregate([
           { $unwind: "$items" },
-          {
-            $match: {
-              "items.vendorId": new mongoose.Types.ObjectId(userId)
-            }
-          },
-          {
-            $group: {
-              _id: null,
-              totalOrders: { $sum: 1 },
-              totalRevenue: { $sum: "$items.price" }
-            }
-          }
+          { $match: { "items.vendorId": vendorDoc._id } },
+          { $group: { _id: null, totalOrders: { $sum: 1 }, totalRevenue: { $sum: "$items.priceAtPurchase" } } },
         ])
-      : []
-
+      : [],
   ]);
 
   return res.status(200).json(
@@ -610,7 +597,9 @@ export const getAllOrders = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate({ path: "buyerId", select: "name email phone" })
+      .populate({ path: "buyerId",           select: "name email phone role" })
+      .populate({ path: "items.productId",   select: "title price stock" })
+      .populate({ path: "items.vendorId",    select: "shopName businessType" })
       .lean(),
     Order.countDocuments(filter),
   ]);

@@ -1,6 +1,6 @@
 // category.routes.js
 import { Router } from "express";
-import { createCategory, getAllCategories, getCategoryAttributes, createCategoryAttribute } from "../controllers/category.controller.js";
+import { createCategory, getAllCategories, getCategoryAttributes, createCategoryAttribute, suggestCategory } from "../controllers/category.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
@@ -13,6 +13,7 @@ router.route("/:categoryId/attributes").post(verifyJWT, authorizeRoles("ADMIN"),
 
 // Public
 router.route("/").get(getAllCategories);
+router.route("/suggest").get(suggestCategory);   // NEW: spell-correct + auto-detect
 router.route("/:categoryId/attributes").get(getCategoryAttributes);
 
 

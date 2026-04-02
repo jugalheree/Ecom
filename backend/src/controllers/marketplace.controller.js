@@ -697,13 +697,27 @@ export const getMarketplaceProducts = asyncHandler(async (req, res) => {
     imageMap[img.productId.toString()] = img.imageUrl;
   });
 
-  const result = products.map(p => ({
-    _id: p._id,
-    title: p.title,
-    price: p.price,
-    slug: p.slug,
-    image: imageMap[p._id.toString()] || null
-  }));
+  const result = products.map(p => {
+    const vendorDiscount = p.vendorDiscountPercent || 0;
+    const festivalDiscount = p.festivalDiscountPercent || 0;
+    const combinedDiscount = Math.min(100, vendorDiscount + festivalDiscount);
+    const effectivePrice = combinedDiscount > 0
+      ? Math.round(p.price * (1 - combinedDiscount / 100) * 100) / 100
+      : p.price;
+    return {
+      _id: p._id,
+      title: p.title,
+      price: p.price,
+      effectivePrice,
+      vendorDiscountPercent: vendorDiscount,
+      festivalDiscountPercent: festivalDiscount,
+      totalDiscountPercent: combinedDiscount,
+      ratingScore: p.ratingScore || 0,
+      stock: p.stock,
+      slug: p.slug,
+      image: imageMap[p._id.toString()] || null,
+    };
+  });
 
   return res.status(200).json(
     new ApiResponse(

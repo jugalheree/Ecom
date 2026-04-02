@@ -1,7 +1,7 @@
 //Vender.routes.js
 
 import { Router } from "express";
-import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, deleteProduct, getVendorProductDetails, getVendorProducts, getVendorProfile, updateProduct, updateProductPrice, updateProductStock, uploadProductImages, uploadVendorDocuments, getBankAccount, saveBankAccount, requestPayout, getPayoutHistory, getMyDeliveryStaff, addDeliveryStaff, updateDeliveryStaff, deleteDeliveryStaff, assignDeliveryByVendor, getVendorDeliveryAssignments } from "../controllers/vendor.controller.js";
+import { addProductAttributes, attachAddressToVendor, createProduct, createVendorProfile, deleteProduct, getVendorProductDetails, getVendorProducts, getVendorProfile, updateProduct, updateProductPrice, updateVendorDiscount, updateProductStock, getLowStockProducts, updateMinStockAlert, uploadProductImages, uploadVendorDocuments, getBankAccount, saveBankAccount, requestPayout, getPayoutHistory, getMyDeliveryStaff, addDeliveryStaff, updateDeliveryStaff, deleteDeliveryStaff, assignDeliveryByVendor, getVendorDeliveryAssignments } from "../controllers/vendor.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/authorize.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -24,11 +24,14 @@ router.route('/orders/:orderId/ship').patch(verifyJWT, authorizeRoles("VENDOR"),
 router.route('/orders/returns/:returnId/review').patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, reviewReturnRequest);
 router.route('/orders/returns/:returnId/pickup').patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, markReturnPickedUp);
 router.route('/orders/returns/:returnId/receive').patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, markReturnReceived);
-// Refund is admin-only — only admin should process refunds
-router.route('/orders/returns/:returnId/refund').patch(verifyJWT, authorizeRoles("ADMIN"), refundReturnRequest);
+// Vendors and admins can both process refunds
+router.route('/orders/returns/:returnId/refund').patch(verifyJWT, authorizeRoles("VENDOR", "ADMIN"), isVendorApproved, refundReturnRequest);
 router.route("/products/:productId/stock").patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, updateProductStock);
+router.route("/products/:productId/min-stock").patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, updateMinStockAlert);
+router.route("/products/low-stock").get(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, getLowStockProducts);
 router.route("/products/:productId").patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, updateProduct);
 router.route("/products/:productId/price").patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, updateProductPrice);
+router.route("/products/:productId/discount").patch(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, updateVendorDiscount);
 router.route("/products/:productId").delete(verifyJWT, authorizeRoles("VENDOR"), isVendorApproved, deleteProduct);
 router.route("/products").get(verifyJWT, authorizeRoles("VENDOR"), getVendorProducts);
 router.route("/products/:productId").get(verifyJWT, authorizeRoles("VENDOR"), getVendorProductDetails);

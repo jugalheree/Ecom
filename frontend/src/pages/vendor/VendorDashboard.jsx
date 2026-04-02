@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { vendorAPI, assignmentAPI, ratingAPI } from "../../services/apis/index";
+import { vendorExtrasAPI } from "../../services/apis/index";
+import StockAlertModal from "../../components/vendor/StockAlertModal";
 
 function Stars({ value, size = 13 }) {
   return (
@@ -22,6 +24,8 @@ export default function VendorDashboard() {
   const [deliveryUpdates, setDeliveryUpdates] = useState([]);
   const [vendorScore, setVendorScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [showStockAlert, setShowStockAlert] = useState(false);
 
   useEffect(() => {
     Promise.allSettled([
@@ -30,7 +34,6 @@ export default function VendorDashboard() {
         setProducts(Array.isArray(d) ? d : d?.products || []);
       }),
       vendorAPI.getOrders({ limit: 20 }).then(r => setOrders(r.data?.data?.orders || [])),
-      // Use /api/vendor/me to get vendorId reliably
       vendorAPI.getProfile().then(r => {
         const vid = r.data?.data?._id;
         setVendorScore(r.data?.data?.vendorScore || 0);
@@ -42,6 +45,14 @@ export default function VendorDashboard() {
       }),
       assignmentAPI.getVendorUpdates().then(r => {
         setDeliveryUpdates(r.data?.data?.slice(0, 5) || []);
+      }).catch(() => {}),
+      // Fetch low-stock products and show alert if any exist
+      vendorExtrasAPI.getLowStock().then(r => {
+        const low = r.data?.data || [];
+        if (low.length > 0) {
+          setLowStockProducts(low);
+          setShowStockAlert(true);
+        }
       }).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
@@ -60,6 +71,15 @@ export default function VendorDashboard() {
 
   return (
     <div className="min-h-screen bg-sand-50 p-6">
+
+      {/* Stock Alert Popup — shown on mount if any products are low */}
+      {showStockAlert && (
+        <StockAlertModal
+          products={lowStockProducts}
+          onClose={() => setShowStockAlert(false)}
+        />
+      )}
+
       <div className="mb-6">
         <p className="section-label">Vendor</p>
         <h1 className="text-2xl font-display font-bold text-ink-900 mt-1">Dashboard</h1>

@@ -38,7 +38,15 @@ export default function BuyerDashboard() {
 
   const available = balance - locked;
 
-  // Compute buyer rating from received ratings
+  // Buyer trust score from backend user profile
+  const buyerScore = user?.buyerScore ?? 100;
+  const scoreColor = buyerScore >= 80 ? "text-emerald-600" : buyerScore >= 60 ? "text-amber-600" : "text-red-600";
+  const scoreBarColor = buyerScore >= 80 ? "bg-emerald-500" : buyerScore >= 60 ? "bg-amber-500" : "bg-red-500";
+  const scoreBadge = buyerScore >= 80 ? { label: "Trusted Buyer", icon: "🏅" }
+    : buyerScore >= 60 ? { label: "Good Buyer", icon: "👍" }
+    : { label: "Low Trust Score", icon: "⚠️" };
+
+  // Compute buyer star rating from received ratings
   const avgRating = receivedRatings.length > 0
     ? (receivedRatings.reduce((s, r) => s + r.stars, 0) / receivedRatings.length).toFixed(1)
     : null;
@@ -49,10 +57,10 @@ export default function BuyerDashboard() {
     : { label: "New Buyer", icon: "🆕", color: "text-ink-600" };
 
   const tiles = [
-    { label: "Cart Items",     value: cart.length,                  icon: "🛒", link: "/cart",     color: "bg-brand-50 border-brand-200 text-brand-700" },
-    { label: "Wishlist",       value: wishlist.length,              icon: "🤍", link: "/wishlist",  color: "bg-pink-50 border-pink-200 text-pink-700" },
-    { label: "Wallet Balance", value: `₹${available.toLocaleString()}`, icon: "💳", link: "/wallet", color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
-    { label: "My Orders",      value: recentOrders.length,          icon: "📦", link: "/orders",    color: "bg-navy-50 border-navy-200 text-navy-700" },
+    { label: "Cart Items",     value: cart.length,                      icon: "🛒", link: "/cart",     color: "bg-brand-50 border-brand-200 text-brand-700" },
+    { label: "Wishlist",       value: wishlist.length,                  icon: "🤍", link: "/wishlist",  color: "bg-pink-50 border-pink-200 text-pink-700" },
+    { label: "Wallet Balance", value: `₹${available.toLocaleString()}`, icon: "💳", link: "/wallet",    color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+    { label: "My Orders",      value: recentOrders.length,              icon: "📦", link: "/orders",    color: "bg-navy-50 border-navy-200 text-navy-700" },
   ];
 
   return (
@@ -65,6 +73,39 @@ export default function BuyerDashboard() {
             Hello, {user?.name?.split(" ")[0] || "Shopper"} 👋
           </h1>
           <p className="text-ink-500 text-sm mt-1">Here's your account overview.</p>
+        </div>
+
+        {/* Trust Score Card */}
+        <div className="card p-5 mb-6 border-2 border-ink-100">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-ink-50 border border-ink-200">
+                🛡️
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-ink-400 mb-1">Your Trust Score</p>
+                <div className="flex items-center gap-3">
+                  <span className={`text-3xl font-display font-bold ${scoreColor}`}>{buyerScore}</span>
+                  <span className="text-sm text-ink-400">/ 100</span>
+                </div>
+                {/* Score bar */}
+                <div className="mt-2 w-48 h-2 bg-ink-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${scoreBarColor}`}
+                    style={{ width: `${buyerScore}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-ink-50 border border-ink-200">
+                <span>{scoreBadge.icon}</span>
+                <span className={`text-sm font-bold ${scoreColor}`}>{scoreBadge.label}</span>
+              </div>
+              {buyerScore < 60 && (
+                <p className="text-xs text-red-500 mt-1.5">⚠️ Refunds may be reduced by 5%</p>
+              )}
+              <p className="text-xs text-ink-400 mt-1">Based on return behaviour</p>
+            </div>
+          </div>
         </div>
 
         {/* Buyer Rating Card — Real */}

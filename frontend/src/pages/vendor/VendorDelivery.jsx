@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { vendorAPI } from "../../services/apis/index";
 import { useToastStore } from "../../store/toastStore";
+import { SimpleConfirmModal } from "../../components/ui/ConfirmModal";
 
 const ACTION_FLOW = [
   { action: "PACK",             label: "Mark Packed",       icon: "📦", nextStatus: "PACKED",          color: "bg-indigo-600" },
@@ -48,7 +49,12 @@ function AssignModal({ order, staff, onAssign, onClose }) {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-ink-100">
           <div>
-            <h3 className="font-display font-bold text-ink-900">Assign Delivery Staff</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-display font-bold text-ink-900">Assign Delivery Staff</h3>
+              {order.isDealOrder && (
+                <span className="text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full">B2B Deal</span>
+              )}
+            </div>
             <p className="text-xs text-ink-500 mt-0.5">Order #{order.orderNumber || order._id?.slice(-8).toUpperCase()} · ₹{order.totalAmount?.toLocaleString()}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-ink-50 text-ink-400 text-lg">✕</button>
@@ -146,10 +152,18 @@ function AddStaffModal({ onAdded, onClose }) {
 function OrderCard({ order, staff, assignedStaffMap, onAssign, onAction, actionLoading }) {
   const [expanded, setExpanded] = useState(false);
   const assignedStaff = assignedStaffMap[order._id];
+  const isDeal = order.isDealOrder;
 
   return (
-    <div className="card overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-sand-50 transition-colors gap-3" onClick={() => setExpanded(e => !e)}>
+    <div className={`card overflow-hidden ${isDeal ? "border-2 border-orange-300 shadow-orange-100 shadow-md" : ""}`}>
+      {isDeal && (
+        <div className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200">
+          <span className="text-sm">🤝</span>
+          <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Vendor–Vendor Deal Order</span>
+          <span className="ml-auto text-[10px] text-orange-500 font-semibold bg-orange-100 px-2 py-0.5 rounded-full">B2B</span>
+        </div>
+      )}
+      <div className={`flex items-center justify-between px-5 py-4 cursor-pointer transition-colors gap-3 ${isDeal ? "hover:bg-orange-50" : "hover:bg-sand-50"}`} onClick={() => setExpanded(e => !e)}>
         <div className="flex items-center gap-4 min-w-0 flex-1">
           <div className="flex-shrink-0">
             <p className="text-[10px] text-ink-400 font-medium uppercase tracking-wide">Order</p>
@@ -199,24 +213,18 @@ function OrderCard({ order, staff, assignedStaffMap, onAssign, onAction, actionL
                 <span className="text-sm text-ink-400">No staff assigned yet</span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {assignedStaff?.assignmentStatus && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  assignedStaff.assignmentStatus === "DELIVERED" ? "bg-green-50 text-green-700 border-green-200" :
-                  assignedStaff.assignmentStatus === "OUT_FOR_DELIVERY" ? "bg-orange-50 text-orange-700 border-orange-200" :
-                  assignedStaff.assignmentStatus === "PICKED_UP" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                  assignedStaff.assignmentStatus === "ACCEPTED" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-                  "bg-amber-50 text-amber-700 border-amber-200"
-                }`}>
-                  {assignedStaff.assignmentStatus.replace(/_/g," ")}
-                </span>
-              )}
+            {order.orderStatus !== "DELIVERED" && (
               <button
                 onClick={(e) => { e.stopPropagation(); onAssign(order); }}
                 className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${assignedStaff ? "border-ink-200 text-ink-600 hover:border-ink-400 bg-white" : "border-brand-400 text-brand-700 bg-brand-50 hover:bg-brand-100"}`}>
                 {assignedStaff ? "Reassign" : "Assign Staff"}
               </button>
-            </div>
+            )}
+            {order.orderStatus === "DELIVERED" && assignedStaff && (
+              <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 border border-green-200">
+                ✅ Delivered
+              </span>
+            )}
           </div>
 
           {order.items?.map((item, i) => {
@@ -271,9 +279,9 @@ export default function VendorDelivery() {
   const [loading, setLoading] = useState(true);
   const [assignModal, setAssignModal] = useState(null);
   const [addStaffModal, setAddStaffModal] = useState(false);
+  const [staffRemoveConfirm, setStaffRemoveConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
   const [assignedStaffMap, setAssignedStaffMap] = useState({});
-  const [deliveryAssignments, setDeliveryAssignments] = useState([]);
 
   const loadStaff = useCallback(() =>
     vendorAPI.getDeliveryStaff().then(r => setStaff(r.data?.data || [])).catch(() => {}), []);
@@ -290,19 +298,17 @@ export default function VendorDelivery() {
     try {
       const res = await vendorAPI.getDeliveryAssignments();
       const assignments = res.data?.data || [];
-      setDeliveryAssignments(assignments);
       const map = {};
       assignments.forEach(a => {
-        if (a.status === "REASSIGNED") return;
-        const ordId = a.orderId?._id || a.orderId;
-        if (!ordId) return;
-        const person = a.deliveryPersonId;
-        map[ordId] = {
-          staffId: person?._id || person,
-          name: person?.name || a.vendorStaffSnapshot?.name || "Staff",
-          phone: person?.phone || a.vendorStaffSnapshot?.phone || "",
-          assignmentStatus: a.status,
-        };
+        if (a.orderId?._id && a.status !== "REASSIGNED") {
+          const orderId = a.orderId._id || a.orderId;
+          map[orderId] = {
+            staffId: a.deliveryPersonId?._id || a.deliveryPersonId,
+            name: a.deliveryPersonId?.name || a.vendorStaffSnapshot?.name,
+            phone: a.deliveryPersonId?.phone || a.vendorStaffSnapshot?.phone,
+            assignmentStatus: a.status,
+          };
+        }
       });
       setAssignedStaffMap(map);
     } catch { /* silent */ }
@@ -334,10 +340,10 @@ export default function VendorDelivery() {
     try {
       await vendorAPI.assignDelivery({ orderId, staffId });
       const person = staff.find(s => s._id === staffId);
-      setAssignedStaffMap(prev => ({ ...prev, [orderId]: { staffId, name: person?.name, phone: person?.phone, assignmentStatus: "ASSIGNED" } }));
-      // Refresh staff to update activeDeliveries count
-      await loadStaff();
+      setAssignedStaffMap(prev => ({ ...prev, [orderId]: { staffId, name: person?.name, phone: person?.phone } }));
       showToast({ message: `Assigned to ${person?.name || "staff"}!`, type: "success" });
+      // Reload from server to get accurate state
+      loadAssignments();
     } catch (err) {
       showToast({ message: err?.response?.data?.message || "Assignment failed", type: "error" });
       throw err;
@@ -382,10 +388,9 @@ export default function VendorDelivery() {
       <div className="flex gap-2 mb-5 flex-wrap items-center justify-between">
         <div className="flex gap-2 flex-wrap">
           {[
-            ["active",      "Active Orders",    activeOrders.length],
-            ["delivered",   "Delivered",        deliveredOrders.length],
-            ["assignments", "Assignments",       deliveryAssignments.filter(a=>a.status!=="REASSIGNED").length],
-            ["staff",       "Delivery Staff",   staff.length],
+            ["active",    "Active Orders", activeOrders.length],
+            ["delivered", "Delivered",     deliveredOrders.length],
+            ["staff",     "Delivery Staff",staff.length],
           ].map(([t, label, count]) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5 ${tab === t ? "bg-ink-900 text-white" : "bg-white border border-ink-200 text-ink-600 hover:border-ink-400"}`}>
@@ -405,78 +410,6 @@ export default function VendorDelivery() {
 
       {loading ? (
         <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="card p-5"><div className="skeleton h-16 rounded-xl" /></div>)}</div>
-      ) : tab === "assignments" ? (
-        <div className="space-y-3">
-          {deliveryAssignments.filter(a => a.status !== "REASSIGNED").length === 0 ? (
-            <div className="card p-16 text-center">
-              <div className="text-5xl mb-4">📋</div>
-              <p className="font-display font-bold text-ink-900 text-lg">No assignments yet</p>
-              <p className="text-ink-500 text-sm mt-2">Assign staff to orders from the Active Orders tab.</p>
-            </div>
-          ) : deliveryAssignments.filter(a => a.status !== "REASSIGNED").map(a => {
-            const order = a.orderId;
-            const person = a.deliveryPersonId;
-            const staffName = person?.name || a.vendorStaffSnapshot?.name || "Staff";
-            const staffPhone = person?.phone || a.vendorStaffSnapshot?.phone || "";
-            const statusColors = {
-              ASSIGNED: "bg-amber-50 text-amber-700 border-amber-200",
-              ACCEPTED: "bg-blue-50 text-blue-700 border-blue-200",
-              PICKED_UP: "bg-indigo-50 text-indigo-700 border-indigo-200",
-              OUT_FOR_DELIVERY: "bg-orange-50 text-orange-700 border-orange-200",
-              DELIVERED: "bg-green-50 text-green-700 border-green-200",
-              FAILED: "bg-red-50 text-red-700 border-red-200",
-            };
-            return (
-              <div key={a._id} className="card p-5">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <p className="font-mono text-sm font-bold text-ink-800">
-                        #{order?.orderNumber || (typeof order === "string" ? order.slice(-8).toUpperCase() : "—")}
-                      </p>
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${statusColors[a.status] || "bg-ink-50 text-ink-600 border-ink-200"}`}>
-                        {a.status?.replace(/_/g," ")}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span>👤</span>
-                        <div>
-                          <p className="font-semibold text-ink-700">{staffName}</p>
-                          {staffPhone && <p className="text-ink-400">{staffPhone}</p>}
-                        </div>
-                      </div>
-                      {order?.deliveryAddress?.city && (
-                        <div className="flex items-start gap-1.5">
-                          <span className="mt-0.5">📍</span>
-                          <p className="text-ink-500 leading-snug">
-                            {[order.deliveryAddress.area, order.deliveryAddress.city].filter(Boolean).join(", ")}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    {/* Delivery notes */}
-                    {a.deliveryNotes?.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {a.deliveryNotes.slice(-3).map((note, i) => (
-                          <div key={i} className="flex items-start gap-1.5 text-[11px] text-ink-500">
-                            <span className="text-ink-300 flex-shrink-0">💬</span>
-                            <p>{note.message}</p>
-                            <span className="text-ink-300 ml-auto whitespace-nowrap">{note.timestamp ? new Date(note.timestamp).toLocaleString("en-IN",{dateStyle:"short",timeStyle:"short"}) : ""}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-ink-900">₹{order?.totalAmount?.toLocaleString()}</p>
-                    <p className="text-[10px] text-ink-400">{new Date(a.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       ) : tab === "staff" ? (
         <div>
           {staff.length === 0 ? (
@@ -513,14 +446,7 @@ export default function VendorDelivery() {
                       }} className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${s.isActive ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" : "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"}`}>
                         {s.isActive ? "Deactivate" : "Activate"}
                       </button>
-                      <button onClick={async () => {
-                        if (!confirm(`Remove "${s.name}"?`)) return;
-                        try {
-                          await vendorAPI.deleteDeliveryStaff(s._id);
-                          setStaff(prev => prev.filter(m => m._id !== s._id));
-                          showToast({ message: "Staff removed", type: "info" });
-                        } catch { showToast({ message: "Failed to remove", type: "error" }); }
-                      }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">
+                      <button onClick={() => setStaffRemoveConfirm({ id: s._id, name: s.name })} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">
                         Remove
                       </button>
                     </div>
@@ -553,6 +479,23 @@ export default function VendorDelivery() {
 
       {assignModal && <AssignModal order={assignModal} staff={staff} onAssign={handleAssign} onClose={() => setAssignModal(null)} />}
       {addStaffModal && <AddStaffModal onAdded={loadStaff} onClose={() => setAddStaffModal(false)} />}
+      <SimpleConfirmModal
+        open={!!staffRemoveConfirm}
+        title="Remove Staff Member"
+        message={`Are you sure you want to remove "${staffRemoveConfirm?.name}" from delivery staff?`}
+        confirmLabel="Remove"
+        danger
+        onConfirm={async () => {
+          const { id } = staffRemoveConfirm;
+          setStaffRemoveConfirm(null);
+          try {
+            await vendorAPI.deleteDeliveryStaff(id);
+            setStaff(prev => prev.filter(m => m._id !== id));
+            showToast({ message: "Staff member removed", type: "info" });
+          } catch { showToast({ message: "Failed to remove staff", type: "error" }); }
+        }}
+        onCancel={() => setStaffRemoveConfirm(null)}
+      />
     </div>
   );
 }

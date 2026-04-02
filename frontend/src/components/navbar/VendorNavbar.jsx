@@ -99,11 +99,6 @@ export default function VendorNavbar() {
                 <p className="text-[9px] font-bold uppercase tracking-widest mt-0.5" style={{ color: "#ff7d07" }}>Vendor</p>
               </div>
               <div className="p-1.5">
-                <button onClick={() => { navigate("/profile"); setDropOpen(false); }}
-                  className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-all">
-                  Account Settings
-                </button>
-                <div style={{ borderTop: "1px solid rgba(255,125,7,0.2)" }} className="my-1" />
                 <button onClick={() => { logout(); navigate("/"); setDropOpen(false); }}
                   className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 transition-all">
                   Sign Out

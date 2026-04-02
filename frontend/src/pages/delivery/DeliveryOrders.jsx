@@ -14,72 +14,6 @@ const STATUS_CONFIG = {
   FAILED:           { label: "Failed",                        color: "bg-red-50 text-red-700 border-red-200",         next: [] },
 };
 
-
-function SendUpdateBox({ assignmentId, onSent }) {
-  const [open, setOpen] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [sending, setSending] = useState(false);
-  const showToast = useToastStore(s => s.showToast);
-
-  const QUICK_MSGS = [
-    "Picked up from vendor — heading to customer",
-    "Traffic delay, will be 20-30 mins late",
-    "Customer not reachable, attempting delivery",
-    "Left at security/reception — OTP delivered",
-    "Package delivered successfully ✅",
-  ];
-
-  const send = async (message) => {
-    setSending(true);
-    try {
-      await assignmentAPI.updateStatus(assignmentId, { status: undefined, message });
-      showToast({ message: "Update sent to vendor!", type: "success" });
-      setMsg(""); setOpen(false);
-      onSent?.();
-    } catch (err) {
-      // If status transition is blocked, still try to add a note via a different endpoint
-      showToast({ message: "Update sent!", type: "success" });
-      setMsg(""); setOpen(false);
-    } finally { setSending(false); }
-  };
-
-  return (
-    <div className="mt-3">
-      {!open ? (
-        <button onClick={() => setOpen(true)}
-          className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1.5 mt-1">
-          💬 Send Update to Vendor
-        </button>
-      ) : (
-        <div className="mt-2 p-3 bg-brand-50 rounded-xl border border-brand-200 space-y-2">
-          <p className="text-xs font-semibold text-ink-700">Quick updates:</p>
-          <div className="flex flex-wrap gap-1.5">
-            {QUICK_MSGS.map((m, i) => (
-              <button key={i} onClick={() => send(m)} disabled={sending}
-                className="text-[11px] bg-white border border-brand-200 text-brand-700 rounded-lg px-2.5 py-1.5 hover:bg-brand-100 transition-all font-medium disabled:opacity-50">
-                {m}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input value={msg} onChange={e => setMsg(e.target.value)}
-              placeholder="Or type a custom message..."
-              className="flex-1 text-xs border border-ink-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-brand-400" />
-            <button onClick={() => msg.trim() && send(msg.trim())} disabled={!msg.trim() || sending}
-              className="text-xs font-bold px-3 py-2 rounded-lg bg-brand-600 text-white disabled:opacity-40 hover:bg-brand-700">
-              Send
-            </button>
-            <button onClick={() => setOpen(false)}
-              className="text-xs px-3 py-2 rounded-lg border border-ink-200 text-ink-500 hover:bg-ink-50">
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function DeliveryOrders() {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -247,11 +181,6 @@ export default function DeliveryOrders() {
                         </button>
                       ))}
                     </div>
-                  )}
-
-                  {/* Send Update to Vendor */}
-                  {!["DELIVERED","FAILED","REASSIGNED"].includes(a.status) && (
-                    <SendUpdateBox assignmentId={a._id} onSent={() => load()} />
                   )}
                 </div>
               </div>

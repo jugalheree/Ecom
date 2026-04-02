@@ -1,7 +1,123 @@
 import { useEffect, useState } from "react";
 import Loader from "../../components/ui/Loader";
 import api from "../../services/api";
+import { platformAPI } from "../../services/apis/index";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+
+function PlatformConfigPanel() {
+  const [config, setConfig] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [commission, setCommission] = useState("");
+  const [festival, setFestival] = useState({ name: "", percent: "", endsAt: "", active: false });
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    platformAPI.getConfig().then(r => {
+      const d = r.data?.data;
+      setConfig(d);
+      setCommission(String(d?.commissionPercent ?? 5));
+      setFestival({
+        name: d?.festivalName || "",
+        percent: String(d?.festivalDiscountPercent ?? 0),
+        endsAt: d?.festivalEndsAt ? d.festivalEndsAt.slice(0, 10) : "",
+        active: d?.festivalDiscountActive || false,
+      });
+    }).catch(() => {});
+  }, []);
+
+  const saveCommission = async () => {
+    setSaving(true); setMsg("");
+    try {
+      await platformAPI.updateCommission({ commissionPercent: Number(commission) });
+      setMsg("Commission updated ✓");
+    } catch (e) { setMsg(e?.message || "Error"); }
+    finally { setSaving(false); }
+  };
+
+  const saveFestival = async () => {
+    setSaving(true); setMsg("");
+    try {
+      await platformAPI.updateFestival({
+        festivalName: festival.name,
+        festivalDiscountPercent: Number(festival.percent),
+        festivalEndsAt: festival.endsAt || null,
+        festivalDiscountActive: festival.active,
+      });
+      setMsg(festival.active ? `Festival discount activated ✓` : "Festival discount deactivated ✓");
+    } catch (e) { setMsg(e?.message || "Error"); }
+    finally { setSaving(false); }
+  };
+
+  if (!config) return null;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+      {/* Commission */}
+      <div className="card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-xl">💸</div>
+          <div>
+            <h3 className="font-display font-bold text-ink-900">Platform Commission</h3>
+            <p className="text-xs text-ink-400">Applied to every vendor sale</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input type="number" min="0" max="50" step="0.5" value={commission}
+            onChange={e => setCommission(e.target.value)}
+            className="w-24 px-3 py-2 rounded-xl border-2 border-ink-200 bg-white text-sm text-ink-900 focus:outline-none focus:border-brand-500"
+          />
+          <span className="text-ink-500 text-sm font-semibold">%</span>
+          <button onClick={saveCommission} disabled={saving}
+            className="btn-primary text-xs px-4 py-2 ml-2">
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+        <p className="text-xs text-ink-400 mt-2">Current: <strong>{config.commissionPercent}%</strong></p>
+      </div>
+
+      {/* Festival Discount */}
+      <div className="card p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-xl">🎉</div>
+          <div>
+            <h3 className="font-display font-bold text-ink-900">Festival Discount</h3>
+            <p className="text-xs text-ink-400">Applied platform-wide on top of vendor discounts</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input type="text" placeholder="Festival name (e.g. Diwali Sale)" value={festival.name}
+              onChange={e => setFestival(f => ({ ...f, name: e.target.value }))}
+              className="flex-1 px-3 py-2 rounded-xl border-2 border-ink-200 bg-white text-sm focus:outline-none focus:border-brand-500"
+            />
+            <input type="number" min="0" max="50" placeholder="%" value={festival.percent}
+              onChange={e => setFestival(f => ({ ...f, percent: e.target.value }))}
+              className="w-16 px-3 py-2 rounded-xl border-2 border-ink-200 bg-white text-sm focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <input type="date" value={festival.endsAt}
+              onChange={e => setFestival(f => ({ ...f, endsAt: e.target.value }))}
+              className="flex-1 px-3 py-2 rounded-xl border-2 border-ink-200 bg-white text-sm focus:outline-none focus:border-brand-500"
+            />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <div onClick={() => setFestival(f => ({ ...f, active: !f.active }))}
+                className={`w-11 h-6 rounded-full transition-colors relative ${festival.active ? "bg-brand-500" : "bg-ink-200"}`}>
+                <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${festival.active ? "translate-x-5" : "translate-x-0.5"}`} />
+              </div>
+              <span className="text-xs font-semibold text-ink-600">{festival.active ? "Active" : "Off"}</span>
+            </label>
+          </div>
+          <button onClick={saveFestival} disabled={saving}
+            className="btn-primary text-xs px-4 py-2 w-full">
+            {saving ? "Saving..." : festival.active ? "Activate Festival Discount" : "Deactivate"}
+          </button>
+        </div>
+      </div>
+      {msg && <p className="col-span-2 text-xs text-center font-semibold text-brand-600">{msg}</p>}
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
@@ -78,6 +194,9 @@ export default function AdminDashboard() {
           <option value="month">This Month</option>
         </select>
       </div>
+
+      {/* Commission & Festival Discount Controls */}
+      <PlatformConfigPanel />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {stats.map((s, i) => (

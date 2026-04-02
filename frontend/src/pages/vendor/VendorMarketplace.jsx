@@ -132,132 +132,342 @@ function MakeDealModal({ item, onClose, onSuccess }) {
     proposedQty: "1",
     terms: "",
     deliveryDays: "7",
-    deliveryAddress: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // ── Address state ──────────────────────────────────────────────────────
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [addressLoading, setAddressLoading] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState(""); // "" = none selected
+  const [addingNew, setAddingNew] = useState(false);
+  const [newAddress, setNewAddress] = useState({
+    name: "", phone: "", street: "", area: "", city: "", state: "", pincode: "",
+    lat: null, lng: null,
+  });
+  const [showMap, setShowMap] = useState(false);
+  const [locationPinned, setLocationPinned] = useState(false);
+
+  // Lazy-import LocationPicker to avoid top-level Leaflet issues
+  const [LocationPickerComp, setLocationPickerComp] = useState(null);
+  useEffect(() => {
+    import("../../components/map/LocationPicker").then(m => setLocationPickerComp(() => m.default));
+  }, []);
+
+  useEffect(() => {
+    import("../../services/apis/index").then(({ vendorAPI }) => {
+      vendorAPI.getProfile().then(r => {
+        // Try to get saved business addresses from vendor profile
+        const addrs = r.data?.data?.businessAddressDetails || r.data?.data?.addresses || [];
+        setSavedAddresses(addrs);
+        if (addrs.length > 0) setSelectedAddressId(addrs[0]._id || "first");
+      }).catch(() => {}).finally(() => setAddressLoading(false));
+    });
+  }, []);
+
   const total = (Number(form.proposedPrice) || 0) * (Number(form.proposedQty) || 0);
+
+  const getDeliveryAddress = () => {
+    if (addingNew) {
+      return {
+        name: newAddress.name,
+        phone: newAddress.phone,
+        street: newAddress.street,
+        area: newAddress.area,
+        city: newAddress.city,
+        state: newAddress.state,
+        pincode: newAddress.pincode,
+        lat: newAddress.lat,
+        lng: newAddress.lng,
+      };
+    }
+    if (selectedAddressId && selectedAddressId !== "first") {
+      const a = savedAddresses.find(a => (a._id || "first") === selectedAddressId);
+      if (a) return {
+        name: a.name || a.buildingNameOrNumber || "",
+        phone: a.phone || "",
+        street: a.buildingNameOrNumber || a.street || "",
+        area: a.area || "",
+        city: a.city || "",
+        state: a.state || "",
+        pincode: a.pincode || "",
+        lat: a.location?.lat || null,
+        lng: a.location?.lng || null,
+      };
+    }
+    if (savedAddresses.length > 0) {
+      const a = savedAddresses[0];
+      return {
+        name: a.name || a.buildingNameOrNumber || "",
+        phone: a.phone || "",
+        street: a.buildingNameOrNumber || a.street || "",
+        area: a.area || "",
+        city: a.city || "",
+        state: a.state || "",
+        pincode: a.pincode || "",
+        lat: a.location?.lat || null,
+        lng: a.location?.lng || null,
+      };
+    }
+    return null;
+  };
+
+  const handleMapSelect = (data) => {
+    setNewAddress(prev => ({
+      ...prev,
+      street: data.buildingNameOrNumber || prev.street,
+      area: data.area || prev.area,
+      city: data.city || prev.city,
+      state: data.state || prev.state,
+      pincode: data.pincode || prev.pincode,
+      lat: data.lat,
+      lng: data.lng,
+    }));
+    setLocationPinned(true);
+    setShowMap(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.proposedPrice || !form.proposedQty) { showToast({ message: "Price and quantity required", type: "error" }); return; }
-    if (Number(form.proposedQty) > item.stock) { showToast({ message: `Only ${item.stock} units available`, type: "error" }); return; }
+    if (!form.proposedPrice || !form.proposedQty) {
+      showToast({ message: "Price and quantity required", type: "error" }); return;
+    }
+    if (Number(form.proposedQty) > item.stock) {
+      showToast({ message: `Only ${item.stock} units available`, type: "error" }); return;
+    }
+    if (addingNew && (!newAddress.city || !newAddress.pincode)) {
+      showToast({ message: "Please complete the delivery address", type: "error" }); return;
+    }
     setSubmitting(true);
     try {
+      const deliveryAddress = getDeliveryAddress();
       await dealAPI.propose({
         listingId: item._id,
         proposedPrice: Number(form.proposedPrice),
         proposedQty: Number(form.proposedQty),
         terms: form.terms,
         deliveryDays: Number(form.deliveryDays),
-        deliveryAddress: form.deliveryAddress,
-        dealType: "VENDOR_TO_VENDOR",
+        deliveryAddress,
       });
       showToast({ message: "Deal proposed! Check your Deals page for updates.", type: "success" });
       onSuccess();
       onClose();
     } catch (err) {
       const msg = err?.response?.data?.message || "Failed to propose deal";
-      const isOwnListing = msg.toLowerCase().includes("own listing");
-      showToast({ message: isOwnListing ? "You can't make a deal on your own listing" : msg, type: "error" });
+      showToast({ message: msg.toLowerCase().includes("own listing") ? "You can't make a deal on your own listing" : msg, type: "error" });
     } finally { setSubmitting(false); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="px-6 pt-6 pb-4 border-b border-ink-100">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-ink-900 font-display">🤝 Make a Deal</h2>
-              <p className="text-sm text-ink-400 mt-0.5">Propose terms to {item.vendor?.shopName || "vendor"}</p>
+    <>
+      {/* Map overlay */}
+      {showMap && LocationPickerComp && (
+        <div className="fixed inset-0 z-[60]">
+          <LocationPickerComp
+            onLocationSelect={handleMapSelect}
+            onClose={() => setShowMap(false)}
+            initialLat={newAddress.lat}
+            initialLng={newAddress.lng}
+          />
+        </div>
+      )}
+
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+        onClick={onClose}>
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[92vh] flex flex-col"
+          onClick={e => e.stopPropagation()}>
+
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4 border-b border-ink-100 flex-shrink-0">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-ink-900 font-display">🤝 Make a Deal</h2>
+                <p className="text-sm text-ink-400 mt-0.5">Propose terms to {item.vendor?.shopName || "vendor"}</p>
+              </div>
+              <button onClick={onClose} className="w-8 h-8 rounded-xl bg-ink-50 flex items-center justify-center text-ink-600 hover:bg-ink-100">✕</button>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-xl bg-ink-50 flex items-center justify-center text-ink-600 hover:bg-ink-100">✕</button>
-          </div>
-        </div>
-
-        {/* Product info */}
-        <div className="px-6 py-4 bg-sand-50 border-b border-ink-100">
-          <p className="text-sm font-bold text-ink-900">{item.title}</p>
-          <p className="text-xs text-ink-500 mt-0.5">Listed at ₹{item.discountedPrice?.toLocaleString()}/{item.unit} · {item.stock} available</p>
-        </div>
-
-        {/* Vendor-to-Vendor delivery tag */}
-        <div className="mx-6 mt-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-50 border border-purple-200">
-          <span className="text-base">🏭</span>
-          <div>
-            <p className="text-xs font-bold text-purple-800">Vendor-to-Vendor Delivery</p>
-            <p className="text-[10px] text-purple-600">This is a B2B trade. A delivery person will be assigned to move goods between vendor warehouses.</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Delivery address for buyer-vendor */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">📍 Delivery Address *</label>
-            <textarea rows={2} required value={form.deliveryAddress}
-              onChange={e => setForm(f => ({...f, deliveryAddress: e.target.value}))}
-              placeholder="Your warehouse / shop address where goods should be delivered..."
-              className="input-base resize-none" />
-            <p className="text-[10px] text-ink-400 mt-1">The seller will see this address and a delivery person will be assigned.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Your Price (₹/unit) *</label>
-              <input type="number" min="1" required value={form.proposedPrice}
-                onChange={e => setForm(f => ({...f, proposedPrice: e.target.value}))}
-                className="input-base" />
-              {Number(form.proposedPrice) < item.discountedPrice && (
-                <p className="text-[10px] text-amber-600 mt-1">Below listed price — seller may counter</p>
+          {/* Product info */}
+          <div className="px-6 py-3 bg-sand-50 border-b border-ink-100 flex-shrink-0">
+            <p className="text-sm font-bold text-ink-900">{item.title}</p>
+            <p className="text-xs text-ink-500 mt-0.5">Listed at ₹{item.discountedPrice?.toLocaleString()}/{item.unit} · {item.stock} available</p>
+          </div>
+
+          {/* Scrollable form body */}
+          <div className="overflow-y-auto flex-1">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+              {/* Price + Qty */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Your Price (₹/unit) *</label>
+                  <input type="number" min="1" required value={form.proposedPrice}
+                    onChange={e => setForm(f => ({...f, proposedPrice: e.target.value}))}
+                    className="input-base" />
+                  {Number(form.proposedPrice) < item.discountedPrice && (
+                    <p className="text-[10px] text-amber-600 mt-1">Below listed price — seller may counter</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Quantity *</label>
+                  <input type="number" min="1" max={item.stock} required value={form.proposedQty}
+                    onChange={e => setForm(f => ({...f, proposedQty: e.target.value}))}
+                    className="input-base" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Delivery Days</label>
+                <input type="number" min="1" value={form.deliveryDays}
+                  onChange={e => setForm(f => ({...f, deliveryDays: e.target.value}))}
+                  className="input-base" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Terms & Notes (optional)</label>
+                <textarea rows={2} value={form.terms}
+                  onChange={e => setForm(f => ({...f, terms: e.target.value}))}
+                  placeholder="e.g. Payment upfront, delivery by end of month..."
+                  className="input-base resize-none" />
+              </div>
+
+              {/* ── Delivery Address ── */}
+              <div className="border-t border-ink-100 pt-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-ink-500 mb-3">📍 Delivery Address</p>
+
+                {addressLoading ? (
+                  <div className="h-10 skeleton rounded-xl" />
+                ) : (
+                  <>
+                    {/* Saved addresses */}
+                    {savedAddresses.length > 0 && !addingNew && (
+                      <div className="space-y-2 mb-3">
+                        {savedAddresses.map((a, i) => {
+                          const id = a._id || (i === 0 ? "first" : String(i));
+                          const label = [a.buildingNameOrNumber, a.area, a.city, a.pincode].filter(Boolean).join(", ");
+                          const selected = selectedAddressId === id || (i === 0 && !selectedAddressId);
+                          return (
+                            <label key={id} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selected ? "border-brand-500 bg-brand-50" : "border-ink-200 hover:border-ink-300"}`}>
+                              <input type="radio" name="savedAddr" value={id} checked={selected}
+                                onChange={() => setSelectedAddressId(id)} className="mt-0.5 accent-orange-500" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-ink-800 truncate">{label || "Saved address"}</p>
+                                {a.state && <p className="text-[11px] text-ink-400">{a.state}</p>}
+                                {(a.location?.lat || a.lat) && (
+                                  <p className="text-[10px] text-green-600 mt-0.5">📍 Location pinned</p>
+                                )}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Toggle add new */}
+                    {!addingNew ? (
+                      <button type="button" onClick={() => setAddingNew(true)}
+                        className="w-full py-2.5 rounded-xl border-2 border-dashed border-ink-300 text-sm font-semibold text-ink-500 hover:border-brand-400 hover:text-brand-600 transition-all flex items-center justify-center gap-2">
+                        <span className="text-base">＋</span> Add New Address
+                      </button>
+                    ) : (
+                      <div className="space-y-3 p-4 bg-sand-50 rounded-xl border border-ink-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-bold text-ink-600 uppercase tracking-wider">New Delivery Address</p>
+                          {savedAddresses.length > 0 && (
+                            <button type="button" onClick={() => setAddingNew(false)}
+                              className="text-xs text-ink-400 hover:text-ink-700 underline">Use saved</button>
+                          )}
+                        </div>
+
+                        {/* Map picker */}
+                        <div onClick={() => setShowMap(true)}
+                          className={`flex items-center gap-3 border-2 border-dashed rounded-xl px-3 py-2.5 cursor-pointer transition-all ${locationPinned ? "border-green-400 bg-green-50" : "border-ink-300 hover:border-brand-400 hover:bg-brand-50"}`}>
+                          <span className="text-xl">{locationPinned ? "✅" : "📍"}</span>
+                          <div className="flex-1 min-w-0">
+                            {locationPinned ? (
+                              <p className="text-xs font-semibold text-green-700">Location pinned on map</p>
+                            ) : (
+                              <p className="text-xs font-semibold text-ink-600">Pin location on map <span className="font-normal text-ink-400">(recommended)</span></p>
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold text-brand-600 bg-white border border-brand-200 px-2.5 py-1 rounded-lg whitespace-nowrap">
+                            {locationPinned ? "Edit Map" : "Open Map"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-semibold text-ink-600 mb-1">Contact Name</label>
+                            <input value={newAddress.name} onChange={e => setNewAddress(p => ({...p, name: e.target.value}))}
+                              placeholder="Recipient name" className="input-base text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-ink-600 mb-1">Phone</label>
+                            <input value={newAddress.phone} onChange={e => setNewAddress(p => ({...p, phone: e.target.value}))}
+                              placeholder="10-digit number" className="input-base text-sm" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-ink-600 mb-1">Building / Street</label>
+                          <input value={newAddress.street} onChange={e => setNewAddress(p => ({...p, street: e.target.value}))}
+                            placeholder="Shop no., building, street" className="input-base text-sm" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-semibold text-ink-600 mb-1">Area</label>
+                            <input value={newAddress.area} onChange={e => setNewAddress(p => ({...p, area: e.target.value}))}
+                              placeholder="Area / locality" className="input-base text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-ink-600 mb-1">City *</label>
+                            <input value={newAddress.city} onChange={e => setNewAddress(p => ({...p, city: e.target.value}))}
+                              placeholder="City" className="input-base text-sm" required />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-semibold text-ink-600 mb-1">State</label>
+                            <input value={newAddress.state} onChange={e => setNewAddress(p => ({...p, state: e.target.value}))}
+                              placeholder="State" className="input-base text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-ink-600 mb-1">Pincode *</label>
+                            <input value={newAddress.pincode} onChange={e => setNewAddress(p => ({...p, pincode: e.target.value}))}
+                              placeholder="6 digits" maxLength={6} className="input-base text-sm" required />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Total */}
+              {total > 0 && (
+                <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl text-center">
+                  <p className="text-xs text-green-600 font-medium">Deal Total</p>
+                  <p className="text-2xl font-bold text-green-700">₹{total.toLocaleString()}</p>
+                  <p className="text-xs text-green-500">{form.proposedQty} units × ₹{form.proposedPrice}/unit</p>
+                </div>
               )}
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Quantity *</label>
-              <input type="number" min="1" max={item.stock} required value={form.proposedQty}
-                onChange={e => setForm(f => ({...f, proposedQty: e.target.value}))}
-                className="input-base" />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Delivery Days</label>
-            <input type="number" min="1" value={form.deliveryDays}
-              onChange={e => setForm(f => ({...f, deliveryDays: e.target.value}))}
-              className="input-base" />
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={onClose}
+                  className="flex-1 py-3 rounded-xl border-2 border-ink-200 text-sm font-semibold text-ink-600 hover:border-ink-400">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting}
+                  className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg,#f05f00,#ff7d07)" }}>
+                  {submitting ? "Proposing..." : "Propose Deal 🤝"}
+                </button>
+              </div>
+            </form>
           </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-ink-400 mb-2">Terms & Notes (optional)</label>
-            <textarea rows={2} value={form.terms}
-              onChange={e => setForm(f => ({...f, terms: e.target.value}))}
-              placeholder="e.g. Payment upfront, delivery by end of month..."
-              className="input-base resize-none" />
-          </div>
-
-          {total > 0 && (
-            <div className="p-3.5 bg-green-50 border border-green-200 rounded-xl text-center">
-              <p className="text-xs text-green-600 font-medium">Deal Total</p>
-              <p className="text-2xl font-bold text-green-700">₹{total.toLocaleString()}</p>
-              <p className="text-xs text-green-500">{form.proposedQty} units × ₹{form.proposedPrice}/unit</p>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-3 rounded-xl border-2 border-ink-200 text-sm font-semibold text-ink-600 hover:border-ink-400">
-              Cancel
-            </button>
-            <button type="submit" disabled={submitting}
-              className="flex-1 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
-              style={{ background: "linear-gradient(135deg,#f05f00,#ff7d07)" }}>
-              {submitting ? "Proposing..." : "Propose Deal 🤝"}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -804,19 +1014,14 @@ export default function VendorMarketplace() {
     setPreviewItem({ productId, item });
   };
 
-  const [hideOwnListings, setHideOwnListings] = useState(true);
-
   // Client-side search filter
   const filteredListings = listings.filter((item) => {
-    if (search) {
-      const q = search.toLowerCase();
-      if (!item.title?.toLowerCase().includes(q) && !item.vendor?.shopName?.toLowerCase().includes(q)) return false;
-    }
-    if (hideOwnListings && myVendorId) {
-      const isOwn = item.vendorId?._id === myVendorId || item.vendorId === myVendorId || item.vendor?._id === myVendorId;
-      if (isOwn) return false;
-    }
-    return true;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      item.title?.toLowerCase().includes(q) ||
+      item.vendor?.shopName?.toLowerCase().includes(q)
+    );
   });
 
   const newListings = filteredListings.filter((l) => l.listingType === "NEW");
@@ -871,7 +1076,7 @@ export default function VendorMarketplace() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Search + Sort + Hide own */}
+        {/* Search + Sort */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400"
@@ -892,16 +1097,6 @@ export default function VendorMarketplace() {
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
           </select>
-          <button
-            onClick={() => setHideOwnListings(v => !v)}
-            className={`flex-shrink-0 px-4 py-3 rounded-xl text-sm font-semibold border-2 transition-all ${
-              hideOwnListings
-                ? "bg-ink-900 text-white border-ink-900"
-                : "bg-white text-ink-600 border-ink-200 hover:border-ink-400"
-            }`}
-          >
-            {hideOwnListings ? "👁 Showing Others" : "👁 Showing All"}
-          </button>
         </div>
 
         {/* Category filter */}
