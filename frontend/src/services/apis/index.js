@@ -32,6 +32,7 @@ export const vendorAPI = {
     api.post(`/api/vendor/products/${productId}/images`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+  products: () => api.get("/api/vendor/products"),
   products: (params) => api.get("/api/vendor/products", { params }),
 
   // ── Vendor Orders ──
@@ -48,6 +49,7 @@ export const vendorAPI = {
   refundReturn: (returnId, data) =>
     api.patch(`/api/vendor/orders/returns/${returnId}/refund`, data),
 
+  // NOTE: updateProduct, deleteProduct, updateStock endpoints do not exist in the current backend.
   updateProduct: (productId, data) =>
     api.patch(`/api/vendor/products/${productId}`, data),
   deleteProduct: (productId) =>
@@ -187,6 +189,8 @@ export const marketplaceAPI = {
   getCategoryTree: () => api.get("/api/marketplace/categories/tree"),
   getProductsByCategory: (categoryId, params) =>
     api.get(`/api/marketplace/categories/${categoryId}/products`, { params }),
+  getProductDetails: (productId) =>
+    api.get(`/api/marketplace/products/${productId}`),
   getCategoryFilters: (categoryId) =>
     api.get(`/api/marketplace/categories/${categoryId}/filters`),
   getProductDetails: (productId) =>

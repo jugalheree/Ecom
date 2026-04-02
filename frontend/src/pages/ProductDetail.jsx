@@ -27,7 +27,9 @@ export default function ProductDetail() {
   const isWishlisted = wishlist?.some((w) => w._id === id);
 
   useEffect(() => {
-    setLoading(true); setSimilar([]); setActiveImage(0);
+    setLoading(true);
+    setSimilar([]);
+    setActiveImage(0);
     marketplaceAPI.getProductDetails(id)
       .then((res) => {
         const data = res.data?.data;
@@ -36,7 +38,9 @@ export default function ProductDetail() {
         setAttributes(data?.attributes || []);
         const imgs = [];
         if (data?.primaryImage?.imageUrl) imgs.push(data.primaryImage);
-        (data?.images || []).forEach((img) => { if (!imgs.find((i) => i.imageUrl === img.imageUrl)) imgs.push(img); });
+        (data?.images || []).forEach((img) => {
+          if (!imgs.find((i) => i.imageUrl === img.imageUrl)) imgs.push(img);
+        });
         setImages(imgs);
       })
       .catch(() => {})
@@ -121,8 +125,10 @@ export default function ProductDetail() {
               {discount > 0 && (
                 <span className="absolute top-3 left-3 bg-brand-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">-{discount}%</span>
               )}
-              <button onClick={() => { toggleWishlist(product); showToast({ message: isWishlisted ? "Removed from wishlist" : "Added to wishlist!", type: "success" }); }}
-                className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white shadow-card flex items-center justify-center hover:scale-110 transition-transform border border-ink-100">
+              <button
+                onClick={() => { toggleWishlist(product); showToast({ message: isWishlisted ? "Removed from wishlist" : "Added to wishlist!", type: "success" }); }}
+                className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white shadow-card flex items-center justify-center hover:scale-110 transition-transform border border-ink-100"
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill={isWishlisted ? "#f05f00" : "none"} stroke={isWishlisted ? "#f05f00" : "#8e8e9a"} strokeWidth="2">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
@@ -184,14 +190,24 @@ export default function ProductDetail() {
               <p className="text-sm text-danger-500 font-medium">Out of Stock</p>
             )}
 
+            {/* Delivery info */}
+            {product.minDeliveryDays && (
+              <p className="text-xs text-ink-500">
+                🚚 Delivered in {product.minDeliveryDays}–{product.maxDeliveryDays} days
+              </p>
+            )}
+
             {/* Quantity */}
             <div className="flex items-center gap-4">
               <span className="text-sm font-semibold text-ink-700">Quantity</span>
               <div className="flex items-center border border-ink-200 rounded-xl overflow-hidden bg-white">
-                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3.5 py-2 text-ink-500 hover:bg-ink-50 text-lg transition-colors">−</button>
+                <button onClick={() => setQuantity(Math.max(product.minOrderQty || 1, quantity - 1))} className="px-3.5 py-2 text-ink-500 hover:bg-ink-50 text-lg transition-colors">−</button>
                 <span className="px-4 py-2 text-sm font-semibold text-ink-900 min-w-[36px] text-center">{quantity}</span>
                 <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="px-3.5 py-2 text-ink-500 hover:bg-ink-50 text-lg transition-colors">+</button>
               </div>
+              {product.minOrderQty > 1 && (
+                <span className="text-xs text-ink-400">Min. {product.minOrderQty}</span>
+              )}
             </div>
 
             {/* Actions */}
@@ -226,7 +242,7 @@ export default function ProductDetail() {
               </a>
             )}
 
-            {/* Trust */}
+            {/* Trust badges */}
             <div className="grid grid-cols-3 gap-3">
               {[
                 { icon: "🔒", label: "Secure Payment" },

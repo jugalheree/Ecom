@@ -258,6 +258,12 @@ export default function VendorOrders() {
     delivered: orders.filter((o) => o.orderStatus === "DELIVERED").length,
   };
 
+  const handlePickup = (returnId) =>
+    act(() => markReturnPickedUp(returnId), "Marked as picked up!");
+
+  const handleReceive = (returnId) =>
+    act(() => markReturnReceived(returnId), "Marked as received!");
+
   return (
     <div className="min-h-screen bg-sand-50 p-6">
       <div className="mb-6">

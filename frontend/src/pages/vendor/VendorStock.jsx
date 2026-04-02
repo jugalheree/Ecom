@@ -14,7 +14,7 @@ export default function VendorStock() {
   const highlightId = searchParams.get("highlight");
   const highlightRef = useRef(null);
 
-  const load = () => {
+  const load = async () => {
     setLoading(true);
     vendorAPI.products({ limit: 100 })
       .then((r) => {
